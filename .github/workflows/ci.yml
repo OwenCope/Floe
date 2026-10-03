@@ -132,3 +132,30 @@ jobs:
           output="$(Build/Build/Products/Debug/Floe.app/Contents/MacOS/Floe --selftest hello planets)"
           echo "$output"
           grep -q '^SELFTEST OK' <<<"$output"
+
+  sonarqube:
+    needs: build
+    if: github.repository == 'thaw-app/Floe'
+    runs-on: ubuntu-latest
+    env:
+      # Forks and Dependabot get no SONAR_TOKEN on pull_request.
+      SONAR_ENABLED: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    steps:
+      - name: Skip SonarQube for fork / Dependabot PRs
+        if: env.SONAR_ENABLED != 'true'
+        run: |
+          echo "Skipping SonarQube analysis (fork or Dependabot PR; no SONAR_TOKEN access)"
+          echo "Analysis will be performed after merge to the default branch"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.SONAR_ENABLED == 'true'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # No test target yet, so there is no coverage report to pass.
+      - name: SonarQube Scan
+        if: env.SONAR_ENABLED == 'true'
+        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
