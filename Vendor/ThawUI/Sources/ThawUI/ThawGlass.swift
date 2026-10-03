@@ -105,8 +105,9 @@ private struct ThawGlassModifier<S: InsettableShape>: ViewModifier {
         // where the system has no glass to draw: Reduce Transparency, and
         // Increase Contrast, where an edge must be visible.
         case .panel:
+            // Liquid Glass draws its own rim here; an extra hairline reads as a
+            // broken dark border around the panel.
             surface(content, interactive: false)
-                .overlay(fallbackEdge(0.5))
         case .control:
             surface(content, interactive: true)
                 .overlay(fallbackEdge(0.65))

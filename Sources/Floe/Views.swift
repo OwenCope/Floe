@@ -197,7 +197,43 @@ struct RootView: View {
                     }
                 }
             }
+            bottomBar(results: results)
         }
+    }
+
+    /// The Thaw-style bottom bar: settings on the left, the selected row's
+    /// actions with their key equivalents on the right.
+    private func bottomBar(results: [RootResult]) -> some View {
+        HStack(spacing: ThawSpacing.row) {
+            Button {
+                model.hidePanel()
+                model.openSettings(nil)
+            } label: {
+                Image(systemName: "gearshape")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.secondary)
+                    .padding(ThawSpacing.hairline)
+            }
+            .help("Open Settings")
+            .accessibilityLabel("Open Settings")
+
+            Spacer(minLength: 0)
+
+            if let selected = results.indices.contains(model.selection) ? results[model.selection].item : nil {
+                ShortcutHintButton(title: "Favorite") { model.toggleFavorite(selected) } hint: {
+                    KeyCapView(text: "⌘")
+                    Text(verbatim: "+")
+                    KeyCapView(text: "⇧")
+                    KeyCapView(text: "F")
+                }
+                ShortcutHintButton(title: "Open") { model.activate(selected) } hint: {
+                    KeyCapView(systemImage: "return")
+                }
+            }
+        }
+        .padding(.horizontal, ThawSpacing.inset)
+        .padding(.vertical, ThawSpacing.row)
     }
 }
 
@@ -216,10 +252,16 @@ struct RootRow: View {
     let selected: Bool
 
     var body: some View {
-        PaletteRow(title: item.title, subtitle: item.subtitle ?? item.kind, selected: selected) {
+        PaletteRow(title: item.title, subtitle: nil, selected: selected) {
             RootIcon(item: item)
         } trailing: {
             HStack(spacing: ThawSpacing.compact) {
+                // Raycast-style: the kind sits on the row's right edge instead
+                // of a second line, so the name uses the full width.
+                Text(item.kind)
+                    .font(ThawType.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 if model.isFavorite(item) {
                     Image(systemName: "star.fill").font(ThawType.caption).foregroundStyle(.yellow)
                         .accessibilityLabel("Favorite")
@@ -799,26 +841,41 @@ struct IconView: View {
     var body: some View {
         let tint = Palette.color(Self.attribute("tintColor", in: value))
         let isCircle = Self.attribute("mask", in: value) as? String == "circle"
-        Group {
+        // Every icon sits in the same glass squircle, Raycast-style: bare
+        // symbols next to squircled asset icons read as two different things.
+        let squircle = self.squircle(isCircle)
+        return Group {
             switch resolve(value) {
             case let .symbol(name):
-                Image(systemName: name).font(.system(size: size * 0.8)).foregroundStyle(tint ?? .secondary)
+                Image(systemName: name)
+                    .font(.system(size: size * 0.55))
+                    .foregroundStyle(tint ?? .secondary)
             case let .image(image):
                 // A tint makes the image a template, as Raycast does for monochrome assets.
                 if let tint {
-                    Image(nsImage: image).renderingMode(.template).resizable().scaledToFit().foregroundStyle(tint)
+                    Image(nsImage: image)
+                        .resizable().scaledToFit()
+                        .foregroundStyle(tint)
                 } else {
-                    Image(nsImage: image).resizable().scaledToFit()
+                    Image(nsImage: image)
+                        .resizable().scaledToFill()
                 }
             case let .remote(url):
-                AsyncImage(url: url) { $0.resizable().scaledToFit() } placeholder: { Color.clear }
+                AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { Color.clear }
             case let .text(text):
-                Text(text).font(.system(size: size * 0.8))
+                Text(text).font(.system(size: size * 0.55))
             case .none:
                 Color.clear
             }
         }
         .frame(width: size, height: size)
-        .clipShape(isCircle ? AnyShape(Circle()) : AnyShape(Rectangle()))
+        .background(.quinary, in: squircle)
+        .clipShape(squircle)
+    }
+
+    private func squircle(_ isCircle: Bool) -> RoundedRectangle {
+        isCircle
+            ? RoundedRectangle(cornerRadius: size / 2, style: .continuous)
+            : RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
     }
 }

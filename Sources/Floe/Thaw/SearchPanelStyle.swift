@@ -44,7 +44,7 @@ struct SearchQueryField<Accessory: View>: View {
             accessory
         }
         .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
-        .thawGlass(.field(isFocused: isFocused), in: Capsule(style: .continuous))
+        .thawGlass(.field(isFocused: isFocused), in: RoundedRectangle(cornerRadius: ThawRadius.control, style: .continuous))
         .padding(.horizontal, ThawSpacing.inset)
         .padding(.top, ThawSpacing.inset)
         .padding(.bottom, ThawSpacing.row)
@@ -102,9 +102,9 @@ struct SearchRowBackground: ViewModifier {
                     // The opaque base keeps the panel's glass from refracting behind the selected row.
                     shape
                         .fill(Color(nsColor: .controlBackgroundColor))
-                        .overlay { Color.clear.thawGlass(.selection(.accentColor, strength: .selected), in: shape) }
+                        .overlay { Color.clear.thawGlass(.selection(Color.primary, strength: .selected), in: shape) }
                 } else if isHovering {
-                    Color.clear.thawGlass(.selection(.accentColor, strength: .hover), in: shape)
+                    Color.clear.thawGlass(.selection(Color.primary, strength: .hover), in: shape)
                 }
             }
             // Under Differentiate Without Color the accent wash alone is not a mark.
