@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // NDJSON bridge between the Bun extension host and the Swift app.
 // stdout carries protocol messages only; console output is redirected to stderr by host.ts.

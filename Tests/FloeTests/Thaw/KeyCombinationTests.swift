@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 import AppKit
 import Carbon.HIToolbox

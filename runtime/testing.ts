@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Shared by smoke.ts and survey.ts: start the host for one command and read what it sends.
 import path from "node:path";

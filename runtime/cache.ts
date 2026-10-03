@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // The extension Cache: an LRU byte budget over string values, persisted per namespace. Capacity is
 // per instance, so several caches or namespaces can consume several budgets at once.

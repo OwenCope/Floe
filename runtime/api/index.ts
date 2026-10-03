@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Stand-in for @raycast/api. Components render to plain host elements that renderer.ts serializes;
 // everything else either runs locally in Bun or is forwarded to the Swift app over the bridge.

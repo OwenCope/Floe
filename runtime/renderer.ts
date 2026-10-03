@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Custom React renderer: keeps a plain object tree and ships it to Swift as JSON after each commit.
 import React from "react";

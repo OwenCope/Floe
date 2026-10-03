@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Extension host. Usage: bun host.ts <extensionDir> <commandName> [argumentsJSON]
 // Loads one Raycast command, renders it with the custom reconciler, and talks NDJSON with the Swift app.

@@ -47,7 +47,7 @@ Commands with required preferences or arguments ask for them in the panel before
 
 ## License
 
-GPL-3.0, because it includes ThawUI from Thaw. Extensions under `extensions/` keep their own licenses.
+AGPL-3.0. ThawUI and the other code from Thaw stay under GPL-3.0, which the AGPL allows combining with. Extensions under `extensions/` keep their own licenses.
 
 ## Adding an extension
 

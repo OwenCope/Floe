@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Standalone benchmark: renders one parent with N keyed children through the production renderer and
 // times until the matching complete tree arrives at the bridge sink. The elapsed time includes React

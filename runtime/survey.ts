@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Compatibility survey: bun survey.ts <dir of extensions> [seconds per command]
 // Runs up to two view commands per extension headlessly; no-view commands are skipped since they act on the system.

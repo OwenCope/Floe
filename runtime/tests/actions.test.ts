@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import fs from "node:fs";

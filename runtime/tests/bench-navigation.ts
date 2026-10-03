@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Standalone memory and wire-size workload for navigation snapshots: a hidden root list of 10,000
 // rows with actions, a small detail pushed on top, more stacked details, a hidden root update and a

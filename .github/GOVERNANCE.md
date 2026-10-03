@@ -12,7 +12,7 @@ Floe is an early project with one maintainer, hosted in the [`thaw-app`](https:/
 4. **Organization:** The repository belongs to the `thaw-app` organization, so the organization's owners can administer it if the maintainer is unavailable.
 5. **Security:** Vulnerability handling follows the [organization Security Policy](https://github.com/thaw-app/.github/blob/main/.github/SECURITY.md). Public discussion of unfixed vulnerabilities is not appropriate.
 
-Forking remains always available under the GPL-3.0 license; governance here only describes how *this* project operates.
+Forking remains always available under the AGPL-3.0 license; governance here only describes how *this* project operates.
 
 ## Roles and responsibilities
 

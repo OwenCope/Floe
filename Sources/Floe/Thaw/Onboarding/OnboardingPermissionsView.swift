@@ -114,7 +114,7 @@ struct ThawPermissionsView: View {
         VStack(alignment: .leading, spacing: 8) {
             privacyFact("No analytics or usage tracking")
             privacyFact("Permission checks stay on your Mac")
-            privacyFact("Open source under the GPL, so you can read how it works")
+            privacyFact("Open source under the AGPL, so you can read how it works")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

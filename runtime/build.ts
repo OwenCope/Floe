@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Finds a command's entry file and bundles it for the host. Reads the extension and command from ctx,
 // which host.ts fills in before calling.

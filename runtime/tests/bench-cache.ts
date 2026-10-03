@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Standalone memory workload for the extension cache: 32 MiB of generated values go through a cache
 // with a 1 MiB capacity, and process.memoryUsage() is sampled along the way. Values are created one at

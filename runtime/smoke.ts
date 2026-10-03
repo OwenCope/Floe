@@ -3,7 +3,7 @@
 //  Project: Floe
 //
 //  Copyright (Floe) © 2026 René Jiménez
-//  Licensed under the GNU GPLv3
+//  Licensed under the GNU AGPLv3
 
 // Drives host.ts headlessly: bun smoke.ts <extDir> <command>. Prints a summary of each render, then
 // runs the second action, the first action, and pops back out. SMOKE_PASSIVE=1 stops at the first list.
