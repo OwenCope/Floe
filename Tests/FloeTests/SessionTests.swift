@@ -373,4 +373,53 @@ struct ExtensionSessionTests {
         session.activateMenuEntry(at: 9)
         #expect(recorder.sent.isEmpty)
     }
+
+    // MARK: Receive timings
+
+    /// Opt-in samples (FLOE_PERF_REPORT=1) for how long the host's bytes take to frame, decode and
+    /// apply through the session's receive path, which does all of that on one thread. The samples
+    /// include the row recomputation, since the receive path cannot separate the two.
+    @Test(.disabled(if: ProcessInfo.processInfo.environment["FLOE_PERF_REPORT"] == nil))
+    func reportReceiveTimings() throws {
+        for count in [1000, 10000] {
+            let message = try JSONSerialization.data(withJSONObject: ["type": "render", "tree": Self.syntheticTree(count: count)]) + Data("\n".utf8)
+            let chunks = stride(from: 0, to: message.count, by: 1024).map { start in
+                message[start ..< min(start + 1024, message.count)]
+            }
+            var oneChunk: [Double] = []
+            var inKibChunks: [Double] = []
+            for _ in 0 ..< 5 {
+                oneChunk.append(Self.milliseconds { session.receive(message) })
+                #expect(session.rows.map(\.id) == Array(100 ..< 100 + count), "the whole tree is applied")
+                inKibChunks.append(Self.milliseconds { for chunk in chunks {
+                    session.receive(chunk)
+                } })
+                #expect(session.rows.map(\.id) == Array(100 ..< 100 + count), "chunks reassemble into the same tree")
+            }
+            Self.report("receive", items: count, oneChunk: oneChunk, inKibChunks: inKibChunks)
+        }
+    }
+
+    private static func syntheticTree(count: Int) -> [String: Any] {
+        Fixture.node("root", id: 0, children: [
+            Fixture.node("_screen", id: 2, children: [
+                Fixture.node("List", id: 3, children: (0 ..< count).map { index in
+                    Fixture.item("Item \(index)", id: 100 + index, actions: [Fixture.action("Show", id: 100_000 + index)])
+                }),
+            ]),
+        ])
+    }
+
+    private static func milliseconds(_ body: () -> Void) -> Double {
+        let start = DispatchTime.now()
+        body()
+        return Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000
+    }
+
+    private static func report(_ label: String, items: Int, oneChunk: [Double], inKibChunks: [Double]) {
+        func format(_ samples: [Double]) -> String {
+            samples.map { String(format: "%.2f", $0) }.joined(separator: ", ")
+        }
+        print("[perf] \(label) items=\(items) oneChunk(ms)=\(format(oneChunk)) kibChunks(ms)=\(format(inKibChunks))")
+    }
 }
