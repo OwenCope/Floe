@@ -5,9 +5,9 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
+@testable import Floe
 import Foundation
 import Testing
-@testable import Floe
 
 struct MarkdownParserTests {
     @Test(arguments: [("# Title", 1, "Title"), ("## Sub", 2, "Sub"), ("###### Deep", 6, "Deep"), ("#   Spaced", 1, "Spaced")])

@@ -24,7 +24,14 @@ enum Paths {
 
     static let isDevelopment = ProcessInfo.processInfo.environment["FLOE_ROOT"] != nil || bundledRuntime == nil
 
-    static let runtime = isDevelopment ? checkout.appendingPathComponent("runtime") : bundledRuntime!
+    /// The bundled runtime, or the checkout's in development and when the bundle has none.
+    static let runtime: URL = {
+        if !isDevelopment, let bundledRuntime {
+            return bundledRuntime
+        }
+        return checkout.appendingPathComponent("runtime")
+    }()
+
     static let host = runtime.appendingPathComponent("host.ts")
 
     static let support = FileManager.default.homeDirectoryForCurrentUser
@@ -51,6 +58,7 @@ enum Paths {
         try? fileManager.createDirectory(at: data, withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: extensions, withIntermediateDirectories: true)
     }
+
     /// The checkout's sample extensions, listed only while developing.
     static let developmentExtensions: URL? = isDevelopment ? checkout.appendingPathComponent("extensions") : nil
     /// Extensions the Raycast app has installed. Read-only: builds and storage go to our own support folder.
@@ -60,11 +68,13 @@ enum Paths {
     static let bun: String? = {
         let environment = ProcessInfo.processInfo.environment
         let onPath = (environment["PATH"] ?? "").split(separator: ":").map { URL(fileURLWithPath: String($0)).appendingPathComponent("bun").path }
-        return ([runtime.appendingPathComponent("bin/bun").path, environment["FLOE_BUN"]].compactMap { $0 } + onPath)
+        return ([runtime.appendingPathComponent("bin/bun").path, environment["FLOE_BUN"]].compactMap(\.self) + onPath)
             .first { FileManager.default.isExecutableFile(atPath: $0) }
     }()
 
-    static var isBunBundled: Bool { bun == runtime.appendingPathComponent("bin/bun").path }
+    static var isBunBundled: Bool {
+        bun == runtime.appendingPathComponent("bin/bun").path
+    }
 }
 
 extension AppEntry {
@@ -82,7 +92,9 @@ extension AppEntry {
                 let url = URL(fileURLWithPath: folder).appendingPathComponent(entry)
                 let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
                 // Safari lives in the cryptex and shows up again in /Applications; one entry per app name.
-                if seen.insert(name).inserted { apps.append(AppEntry(name: name, url: url)) }
+                if seen.insert(name).inserted {
+                    apps.append(AppEntry(name: name, url: url))
+                }
             }
         }
         return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -104,9 +116,8 @@ extension ExtensionCommand {
     static func scan(root: URL, source: Source) -> [ExtensionCommand] {
         let folders = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
         return folders.sorted { $0.lastPathComponent < $1.lastPathComponent }.flatMap { folder -> [ExtensionCommand] in
-            guard let data = try? Data(contentsOf: folder.appendingPathComponent("package.json")),
-                  let manifest = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [] }
-            return commands(inManifest: manifest, folder: folder, source: source)
+            guard let data = try? Data(contentsOf: folder.appendingPathComponent("package.json")) else { return [] }
+            return commands(inManifest: data, folder: folder, source: source)
         }
     }
 }

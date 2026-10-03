@@ -15,7 +15,11 @@ extension AppSettings {
         get { SMAppService.mainApp.status == .enabled }
         set {
             objectWillChange.send()
-            try? newValue ? SMAppService.mainApp.register() : SMAppService.mainApp.unregister()
+            if newValue {
+                try? SMAppService.mainApp.register()
+            } else {
+                try? SMAppService.mainApp.unregister()
+            }
         }
     }
 }
@@ -43,7 +47,9 @@ enum PreferenceStore {
     /// The stored value for one field, without falling back to its default.
     static func value(_ field: FieldSpec, extensionName: String, command: ExtensionCommand?) -> Any? {
         let key = storageKey(field, command: command)
-        if field.isSecret { return Keychain.read(account: "\(extensionName)/\(key)") }
+        if field.isSecret {
+            return Keychain.read(account: "\(extensionName)/\(key)")
+        }
         return storedValues(extensionName)[key]
     }
 
@@ -54,7 +60,11 @@ enum PreferenceStore {
             let value = values[field.name]
             if field.isSecret {
                 let account = "\(extensionName)/\(key)"
-                if let text = value as? String, !text.isEmpty { Keychain.write(text, account: account) } else { Keychain.delete(account: account) }
+                if let text = value as? String, !text.isEmpty {
+                    Keychain.write(text, account: account)
+                } else {
+                    Keychain.delete(account: account)
+                }
             } else {
                 stored[key] = value
             }
@@ -68,7 +78,9 @@ enum PreferenceStore {
     /// Everything a command's `getPreferenceValues()` should return: stored values, then defaults.
     static func resolvedValues(for command: ExtensionCommand) -> [String: Any] {
         PreferenceResolver.resolve(
-            extensionFields: command.extensionPreferences, commandFields: command.commandPreferences, commandName: command.name,
+            extensionFields: command.extensionPreferences,
+            commandFields: command.commandPreferences,
+            commandName: command.name,
             stored: storedValues(command.extensionName),
             secret: { Keychain.read(account: "\(command.extensionName)/\($0)") }
         )
@@ -80,24 +92,14 @@ enum PreferenceStore {
 }
 
 enum Keychain {
-    private static let service = "com.diazdesandi.Floe.preferences"
-    /// Items saved before the rename to Floe; read as a fallback and moved over on first use.
-    private static let legacyService = "com.diazdesandi.launcher-proto.preferences"
+    private static let service = "com.thaw.floe.preferences"
 
-    private static func query(_ account: String, service: String = service) -> [String: Any] {
+    private static func query(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
     }
 
     static func read(account: String) -> String? {
-        if let value = read(account: account, service: service) { return value }
-        guard let legacy = read(account: account, service: legacyService) else { return nil }
-        write(legacy, account: account)
-        SecItemDelete(query(account, service: legacyService) as CFDictionary)
-        return legacy
-    }
-
-    private static func read(account: String, service: String) -> String? {
-        var query = query(account, service: service)
+        var query = query(account)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: AnyObject?

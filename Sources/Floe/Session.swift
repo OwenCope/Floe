@@ -39,9 +39,13 @@ final class ExtensionSession: ObservableObject {
             actionSelection = 0
         }
     }
+
     @Published var actionSelection = 0
     /// Typed while the action menu is open; filters every action, submenus included.
-    @Published var actionQuery = "" { didSet { actionSelection = 0 } }
+    @Published var actionQuery = "" {
+        didSet { actionSelection = 0 }
+    }
+
     /// Open submenus, outermost first.
     @Published private(set) var actionPath: [Node] = []
     /// Recomputed only when the tree or the search text changes, not on every redraw.
@@ -67,10 +71,10 @@ final class ExtensionSession: ObservableObject {
         // Nothing is running yet.
     }
 
-    let process = Process()
-    let input = Pipe()
-    let output = Pipe()
-    let errors = Pipe()
+    /// Runs the host and ends when it does; cancelling it stops the host.
+    var hostTask: Task<Void, Never>?
+    /// Set while the host is running.
+    var processID: pid_t?
     private var buffer = Data()
     /// The tail of the host's stderr, shown on the error screen.
     private(set) var log = ""
@@ -96,9 +100,11 @@ final class ExtensionSession: ObservableObject {
     func receive(_ data: Data) {
         buffer.append(data)
         while let newline = buffer.firstIndex(of: 0x0A) {
-            let line = buffer.subdata(in: buffer.startIndex..<newline)
-            buffer.removeSubrange(buffer.startIndex...newline)
-            if let message = try? JSONSerialization.jsonObject(with: line) as? [String: Any] { handle(message) }
+            let line = buffer.subdata(in: buffer.startIndex ..< newline)
+            buffer.removeSubrange(buffer.startIndex ... newline)
+            if let message = try? JSONSerialization.jsonObject(with: line) as? [String: Any] {
+                handle(message)
+            }
         }
     }
 
@@ -123,27 +129,37 @@ final class ExtensionSession: ObservableObject {
         case "toast":
             let id = message["id"] as? Int ?? 0
             if message["hidden"] as? Bool == true {
-                if toast?.id == id { toast = nil }
+                if toast?.id == id {
+                    toast = nil
+                }
             } else {
-                let state = ToastState(id: id, style: message["style"] as? String ?? "success",
-                                       title: message["title"] as? String ?? "", message: message["message"] as? String)
+                let state = ToastState(
+                    id: id,
+                    style: message["style"] as? String ?? "success",
+                    title: message["title"] as? String ?? "",
+                    message: message["message"] as? String
+                )
                 toast = state
                 guard state.style != "animated" else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-                    if self?.toast == state { self?.toast = nil }
+                    if self?.toast == state {
+                        self?.toast = nil
+                    }
                 }
             }
         case "error":
             let text = message["message"] as? String ?? "Unknown error"
             if message["fatal"] as? Bool == true {
-                let details = [message["stack"] as? String, log.isEmpty ? nil : log].compactMap { $0 }.joined(separator: "\n\n")
+                let details = [message["stack"] as? String, log.isEmpty ? nil : log].compactMap(\.self).joined(separator: "\n\n")
                 failure = SessionFailure(kind: .error, message: text, details: details)
             } else {
                 toast = ToastState(id: -1, style: "failure", title: "Extension error", message: text)
             }
         case "pong":
             pingSentAt = nil
-            if failure?.kind == .unresponsive { failure = nil }
+            if failure?.kind == .unresponsive {
+                failure = nil
+            }
         case "clearSearchBar":
             searchText = ""
         default:
@@ -152,8 +168,10 @@ final class ExtensionSession: ObservableObject {
     }
 
     func appendLog(_ data: Data) {
-        log += String(decoding: data, as: UTF8.self)
-        if log.count > 20_000 { log = String(log.suffix(16_000)) }
+        log += String(bytes: data, encoding: .utf8) ?? ""
+        if log.count > 20000 {
+            log = String(log.suffix(16000))
+        }
     }
 
     /// Exit status 0 is a normal finish; anything else, or a signal, is a crash unless we asked it to stop.
@@ -184,21 +202,42 @@ final class ExtensionSession: ObservableObject {
 
     // MARK: Derived view state
 
-    var screen: Node? { ViewState.screen(in: root) }
-    var view: Node? { ViewState.view(in: root) }
-    var isList: Bool { ViewState.isList(view) }
+    var screen: Node? {
+        ViewState.screen(in: root)
+    }
+
+    var view: Node? {
+        ViewState.view(in: root)
+    }
+
+    var isList: Bool {
+        ViewState.isList(view)
+    }
 
     private func recomputeRows() {
         rows = ViewState.rows(of: view, searchText: searchText)
     }
 
-    var selectedRow: Row? { ViewState.selectedRow(rows, selection: selection) }
-    var actionPanel: Node? { ViewState.actionPanel(view: view, selectedRow: selectedRow) }
-    var actions: [Node] { ViewState.actions(in: actionPanel) }
-    var menuEntries: [MenuEntry] { ViewState.menuEntries(in: actionPath.last ?? actionPanel, query: actionQuery) }
+    var selectedRow: Row? {
+        ViewState.selectedRow(rows, selection: selection)
+    }
+
+    var actionPanel: Node? {
+        ViewState.actionPanel(view: view, selectedRow: selectedRow)
+    }
+
+    var actions: [Node] {
+        ViewState.actions(in: actionPanel)
+    }
+
+    var menuEntries: [MenuEntry] {
+        ViewState.menuEntries(in: actionPath.last ?? actionPanel, query: actionQuery)
+    }
 
     func openSubmenu(_ submenu: Node) {
-        if submenu.handlers.contains("onOpen") { event(submenu, "onOpen") }
+        if submenu.handlers.contains("onOpen") {
+            event(submenu, "onOpen")
+        }
         actionPath.append(submenu)
         actionQuery = ""
         actionSelection = 0
@@ -219,7 +258,11 @@ final class ExtensionSession: ObservableObject {
     func activateMenuEntry(at index: Int) {
         let entries = menuEntries
         guard entries.indices.contains(index) else { return }
-        if entries[index].isSubmenu { openSubmenu(entries[index].node) } else { run(entries[index].node) }
+        if entries[index].isSubmenu {
+            openSubmenu(entries[index].node)
+        } else {
+            run(entries[index].node)
+        }
     }
 
     func run(_ action: Node) {
@@ -242,7 +285,9 @@ final class ExtensionSession: ObservableObject {
     func setFormValue(_ field: Node, _ value: Any) {
         guard let id = field.props["id"] as? String else { return }
         formValues[id] = value
-        if field.handlers.contains("onChange") { event(field, "onChange", [ViewState.wireValue(value, field: field)]) }
+        if field.handlers.contains("onChange") {
+            event(field, "onChange", [ViewState.wireValue(value, field: field)])
+        }
     }
 
     /// Moves within the action menu when it's open, else the list; large steps stop at the ends.

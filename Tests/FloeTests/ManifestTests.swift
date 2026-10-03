@@ -5,13 +5,13 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
+@testable import Floe
 import Foundation
 import Testing
-@testable import Floe
 
 struct FieldSpecTests {
     @Test func readsEveryManifestKey() throws {
-        let field = try #require(FieldSpec(json: [
+        let field = try #require(Fixture.field([
             "name": "region", "title": "Region", "description": "Where to search", "type": "dropdown", "required": true,
             "placeholder": "Pick one", "label": "Unused", "default": "eu",
             "data": [["title": "Europe", "value": "eu"], ["value": "us"], ["title": "No value"]],
@@ -30,7 +30,7 @@ struct FieldSpecTests {
     }
 
     @Test func defaultsToAnOptionalTextField() throws {
-        let field = try #require(FieldSpec(json: ["name": "query"]))
+        let field = try #require(Fixture.field(["name": "query"]))
         #expect(field.type == "textfield")
         #expect(field.required == false)
         #expect(field.title == "query")
@@ -39,17 +39,17 @@ struct FieldSpecTests {
     }
 
     @Test func argumentsUseTheirPlaceholderAsTitle() throws {
-        let field = try #require(FieldSpec(json: ["name": "text", "placeholder": "Text"]))
+        let field = try #require(Fixture.field(["name": "text", "placeholder": "Text"]))
         #expect(field.title == "Text")
     }
 
     @Test func aFieldNeedsAName() {
-        #expect(FieldSpec(json: ["title": "Nameless"]) == nil)
+        #expect(Fixture.field(["title": "Nameless"]) == nil)
     }
 
     @Test(arguments: [("password", true), ("textfield", false), ("checkbox", false)])
     func onlyPasswordsAreSecret(type: String, secret: Bool) throws {
-        let field = try #require(FieldSpec(json: ["name": "value", "type": type]))
+        let field = try #require(Fixture.field(["name": "value", "type": type]))
         #expect(field.isSecret == secret)
     }
 }
@@ -61,8 +61,14 @@ struct ExtensionCommandTests {
         "name": "weather", "title": "Weather", "icon": "icon.png",
         "preferences": [["name": "units", "type": "dropdown"]],
         "commands": [
-            ["name": "forecast", "title": "Forecast", "mode": "view", "icon": "forecast.png",
-             "arguments": [["name": "city", "type": "text"]], "preferences": [["name": "days"]]],
+            [
+                "name": "forecast",
+                "title": "Forecast",
+                "mode": "view",
+                "icon": "forecast.png",
+                "arguments": [["name": "city", "type": "text"]],
+                "preferences": [["name": "days"]],
+            ],
             ["name": "refresh", "mode": "no-view"],
             ["name": "status", "mode": "menu-bar"],
             ["name": "plain"],
@@ -71,13 +77,13 @@ struct ExtensionCommandTests {
     ]
 
     @Test func listsViewAndNoViewCommandsOnly() {
-        let commands = ExtensionCommand.commands(inManifest: manifest, folder: folder, source: .raycast)
+        let commands = ExtensionCommand.commands(inManifest: Fixture.manifest(manifest), folder: folder, source: .raycast)
         #expect(commands.map(\.name) == ["forecast", "refresh", "plain"], "menu-bar commands and nameless entries are skipped")
         #expect(commands.map(\.mode) == ["view", "no-view", "view"], "a command without a mode is a view")
     }
 
     @Test func commandsCarryExtensionAndCommandDetails() throws {
-        let forecast = try #require(ExtensionCommand.commands(inManifest: manifest, folder: folder, source: .raycast).first)
+        let forecast = try #require(ExtensionCommand.commands(inManifest: Fixture.manifest(manifest), folder: folder, source: .raycast).first)
         #expect(forecast.id == "weather/forecast")
         #expect(forecast.extensionName == "weather")
         #expect(forecast.extensionTitle == "Weather")
@@ -92,7 +98,7 @@ struct ExtensionCommandTests {
     }
 
     @Test func commandFallsBackToItsNameAndTheExtensionIcon() throws {
-        let commands = ExtensionCommand.commands(inManifest: manifest, folder: folder, source: .local)
+        let commands = ExtensionCommand.commands(inManifest: Fixture.manifest(manifest), folder: folder, source: .local)
         let refresh = try #require(commands.first { $0.name == "refresh" })
         #expect(refresh.title == "refresh")
         #expect(refresh.icon == "icon.png")
@@ -100,22 +106,27 @@ struct ExtensionCommandTests {
     }
 
     @Test func extensionTitleFallsBackToItsName() throws {
-        let command = try #require(ExtensionCommand.commands(inManifest: ["name": "bare", "commands": [["name": "run"]]],
-                                                             folder: folder, source: .local).first)
+        let command = try #require(ExtensionCommand.commands(
+            inManifest: Fixture.manifest(["name": "bare", "commands": [["name": "run"]]]),
+            folder: folder,
+            source: .local
+        ).first)
         #expect(command.extensionTitle == "bare")
     }
 
     @Test(arguments: [[:], ["name": "no-commands"], ["commands": [["name": "run"]]]] as [[String: Any]])
     func manifestsWithoutANameOrCommandsYieldNothing(manifest: [String: Any]) {
-        #expect(ExtensionCommand.commands(inManifest: manifest, folder: folder, source: .local).isEmpty)
+        #expect(ExtensionCommand.commands(inManifest: Fixture.manifest(manifest), folder: folder, source: .local).isEmpty)
     }
 
     @Test func scansAFolderOfExtensionsInNameOrder() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("floe-tests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
-        for (name, manifest) in [("zeta", #"{"name":"zeta","commands":[{"name":"z"}]}"#),
-                                 ("alpha", #"{"name":"alpha","commands":[{"name":"a"},{"name":"b","mode":"no-view"}]}"#),
-                                 ("broken", "not json")] {
+        for (name, manifest) in [
+            ("zeta", #"{"name":"zeta","commands":[{"name":"z"}]}"#),
+            ("alpha", #"{"name":"alpha","commands":[{"name":"a"},{"name":"b","mode":"no-view"}]}"#),
+            ("broken", "not json"),
+        ] {
             let folder = root.appendingPathComponent(name)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try manifest.write(to: folder.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
