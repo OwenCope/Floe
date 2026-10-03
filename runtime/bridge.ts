@@ -16,7 +16,7 @@ export type Manifest = {
   preferences?: Preference[];
   commands?: { name: string; title?: string; mode?: string; preferences?: Preference[] }[];
 };
-type Preference = { name: string; default?: unknown };
+type Preference = { name: string; title?: string; type?: string; default?: unknown };
 
 export const ctx = {
   extDir: "",

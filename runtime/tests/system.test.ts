@@ -463,15 +463,41 @@ describe("constants", () => {
 });
 
 describe("OAuth", () => {
-  test("creating a client fails, since sign-in does not exist yet", () => {
-    expect(() => new api.OAuth.PKCEClient({ providerName: "GitHub" })).toThrow("OAuth isn't supported yet");
+  const password = (name: string, title?: string) => ({ name, title, type: "password" });
+
+  test("creating a client works, so an extension that also takes a token can load", async () => {
+    const client = new api.OAuth.PKCEClient({ providerName: "GitHub" });
+    expect(await client.getTokens()).toBeUndefined();
+    expect(await client.removeTokens()).toBeUndefined();
   });
 
-  test("every other entry point fails the same way or has no tokens", async () => {
-    const client = Object.create(api.OAuth.PKCEClient.prototype) as InstanceType<typeof api.OAuth.PKCEClient>;
-    await expect(client.authorizationRequest({ endpoint: "https://example.com" })).rejects.toThrow("OAuth isn't supported yet");
-    await expect(client.authorize({})).rejects.toThrow("OAuth isn't supported yet");
-    expect(await client.getTokens()).toBeUndefined();
+  test("starting a sign-in fails and names the token preference to use instead", async () => {
+    ctx.manifest = { name: "github", preferences: [password("personalAccessToken", "Personal Access Token")] };
+    const client = new api.OAuth.PKCEClient({ providerName: "GitHub" });
+    const message = `Floe can't sign in to GitHub yet. Add "Personal Access Token" in this extension's preferences instead.`;
+    await expect(client.authorizationRequest({ endpoint: "https://example.com" })).rejects.toThrow(message);
+    await expect(client.authorize({})).rejects.toThrow(message);
+    await expect(client.setTokens({ accessToken: "abc" })).rejects.toThrow(message);
+  });
+
+  test("the token preference is the secret one whose name says so, wherever it is declared", async () => {
+    const client = new api.OAuth.PKCEClient();
+    ctx.manifest = {
+      name: "notes",
+      preferences: [password("passphrase"), { name: "workspace", type: "textfield" }],
+      commands: [{ name: "main", preferences: [password("apiKey")] }],
+    };
+    await expect(client.authorize({})).rejects.toThrow(`Floe can't sign in yet. Add "apiKey" in`);
+    ctx.manifest = { name: "notes", preferences: [password("passphrase")] };
+    await expect(client.authorize({})).rejects.toThrow(`Add "passphrase" in`);
+    ctx.manifest = { name: "notes", preferences: [{ name: "apiToken", title: "API Token", type: "textfield" }] };
+    await expect(client.authorize({})).rejects.toThrow(`Add "API Token" in`);
+  });
+
+  test("without a token preference the message says there is none", async () => {
+    ctx.manifest = { name: "calendar", preferences: [{ name: "weekStart", type: "dropdown" }] };
+    const client = new api.OAuth.PKCEClient({ providerName: "Google" });
+    await expect(client.authorize({})).rejects.toThrow("Floe can't sign in to Google yet. This extension has no token preference to use instead.");
   });
 });
 

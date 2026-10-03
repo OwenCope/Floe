@@ -484,21 +484,47 @@ export const AI = {
     });
   },
 };
+// A preference that takes a token or key, which most extensions accept in place of signing in.
+function tokenPreference() {
+  const command = ctx.manifest.commands?.find((candidate) => candidate.name === ctx.commandName);
+  const declared = [...(ctx.manifest.preferences ?? []), ...(command?.preferences ?? [])];
+  const secrets = declared.filter((preference) => preference.type === "password");
+  const named = (preference: { name: string; title?: string }) => /token|api[ _-]?key|secret/i.test(`${preference.name} ${preference.title ?? ""}`);
+  return secrets.find(named) ?? secrets[0] ?? declared.find(named);
+}
+// Floe has no sign-in of its own, and doesn't borrow Raycast's: say so, and name the way that does work.
+function signInUnavailable(provider?: string) {
+  const preference = tokenPreference();
+  const service = provider ? ` to ${provider}` : "";
+  const instead = preference
+    ? `Add "${preference.title ?? preference.name}" in this extension's preferences instead.`
+    : "This extension has no token preference to use instead.";
+  return new Error(`Floe can't sign in${service} yet. ${instead}`);
+}
+
 export const OAuth = {
   RedirectMethod: { Web: "web", App: "app", AppURI: "appURI" },
-  // Every entry point fails the same way until sign-in exists.
+  // Creating a client works, because extensions create one even when a token preference makes it unnecessary.
+  // Only starting a sign-in fails.
   PKCEClient: class {
-    constructor(_options?: Props) {
-      throw new Error("OAuth isn't supported yet");
+    private readonly providerName?: string;
+    constructor(options?: Props) {
+      this.providerName = options?.providerName;
     }
     authorizationRequest(_options: Props): Promise<never> {
-      return Promise.reject(new Error("OAuth isn't supported yet"));
+      return Promise.reject(signInUnavailable(this.providerName));
     }
     authorize(_request: Props): Promise<never> {
-      return Promise.reject(new Error("OAuth isn't supported yet"));
+      return Promise.reject(signInUnavailable(this.providerName));
+    }
+    setTokens(_tokens: Props): Promise<never> {
+      return Promise.reject(signInUnavailable(this.providerName));
     }
     getTokens(): Promise<undefined> {
       return Promise.resolve(undefined);
+    }
+    removeTokens(): Promise<void> {
+      return done;
     }
   },
 };
