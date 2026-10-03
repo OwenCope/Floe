@@ -9,7 +9,7 @@ import AppKit
 import SwiftUI
 import ThawUI
 
-final class SettingsWindowController {
+final class SettingsWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let model: LauncherModel
     private let selection = SettingsSelection()
@@ -43,11 +43,21 @@ final class SettingsWindowController {
             content.sceneBridgingOptions = [.title, .toolbars]
             window.contentView = content
             window.center()
+            window.delegate = self
             self.window = window
         }
         UpdatesManager.settingsWillShow()
         NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    /// The settings hierarchy is the app's biggest throwaway SwiftUI tree. Closing the window
+    /// releases it instead of caching it for the app's lifetime; the chosen page survives in
+    /// `selection`, and the next show rebuilds the window fresh — the same teardown Thaw's
+    /// onboarding window applies to itself.
+    func windowWillClose(_ notification: Notification) {
+        guard notification.object as? NSWindow === window else { return }
+        window = nil
     }
 }
 
