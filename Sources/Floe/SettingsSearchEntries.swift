@@ -10,10 +10,30 @@ import Foundation
 extension SearchPaneLabel {
     static let general = SearchPaneLabel(title: "General", symbol: "gearshape")
     static let applications = SearchPaneLabel(title: "Applications", symbol: "square.grid.2x2")
+    static let appearance = SearchPaneLabel(title: "Appearance", symbol: "paintbrush")
     static let about = SearchPaneLabel(title: "About", symbol: "info.circle")
 }
 
 extension SearchEntry {
+    /// An entry on the Appearance pane.
+    static func appearance(
+        _ id: String,
+        _ title: String,
+        description: String? = nil,
+        section: String? = nil,
+        keywords: [String]
+    ) -> SearchEntry {
+        SearchEntry(
+            id: "appearance.\(id)",
+            title: title,
+            descriptionText: description,
+            pane: .appearance,
+            paneLabel: .appearance,
+            section: section,
+            keywords: keywords
+        )
+    }
+
     /// An entry on the General pane.
     static func general(
         _ id: String,
@@ -43,6 +63,14 @@ extension SearchIndex {
     /// The panes themselves, so typing a pane's name finds it. Applications and About have no
     /// entries beyond these: one is a list of apps with its own filter, the other has no settings.
     static let paneEntries: [SearchEntry] = [
+        SearchEntry(
+            id: "pane.appearance",
+            title: "Appearance",
+            descriptionText: "Tint, border and shadow for the launcher panel.",
+            pane: .appearance,
+            paneLabel: .appearance,
+            keywords: ["appearance", "tint", "colour", "color", "gradient", "border", "shadow", "theme", "style"]
+        ),
         SearchEntry(
             id: "pane.general",
             title: "General",
@@ -77,6 +105,14 @@ extension SearchIndex {
                 "data folder",
             ]
         ),
+    ]
+
+    static let appearanceEntries: [SearchEntry] = [
+        .appearance("tintStyle", "Tint", section: "Tint", keywords: ["tint", "colour", "color", "style", "solid", "gradient", "none"]),
+        .appearance("tintColor", "Tint Colour", section: "Tint", keywords: ["tint", "colour", "color", "picker"]),
+        .appearance("tintOpacity", "Tint Opacity", section: "Tint", keywords: ["tint", "opacity", "strength", "transparency"]),
+        .appearance("border", "Border", section: "Border", keywords: ["border", "outline", "stroke", "edge", "width"]),
+        .appearance("shadow", "Drop Shadow", section: "Shadow", keywords: ["shadow", "depth", "drop"]),
     ]
 
     static let generalEntries: [SearchEntry] = [

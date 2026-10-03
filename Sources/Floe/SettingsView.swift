@@ -64,6 +64,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 enum SettingsPage: Hashable {
     case general
     case applications
+    case appearance
     case about
     case extensionPage(String)
 }
@@ -114,6 +115,8 @@ struct SettingsView: View {
             GeneralSettingsView(model: model, settings: settings)
         case .applications:
             ApplicationSettingsView(model: model, settings: settings)
+        case .appearance:
+            AppearanceSettingsPane(settings: settings)
         case .about:
             AboutSettingsPane()
         case let .extensionPage(name):
@@ -132,6 +135,7 @@ struct SettingsView: View {
         switch selection.page {
         case .general: return "Startup, hotkeys and permissions"
         case .applications: return "Aliases and hotkeys for apps"
+        case .appearance: return "Tint, border and shadow for the launcher"
         case .about: return "Version, updates and credits"
         case let .extensionPage(name):
             guard let command = model.allCommands.first(where: { $0.extensionName == name }) else { return "" }
@@ -197,6 +201,7 @@ private struct SettingsSidebarPaneList: View {
         return [
             Row(page: .general, title: "General", symbol: "gearshape", icon: nil, assetsPath: ""),
             Row(page: .applications, title: "Applications", symbol: "square.grid.2x2", icon: nil, assetsPath: ""),
+            Row(page: .appearance, title: "Appearance", symbol: "paintbrush", icon: nil, assetsPath: ""),
         ] + extensions + [
             Row(page: .about, title: "About", symbol: "info.circle", icon: nil, assetsPath: ""),
         ]

@@ -7,6 +7,7 @@
 
 @testable import Floe
 import Foundation
+import SwiftUI
 import Testing
 
 /// A throwaway defaults suite per test, removed when the test's suite value goes away.
@@ -24,6 +25,16 @@ final class ScratchDefaults {
 }
 
 struct AppSettingsTests {
+    /// Color equality compares storage, not components; the round trip converts
+    /// through sRGB, so compare the components themselves.
+    private func sameColor(_ left: Color, _ right: Color) -> Bool {
+        let a = NSColor(left).usingColorSpace(.sRGB)!
+        let b = NSColor(right).usingColorSpace(.sRGB)!
+        return abs(a.redComponent - b.redComponent) < 0.001
+            && abs(a.greenComponent - b.greenComponent) < 0.001
+            && abs(a.blueComponent - b.blueComponent) < 0.001
+    }
+
     private let scratch: ScratchDefaults
 
     init() throws {
@@ -58,6 +69,19 @@ struct AppSettingsTests {
         settings.rememberMenuBarQuery = true
         settings.showInDock = true
         settings.hasSeenOnboarding = true
+        settings.launcherTint = LauncherTint(
+            kind: .gradient,
+            solid: StoredColor(Color(red: 0.2, green: 0.35, blue: 0.9)),
+            gradient: LauncherGradient(
+                top: StoredColor(Color(red: 0.1, green: 0.2, blue: 0.8)),
+                bottom: StoredColor(Color(red: 0.6, green: 0.2, blue: 0.85)),
+                angle: 120
+            ),
+            opacity: 0.5
+        )
+        settings.launcherBorder = LauncherBorder(color: StoredColor(Color.white.opacity(0.6)), width: 2)
+        settings.launcherShowsBorder = true
+        settings.launcherShowsShadow = true
         settings.menuBarItemNames = ["com.a|status": "Renamed"]
         settings.isRecordingHotkey = true
         settings.save()
@@ -75,6 +99,21 @@ struct AppSettingsTests {
         #expect(reloaded.hasSeenOnboarding)
         #expect(reloaded.menuBarItemNames == ["com.a|status": "Renamed"])
         #expect(reloaded.isRecordingHotkey == false, "recording state is not persisted")
+
+        #expect(reloaded.launcherTint.kind == .gradient)
+        #expect(reloaded.launcherTint.opacity == 0.5)
+        #expect(reloaded.launcherTint.gradient.angle == 120)
+        #expect(sameColor(reloaded.launcherTint.gradient.top.color, Color(red: 0.1, green: 0.2, blue: 0.8)))
+        #expect(reloaded.launcherBorder.width == 2)
+        #expect(reloaded.launcherShowsBorder)
+        #expect(reloaded.launcherShowsShadow)
+    }
+
+    @Test func appearanceDefaultsPreserveTheCurrentLauncherLook() {
+        let settings = AppSettings(defaults: scratch.defaults)
+        #expect(settings.launcherTint.kind == .none, "no tint unless it is chosen")
+        #expect(settings.launcherShowsBorder == false)
+        #expect(settings.launcherShowsShadow == false, "the launcher shipped without a shadow")
     }
 
     @Test func settingsSavedBeforeNewerFieldsExistedStillLoad() {

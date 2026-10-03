@@ -11,6 +11,7 @@ import ThawUI
 
 struct LauncherView: View {
     @ObservedObject var model: LauncherModel
+    @ObservedObject var settings = AppSettings.shared
 
     /// Clear space between the glass and the window's edge. The window casts no shadow of its own,
     /// because AppKit outlines the window's rectangle and that shows as square corners behind the
@@ -43,8 +44,53 @@ struct LauncherView: View {
             width: Self.contentSize(menuBarSearch: model.isSearchingMenuBar).width,
             height: Self.contentSize(menuBarSearch: model.isSearchingMenuBar).height
         )
-        .thawGlass(.panel, in: RoundedRectangle(cornerRadius: ThawRadius.panel, style: .continuous))
+        .modifier(LauncherPanelAppearance(
+            tint: settings.launcherTint,
+            border: settings.launcherShowsBorder ? settings.launcherBorder : nil,
+            hasShadow: settings.launcherShowsShadow
+        ))
         .padding(Self.margin)
+    }
+}
+
+/// Thaw's menu-bar appearance, applied to the launcher's glass: a tint drawn
+/// over the material at the configured strength, an optional border, and a
+/// drop shadow that follows the rounded shape — the window's own shadow is a
+/// square, because the window is larger than the launcher by `margin`.
+private struct LauncherPanelAppearance: ViewModifier {
+    let tint: LauncherTint
+    let border: LauncherBorder?
+    let hasShadow: Bool
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: ThawRadius.panel, style: .continuous)
+    }
+
+    func body(content: Content) -> some View {
+        let tinted = Group {
+            if let style = tint.overlayStyle {
+                content
+                    .thawGlass(.panel, in: shape)
+                    .overlay(shape.fill(style))
+            } else {
+                content
+                    .thawGlass(.panel, in: shape)
+            }
+        }
+        let bordered = Group {
+            if let border {
+                tinted.overlay(shape.strokeBorder(border.color.color, lineWidth: border.width))
+            } else {
+                tinted
+            }
+        }
+        return Group {
+            if hasShadow {
+                bordered.shadow(color: .black.opacity(0.35), radius: 14, y: 6)
+            } else {
+                bordered
+            }
+        }
     }
 }
 

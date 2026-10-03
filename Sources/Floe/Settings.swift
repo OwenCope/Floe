@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import SwiftUI
 
 /// Launcher-wide settings, persisted as one JSON blob in UserDefaults.
 final class AppSettings: ObservableObject {
@@ -36,6 +37,12 @@ final class AppSettings: ObservableObject {
     @Published var menuBarItemNames: [String: String] = [:]
     /// True while a hotkey recorder is listening, so the registry can stand down.
     @Published var isRecordingHotkey = false
+    /// Thaw-style appearance for the launcher panel: a tint over the glass, an
+    /// optional border, and a shaped drop shadow.
+    @Published var launcherTint = LauncherTint()
+    @Published var launcherBorder = LauncherBorder()
+    @Published var launcherShowsBorder = false
+    @Published var launcherShowsShadow = false
 
     private struct Stored: Codable {
         var toggleHotkey: KeyCombination?
@@ -49,6 +56,10 @@ final class AppSettings: ObservableObject {
         var menuBarItemNames: [String: String]?
         var showInDock: Bool?
         var hasSeenOnboarding: Bool?
+        var launcherTint: LauncherTint?
+        var launcherBorder: LauncherBorder?
+        var launcherShowsBorder: Bool?
+        var launcherShowsShadow: Bool?
     }
 
     private static let defaultsKey = "settings"
@@ -71,6 +82,10 @@ final class AppSettings: ObservableObject {
             menuBarItemNames = stored.menuBarItemNames ?? [:]
             showInDock = stored.showInDock ?? false
             hasSeenOnboarding = stored.hasSeenOnboarding ?? false
+            launcherTint = stored.launcherTint ?? launcherTint
+            launcherBorder = stored.launcherBorder ?? launcherBorder
+            launcherShowsBorder = stored.launcherShowsBorder ?? launcherShowsBorder
+            launcherShowsShadow = stored.launcherShowsShadow ?? launcherShowsShadow
         }
         cancellable = objectWillChange
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
@@ -90,7 +105,11 @@ final class AppSettings: ObservableObject {
             rememberMenuBarQuery: rememberMenuBarQuery,
             menuBarItemNames: menuBarItemNames,
             showInDock: showInDock,
-            hasSeenOnboarding: hasSeenOnboarding
+            hasSeenOnboarding: hasSeenOnboarding,
+            launcherTint: launcherTint,
+            launcherBorder: launcherBorder,
+            launcherShowsBorder: launcherShowsBorder,
+            launcherShowsShadow: launcherShowsShadow
         )
         if let data = try? JSONEncoder().encode(stored) {
             defaults.set(data, forKey: Self.defaultsKey)
