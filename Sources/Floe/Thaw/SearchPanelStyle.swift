@@ -38,7 +38,9 @@ struct SearchQueryField<Accessory: View>: View {
                 .writingToolsBehavior(.disabled)
                 .focused($isFocused)
             Spacer(minLength: 0)
-            if isLoading { ProgressView().controlSize(.small) }
+            if isLoading {
+                ProgressView().controlSize(.small)
+            }
             accessory
         }
         .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
@@ -170,13 +172,12 @@ struct KeyCapView: View {
     }
 }
 
-/// Thaw's inspector row: owning app and name, then a preview of the item as the menu bar draws it.
+/// Thaw's inspector row, without its preview of the item: owning app and name.
 struct InspectorItemRow: View {
     private static let iconLength: CGFloat = 26
 
     let extra: MenuBarExtra
     let name: String
-    let preview: CGImage?
     /// Set while this row is being renamed; the inline field edits it.
     var renameDraft: Binding<String>?
     @FocusState private var isEditing: Bool
@@ -204,25 +205,9 @@ struct InspectorItemRow: View {
                 .frame(width: Self.iconLength, height: Self.iconLength)
             }
             Spacer()
-            itemPreview
         }
         .padding(ThawSpacing.compact)
         .thawHoverLift()
-    }
-
-    /// The item as it appears in the menu bar, captured with its backdrop.
-    private var itemPreview: some View {
-        let previewShape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-        return Group {
-            if let preview {
-                Image(decorative: preview, scale: NSScreen.main?.backingScaleFactor ?? 2)
-            } else {
-                Color.clear
-            }
-        }
-        .frame(width: max(extra.frame.width, Self.iconLength), height: Self.iconLength)
-        .clipShape(previewShape)
-        .overlay { previewShape.strokeBorder(.quaternary) }
     }
 }
 

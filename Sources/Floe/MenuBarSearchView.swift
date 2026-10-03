@@ -9,16 +9,10 @@ import SwiftUI
 import ThawUI
 
 /// The menu bar search in the face of Thaw 3's inspector panel: a field in a glass capsule above the list,
-/// rows with each item's preview, and a bar of actions below.
+/// rows with each item's owning app and name, and a bar of actions below.
 struct MenuBarSearchView: View {
     @ObservedObject var model: LauncherModel
-    @ObservedObject var previews: MenuBarPreviews
     @ObservedObject var settings: AppSettings = .shared
-
-    init(model: LauncherModel) {
-        self.model = model
-        self.previews = model.menuBarPreviews
-    }
 
     var body: some View {
         GlassEffectContainer {
@@ -33,8 +27,12 @@ struct MenuBarSearchView: View {
     // MARK: Query field
 
     private var queryField: some View {
-        SearchQueryField(prompt: "Search menu bar items…", text: $model.menuBarQuery,
-                         focusToken: model.focusToken, isLoading: model.isScanningMenuBar) { EmptyView() }
+        SearchQueryField(
+            prompt: "Search menu bar items…",
+            text: $model.menuBarQuery,
+            focusToken: model.focusToken,
+            isLoading: model.isScanningMenuBar
+        ) { EmptyView() }
     }
 
     // MARK: Content
@@ -55,11 +53,17 @@ struct MenuBarSearchView: View {
         } else if model.isScanningMenuBar, model.menuBarResults.isEmpty {
             ThawEmptyState(systemImage: "menubar.rectangle", title: "Reading your menu bar…", isLoading: true)
         } else if hasQuery, model.menuBarResults.isEmpty {
-            ThawEmptyState(systemImage: "magnifyingglass", title: "No items match",
-                           caption: "Try part of the item's name or the app that owns it.")
+            ThawEmptyState(
+                systemImage: "magnifyingglass",
+                title: "No items match",
+                caption: "Try part of the item's name or the app that owns it."
+            )
         } else if model.menuBarResults.isEmpty {
-            ThawEmptyState(systemImage: "menubar.rectangle", title: "No menu bar items found",
-                           caption: "Floe lists the items apps put in the menu bar.")
+            ThawEmptyState(
+                systemImage: "menubar.rectangle",
+                title: "No menu bar items found",
+                caption: "Floe lists the items apps put in the menu bar."
+            )
         } else {
             rows
         }
@@ -74,13 +78,15 @@ struct MenuBarSearchView: View {
                         if let section = result.section, index == 0 || results[index - 1].section != section {
                             SearchSectionHeader(title: section)
                         }
-                        InspectorItemRow(extra: result.extra, name: model.displayName(for: result.extra),
-                                         preview: previews.images[result.extra.id],
-                                         renameDraft: model.renamingMenuBarItem == result.extra.id ? $model.menuBarRenameDraft : nil)
-                            .modifier(SearchRowBackground(selected: index == model.menuBarSelection))
-                            .id(result.id)
-                            .onTapGesture(count: 2) { model.openMenuBarExtra(result.extra) }
-                            .onTapGesture { model.menuBarSelection = index }
+                        InspectorItemRow(
+                            extra: result.extra,
+                            name: model.displayName(for: result.extra),
+                            renameDraft: model.renamingMenuBarItem == result.extra.id ? $model.menuBarRenameDraft : nil
+                        )
+                        .modifier(SearchRowBackground(selected: index == model.menuBarSelection))
+                        .id(result.id)
+                        .onTapGesture(count: 2) { model.openMenuBarExtra(result.extra) }
+                        .onTapGesture { model.menuBarSelection = index }
                     }
                 }
             }
@@ -88,7 +94,9 @@ struct MenuBarSearchView: View {
             .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .onChange(of: model.menuBarSelection) {
-                if results.indices.contains(model.menuBarSelection) { proxy.scrollTo(results[model.menuBarSelection].id) }
+                if results.indices.contains(model.menuBarSelection) {
+                    proxy.scrollTo(results[model.menuBarSelection].id)
+                }
             }
         }
     }
@@ -175,7 +183,7 @@ private struct MenuBarActionsAnchor: NSViewRepresentable {
                 menu.addItem(item)
             }
             // The panel would read the menu's tracking as losing focus and close under it.
-            ModalGuard.run {
+            _ = ModalGuard.run {
                 menu.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.maxY + 4), in: view)
             }
         }

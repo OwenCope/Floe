@@ -5,7 +5,6 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
-import CoreGraphics
 import Foundation
 
 /// Names and identifies menu bar items from what Accessibility reports about them.
@@ -20,8 +19,12 @@ enum MenuBarNaming {
     /// Thaw's own section dividers are not items anyone opens, and an unnamed item from a host
     /// process such as MenuBarAgent would only be one more row with the host's name.
     static func isListed(identifier: String?, label: String?, ownerName: String) -> Bool {
-        if identifier?.hasPrefix("Thaw.ControlItem") == true { return false }
-        if label == nil, ownerName.isEmpty || ownerName == "MenuBarAgent" { return false }
+        if identifier?.hasPrefix("Thaw.ControlItem") == true {
+            return false
+        }
+        if label == nil, ownerName.isEmpty || ownerName == "MenuBarAgent" {
+            return false
+        }
         return true
     }
 
@@ -57,21 +60,5 @@ final class MenuBarSearchRecents {
     func resolve<Item: Identifiable>(in items: [Item]) -> [Item] where Item.ID == String {
         let byID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return identifiers.compactMap { byID[$0] }
-    }
-}
-
-enum ImageCheck {
-    /// A hidden item leaves only the menu bar's backdrop where it would be; a capture that is one flat
-    /// tone shows nothing worth previewing.
-    static func showsSomething(_ image: CGImage) -> Bool {
-        let width = 48
-        let height = 12
-        var pixels = [UInt8](repeating: 0, count: width * height)
-        guard let context = CGContext(data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width,
-                                      space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return true }
-        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        let mean = pixels.reduce(0) { $0 + Double($1) } / Double(pixels.count)
-        let variance = pixels.reduce(0) { $0 + pow(Double($1) - mean, 2) } / Double(pixels.count)
-        return variance.squareRoot() > 12
     }
 }

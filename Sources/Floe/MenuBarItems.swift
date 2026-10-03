@@ -7,7 +7,6 @@
 
 import AppKit
 import ApplicationServices
-import ScreenCaptureKit
 
 /// One item in the menu bar's status area. Thaw finds items through its own runtime; Floe reads them
 /// through the public Accessibility API and opens one by pressing it.
@@ -22,7 +21,9 @@ struct MenuBarExtra: Identifiable {
 }
 
 enum MenuBarExtras {
-    static var isTrusted: Bool { AXIsProcessTrusted() }
+    static var isTrusted: Bool {
+        AXIsProcessTrusted()
+    }
 
     static func requestAccess() {
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
@@ -40,13 +41,27 @@ enum MenuBarExtras {
             let ownerName = app.localizedName ?? ""
             for (index, item) in items.enumerated() {
                 let identifier: String? = value(item, "AXIdentifier")
-                let label = MenuBarNaming.label(title: value(item, kAXTitleAttribute), description: value(item, kAXDescriptionAttribute),
-                                                help: value(item, kAXHelpAttribute))
+                let label = MenuBarNaming.label(
+                    title: value(item, kAXTitleAttribute),
+                    description: value(item, kAXDescriptionAttribute),
+                    help: value(item, kAXHelpAttribute)
+                )
                 guard MenuBarNaming.isListed(identifier: identifier, label: label, ownerName: ownerName) else { continue }
-                let key = MenuBarNaming.identifier(bundleIdentifier: app.bundleIdentifier, ownerName: ownerName,
-                                                   identifier: identifier, label: label, index: index)
-                extras.append(MenuBarExtra(id: key, name: label ?? ownerName, ownerName: ownerName,
-                                           ownerURL: app.bundleURL, frame: frame(of: item), element: item))
+                let key = MenuBarNaming.identifier(
+                    bundleIdentifier: app.bundleIdentifier,
+                    ownerName: ownerName,
+                    identifier: identifier,
+                    label: label,
+                    index: index
+                )
+                extras.append(MenuBarExtra(
+                    id: key,
+                    name: label ?? ownerName,
+                    ownerName: ownerName,
+                    ownerURL: app.bundleURL,
+                    frame: frame(of: item),
+                    element: item
+                ))
             }
         }
         // Left to right, the order they sit in the menu bar.
@@ -56,8 +71,12 @@ enum MenuBarExtras {
     private static func frame(of element: AXUIElement) -> CGRect {
         var origin = CGPoint.zero
         var size = CGSize.zero
-        if let position: AXValue = value(element, kAXPositionAttribute) { AXValueGetValue(position, .cgPoint, &origin) }
-        if let extent: AXValue = value(element, kAXSizeAttribute) { AXValueGetValue(extent, .cgSize, &size) }
+        if let position: AXValue = value(element, kAXPositionAttribute) {
+            AXValueGetValue(position, .cgPoint, &origin)
+        }
+        if let extent: AXValue = value(element, kAXSizeAttribute) {
+            AXValueGetValue(extent, .cgSize, &size)
+        }
         return CGRect(origin: origin, size: size)
     }
 
@@ -71,28 +90,5 @@ enum MenuBarExtras {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
         return value as? T
-    }
-}
-
-/// Pictures of each item as the menu bar draws it, for the inspector rows. Needs Screen Recording;
-/// without it the previews stay empty, as in Thaw.
-final class MenuBarPreviews: ObservableObject {
-    @Published private(set) var images: [String: CGImage] = [:]
-
-    static var hasAccess: Bool { CGPreflightScreenCaptureAccess() }
-
-    static func requestAccess() {
-        CGRequestScreenCaptureAccess()
-    }
-
-    func capture(_ extras: [MenuBarExtra]) {
-        guard Self.hasAccess else { return }
-        for extra in extras where extra.frame.width > 0 && extra.frame.height > 0 {
-            Task { @MainActor [weak self] in
-                guard let image = try? await SCScreenshotManager.captureImage(in: extra.frame),
-                      ImageCheck.showsSomething(image) else { return }
-                self?.images[extra.id] = image
-            }
-        }
     }
 }
