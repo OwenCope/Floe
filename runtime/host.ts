@@ -7,12 +7,12 @@
 
 // Extension host. Usage: bun host.ts <extensionDir> <commandName> [argumentsJSON]
 // Loads one Raycast command, renders it with the custom reconciler, and talks NDJSON with the Swift app.
-import fs from "fs";
-import os from "os";
-import path from "path";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import React from "react";
 import { ctx, handlePop, handlePopToRoot, send, type Manifest } from "./bridge";
-import { dispatchEvent, render } from "./renderer";
+import { dispatchEvent, render, toError } from "./renderer";
 import { NavigationRoot } from "./api/index";
 
 const log = (...parts: unknown[]) =>
@@ -141,7 +141,7 @@ function findEntry(): string {
 }
 
 function fail(error: unknown, fatal = true) {
-  const err = error instanceof Error ? error : new Error(String(error));
+  const err = toError(error);
   log(err.stack ?? err.message);
   send({ type: "error", message: err.message, stack: err.stack, fatal });
 }

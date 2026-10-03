@@ -33,6 +33,7 @@
 		01F1EF334F357FB298D0DD9F /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		05230EAF05CC25AF3298E02F /* project.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = project.yml; sourceTree = "<group>"; };
 		0C65960D5E02D3842BE4BFEF /* devrun.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = devrun.sh; sourceTree = "<group>"; };
+		1E248280C8BC41591C09710E /* set-secrets.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "set-secrets.sh"; sourceTree = "<group>"; };
 		1EAFF08383C7623D0B69A028 /* FormViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormViews.swift; sourceTree = "<group>"; };
 		219F645E1E608A4BB123BFB4 /* Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modifiers.swift; sourceTree = "<group>"; };
 		25EC183CDF6B0E67A8C1CFAA /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
@@ -118,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				0C65960D5E02D3842BE4BFEF /* devrun.sh */,
+				1E248280C8BC41591C09710E /* set-secrets.sh */,
 			);
 			path = scripts;
 			sourceTree = "<group>";
@@ -224,7 +226,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\n# Copies the extension host and its React dependencies into the app, plus Bun itself,\n# so the installed app runs without this checkout or a system Bun.\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/runtime\"\nif [ ! -d \"$SRCROOT/runtime/node_modules/react-reconciler\" ]; then\n  echo \"error: runtime dependencies are missing; run 'bun install' in runtime/\"\n  exit 1\nfi\nmkdir -p \"$DEST/bin\"\nrsync -a --delete --exclude smoke.ts --exclude survey.ts --exclude bin \"$SRCROOT/runtime/\" \"$DEST/\"\nBUN=\"\"\nfor candidate in \"${BUN_PATH:-}\" /opt/homebrew/bin/bun \"$HOME/.bun/bin/bun\" /usr/local/bin/bun; do\n  if [ -n \"$candidate\" ] && [ -x \"$candidate\" ]; then BUN=$(realpath \"$candidate\"); break; fi\ndone\nif [ -n \"$BUN\" ]; then\n  cmp -s \"$BUN\" \"$DEST/bin/bun\" || cp -f \"$BUN\" \"$DEST/bin/bun\"\nelse\n  echo \"warning: Bun not found; the app will look for a system copy at runtime\"\nfi\n# Stamp the commit into the built Info.plist for the About page; signing happens after this step.\nCOMMIT=$(git -C \"$SRCROOT\" rev-parse --short HEAD 2>/dev/null || echo \"uncommitted\")\nif [ -n \"$(git -C \"$SRCROOT\" status --porcelain 2>/dev/null | head -1)\" ]; then COMMIT=\"$COMMIT-dirty\"; fi\n/usr/libexec/PlistBuddy -c \"Set :GitCommitSHA $COMMIT\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
+			shellScript = "set -euo pipefail\n# Copies the extension host and its React dependencies into the app, plus Bun itself,\n# so the installed app runs without this checkout or a system Bun.\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/runtime\"\nif [ ! -d \"$SRCROOT/runtime/node_modules/react-reconciler\" ]; then\n  echo \"error: runtime dependencies are missing; run 'bun install' in runtime/\"\n  exit 1\nfi\nmkdir -p \"$DEST/bin\"\nrsync -a --delete --exclude smoke.ts --exclude survey.ts --exclude testing.ts --exclude bin \"$SRCROOT/runtime/\" \"$DEST/\"\nBUN=\"\"\nfor candidate in \"${BUN_PATH:-}\" /opt/homebrew/bin/bun \"$HOME/.bun/bin/bun\" /usr/local/bin/bun; do\n  if [ -n \"$candidate\" ] && [ -x \"$candidate\" ]; then BUN=$(realpath \"$candidate\"); break; fi\ndone\nif [ -n \"$BUN\" ]; then\n  cmp -s \"$BUN\" \"$DEST/bin/bun\" || cp -f \"$BUN\" \"$DEST/bin/bun\"\nelse\n  echo \"warning: Bun not found; the app will look for a system copy at runtime\"\nfi\n# Stamp the commit into the built Info.plist for the About page; signing happens after this step.\nCOMMIT=$(git -C \"$SRCROOT\" rev-parse --short HEAD 2>/dev/null || echo \"uncommitted\")\nif [ -n \"$(git -C \"$SRCROOT\" status --porcelain 2>/dev/null | head -1)\" ]; then COMMIT=\"$COMMIT-dirty\"; fi\n/usr/libexec/PlistBuddy -c \"Set :GitCommitSHA $COMMIT\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

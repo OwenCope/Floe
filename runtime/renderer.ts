@@ -159,9 +159,15 @@ const reconciler = Reconciler({
   waitForCommitToBeReady: () => null,
 } as never);
 
+// Extensions throw strings and plain objects as well as Errors.
+export function toError(error: unknown): Error {
+  if (error instanceof Error) return error;
+  return new Error(typeof error === "string" ? error : JSON.stringify(error));
+}
+
 // Fatal errors replace the view with an error screen; the rest show as a failure toast.
 export function reportError(error: unknown, fatal = false) {
-  const err = error instanceof Error ? error : new Error(String(error));
+  const err = toError(error);
   console.error(err.stack ?? err.message);
   send({ type: "error", message: err.message, stack: err.stack, fatal });
 }

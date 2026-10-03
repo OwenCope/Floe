@@ -7,12 +7,14 @@
 
 // Stand-in for @raycast/api. Components render to plain host elements that renderer.ts serializes;
 // everything else either runs locally in Bun or is forwarded to the Swift app over the bridge.
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ctx, send, setPopHandler, setPopToRootHandler } from "../bridge";
 
 const h = React.createElement;
+// The API is promise-based throughout; most calls here finish synchronously.
+const done: Promise<void> = Promise.resolve();
 type Props = Record<string, any>;
 
 // Element-valued props (actions, detail, metadata…) travel as named child slots.
@@ -231,9 +233,9 @@ function unsupported(feature: string) {
 
 let nextToastId = 1;
 export class Toast {
-  static Style = { Success: "success", Failure: "failure", Animated: "animated" } as const;
-  private id = nextToastId++;
-  private options: Props;
+  static readonly Style = { Success: "success", Failure: "failure", Animated: "animated" } as const;
+  private readonly id = nextToastId++;
+  private readonly options: Props;
   constructor(options: Props) {
     this.options = { ...options };
   }
@@ -251,8 +253,8 @@ export class Toast {
   set primaryAction(value: unknown) { this.options.primaryAction = value; }
   get secondaryAction() { return this.options.secondaryAction; }
   set secondaryAction(value: unknown) { this.options.secondaryAction = value; }
-  async show() { this.sync(); }
-  async hide() { this.sync(true); }
+  show(): Promise<void> { this.sync(); return done; }
+  hide(): Promise<void> { this.sync(true); return done; }
 }
 
 export async function showToast(optionsOrStyle: Props | string, title?: string, message?: string) {
@@ -262,13 +264,14 @@ export async function showToast(optionsOrStyle: Props | string, title?: string, 
   return toast;
 }
 
-export async function showHUD(title: string, _options?: Props) {
+export function showHUD(title: string, _options?: Props): Promise<void> {
   send({ type: "hud", title });
+  return done;
 }
 
 export const Alert = { ActionStyle: { Default: "default", Cancel: "cancel", Destructive: "destructive" } };
 export async function confirmAlert(options: Props) {
-  const escape = (text: string) => String(text ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const escape = (text: string) => String(text ?? "").replaceAll("\\", String.raw`\\`).replaceAll('"', String.raw`\"`);
   const confirm = options.primaryAction?.title ?? "OK";
   const cancel = options.dismissAction?.title ?? "Cancel";
   const script = `display alert "${escape(options.title)}" message "${escape(options.message)}" buttons {"${escape(cancel)}", "${escape(confirm)}"} default button 2`;
@@ -282,76 +285,88 @@ export async function confirmAlert(options: Props) {
 // Window and system
 
 export const PopToRootType = { Default: "default", Immediate: "immediate", Suspended: "suspended" };
-export async function closeMainWindow(_options?: Props) {
+export function closeMainWindow(_options?: Props): Promise<void> {
   send({ type: "close" });
+  return done;
 }
-export async function popToRoot(_options?: Props) {
+export function popToRoot(_options?: Props): Promise<void> {
   send({ type: "popToRoot" });
+  return done;
 }
-export async function clearSearchBar(_options?: Props) {
+export function clearSearchBar(_options?: Props): Promise<void> {
   send({ type: "clearSearchBar" });
+  return done;
 }
 
-export async function open(target: string, application?: string | { path?: string; name?: string }) {
+export function open(target: string, application?: string | { path?: string; name?: string }): Promise<void> {
   const app = typeof application === "string" ? application : (application?.path ?? application?.name);
   send({ type: "open", target, application: app });
+  return done;
 }
-export async function showInFinder(target: string) {
+export function showInFinder(target: string): Promise<void> {
   Bun.spawn(["open", "-R", target]);
+  return done;
 }
-export async function trash(paths: string | string[]) {
+export function trash(paths: string | string[]): Promise<void> {
   for (const file of [paths].flat()) {
     const destination = path.join(process.env.HOME ?? "", ".Trash", `${path.basename(file)}`);
     fs.renameSync(file, fs.existsSync(destination) ? `${destination} ${Date.now()}` : destination);
   }
+  return done;
 }
 
 export const Clipboard = {
-  async copy(content: string | number | Props, _options?: Props) {
+  copy(content: string | number | Props, _options?: Props): Promise<void> {
     const text = typeof content === "object" ? (content.text ?? content.file ?? content.html ?? "") : String(content);
     send({ type: "copy", text });
+    return done;
   },
-  async paste(content: string | number | Props) {
+  paste(content: string | number | Props): Promise<void> {
     const text = typeof content === "object" ? (content.text ?? content.file ?? "") : String(content);
     send({ type: "paste", text });
+    return done;
   },
-  async readText(_options?: Props) {
+  readText(_options?: Props): Promise<string | undefined> {
     const text = Bun.spawnSync(["pbpaste"]).stdout.toString();
-    return text.length ? text : undefined;
+    return Promise.resolve(text.length ? text : undefined);
   },
   async read(_options?: Props) {
     return { text: (await Clipboard.readText()) ?? "" };
   },
-  async clear() {
+  clear(): Promise<void> {
     send({ type: "copy", text: "" });
+    return done;
   },
 };
 
-export async function getSelectedText(): Promise<string> {
-  throw new Error("Reading the selected text isn't supported yet");
+export function getSelectedText(): Promise<string> {
+  return Promise.reject(new Error("Reading the selected text isn't supported yet"));
 }
-export async function getSelectedFinderItems(): Promise<{ path: string }[]> {
-  throw new Error("Reading the Finder selection isn't supported yet");
+export function getSelectedFinderItems(): Promise<{ path: string }[]> {
+  return Promise.reject(new Error("Reading the Finder selection isn't supported yet"));
 }
 type Application = { name: string; path: string; bundleId?: string };
 let applications: Application[] | undefined;
-export async function getApplications(_path?: string): Promise<Application[]> {
+export function getApplications(_path?: string): Promise<Application[]> {
   applications ??= Bun.spawnSync(["mdfind", "-attr", "kMDItemCFBundleIdentifier", "kMDItemContentType == 'com.apple.application-bundle'"])
     .stdout.toString()
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const [appPath, attribute = ""] = line.split(/\s{3,}kMDItemCFBundleIdentifier = /);
-      const bundleId = attribute.trim();
+      // mdfind prints "<path>   kMDItemCFBundleIdentifier = <id>".
+      const marker = line.indexOf("kMDItemCFBundleIdentifier = ");
+      const appPath = (marker < 0 ? line : line.slice(0, marker)).trim();
+      const bundleId = marker < 0 ? "" : line.slice(marker + "kMDItemCFBundleIdentifier = ".length).trim();
       return { name: path.basename(appPath, ".app"), path: appPath, bundleId: bundleId && bundleId !== "(null)" ? bundleId : undefined };
     });
-  return applications;
+  return Promise.resolve(applications);
 }
-export async function getDefaultApplication(_path: string) {
-  return { name: "Finder", path: "/System/Library/CoreServices/Finder.app", bundleId: "com.apple.finder" };
+const finder: Application = { name: "Finder", path: "/System/Library/CoreServices/Finder.app", bundleId: "com.apple.finder" };
+export function getDefaultApplication(_path: string): Promise<Application> {
+  return Promise.resolve(finder);
 }
-export async function getFrontmostApplication() {
-  return { name: "Finder", path: "/System/Library/CoreServices/Finder.app", bundleId: "com.apple.finder" };
+export function getFrontmostApplication(): Promise<Application> {
+  return Promise.resolve(finder);
 }
 
 // Storage
@@ -367,23 +382,34 @@ const storageFile = () => path.join(ctx.supportPath, "local-storage.json");
 const writeStorage = (data: Props) => fs.writeFileSync(storageFile(), JSON.stringify(data));
 
 export const LocalStorage = {
-  async getItem<T = string>(key: string) { return readJSON(storageFile())[key] as T | undefined; },
-  async setItem(key: string, value: unknown) { writeStorage({ ...readJSON(storageFile()), [key]: value }); },
-  async removeItem(key: string) {
+  getItem<T = string>(key: string): Promise<T | undefined> {
+    return Promise.resolve(readJSON(storageFile())[key] as T | undefined);
+  },
+  setItem(key: string, value: unknown): Promise<void> {
+    writeStorage({ ...readJSON(storageFile()), [key]: value });
+    return done;
+  },
+  removeItem(key: string): Promise<void> {
     const data = readJSON(storageFile());
     delete data[key];
     writeStorage(data);
+    return done;
   },
-  async allItems<T = Props>() { return readJSON(storageFile()) as T; },
-  async clear() { writeStorage({}); },
+  allItems<T = Props>(): Promise<T> {
+    return Promise.resolve(readJSON(storageFile()) as T);
+  },
+  clear(): Promise<void> {
+    writeStorage({});
+    return done;
+  },
 };
 
 type CacheSubscriber = (key: string | undefined, data: string | undefined) => void;
 // Methods are arrow properties because @raycast/utils passes them around unbound (cache.subscribe → useSyncExternalStore).
 export class Cache {
-  private file: string;
+  private readonly file: string;
   private data: Record<string, string>;
-  private subscribers = new Set<CacheSubscriber>();
+  private readonly subscribers = new Set<CacheSubscriber>();
   constructor(options?: { namespace?: string; capacity?: number }) {
     this.file = path.join(ctx.supportPath, `cache-${options?.namespace ?? "default"}.json`);
     this.data = readJSON(this.file);
@@ -405,7 +431,9 @@ export class Cache {
   clear = (_options?: { notifySubscribers?: boolean }) => { this.data = {}; this.persist(undefined, undefined); };
   subscribe = (subscriber: CacheSubscriber) => {
     this.subscribers.add(subscriber);
-    return () => void this.subscribers.delete(subscriber);
+    return () => {
+      this.subscribers.delete(subscriber);
+    };
   };
 }
 
@@ -417,11 +445,13 @@ export function getPreferenceValues<T = Props>(): T {
   const defaults = Object.fromEntries(declared.filter((pref) => pref.default !== undefined).map((pref) => [pref.name, pref.default]));
   return { ...defaults, ...readJSON(path.join(ctx.supportPath, "preferences.json")) } as T;
 }
-export async function openExtensionPreferences() {
+export function openExtensionPreferences(): Promise<void> {
   send({ type: "openPreferences" });
+  return done;
 }
-export async function openCommandPreferences() {
+export function openCommandPreferences(): Promise<void> {
   send({ type: "openPreferences" });
+  return done;
 }
 
 // Environment
@@ -443,10 +473,13 @@ export const environment = {
   canAccess: (_api: unknown) => false,
 };
 
-export async function launchCommand(_options: Props) {
-  throw new Error("launchCommand isn't supported yet");
+export function launchCommand(_options: Props): Promise<void> {
+  return Promise.reject(new Error("launchCommand isn't supported yet"));
 }
-export async function updateCommandMetadata(_metadata: Props) {}
+// Subtitles set from a command aren't shown anywhere yet, so there is nothing to update.
+export function updateCommandMetadata(_metadata: Props): Promise<void> {
+  return done;
+}
 export function captureException(error: unknown) {
   console.error(error);
 }
@@ -460,9 +493,19 @@ export const AI = {
 };
 export const OAuth = {
   RedirectMethod: { Web: "web", App: "app", AppURI: "appURI" },
+  // Every entry point fails the same way until sign-in exists.
   PKCEClient: class {
-    constructor() {
+    constructor(_options?: Props) {
       throw new Error("OAuth isn't supported yet");
+    }
+    authorizationRequest(_options: Props): Promise<never> {
+      return Promise.reject(new Error("OAuth isn't supported yet"));
+    }
+    authorize(_request: Props): Promise<never> {
+      return Promise.reject(new Error("OAuth isn't supported yet"));
+    }
+    getTokens(): Promise<undefined> {
+      return Promise.resolve(undefined);
     }
   },
 };

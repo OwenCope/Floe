@@ -44,7 +44,7 @@ targets:
             exit 1
           fi
           mkdir -p "$DEST/bin"
-          rsync -a --delete --exclude smoke.ts --exclude survey.ts --exclude bin "$SRCROOT/runtime/" "$DEST/"
+          rsync -a --delete --exclude smoke.ts --exclude survey.ts --exclude testing.ts --exclude bin "$SRCROOT/runtime/" "$DEST/"
           BUN=""
           for candidate in "${BUN_PATH:-}" /opt/homebrew/bin/bun "$HOME/.bun/bin/bun" /usr/local/bin/bun; do
             if [ -n "$candidate" ] && [ -x "$candidate" ]; then BUN=$(realpath "$candidate"); break; fi

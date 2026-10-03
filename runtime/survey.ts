@@ -7,89 +7,101 @@
 
 // Compatibility survey: bun survey.ts <dir of extensions> [seconds per command]
 // Runs up to two view commands per extension headlessly; no-view commands are skipped since they act on the system.
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
+import { findNodes, hostMessages, isItem, sendToHost, startHost, topView, type HostMessage, type TreeNode } from "./testing";
 
 const [root, secondsArg] = process.argv.slice(2);
 const seconds = Number(secondsArg ?? 10);
-type Result = { ext: string; command: string; status: string; detail: string };
 
-const find = (node: any, test: (n: any) => boolean, out: any[] = []) => {
-  if (test(node)) out.push(node);
-  (node.children ?? []).forEach((child: any) => find(child, test, out));
-  return out;
-};
-const required = (prefs: any[] = []) => prefs.filter((p) => p.required && p.default === undefined).map((p) => p.name);
+type Result = { ext: string; command: string; status: string; detail: string };
+type Preference = { name: string; required?: boolean; default?: unknown };
+type Observation = { view: string; items: number; loading: boolean; hasContent: boolean; error: string; probed: boolean };
+
+const required = (preferences: Preference[] = []) =>
+  preferences.filter((preference) => preference.required && preference.default === undefined).map((preference) => preference.name);
+
+function errorFrom(message: HostMessage): string {
+  if (message.type === "error") return message.message;
+  if (message.type === "toast" && message.style === "failure") return `toast: ${message.title} ${message.message ?? ""}`;
+  return "";
+}
+
+function observe(view: TreeNode, seen: Observation) {
+  seen.view = view.type;
+  seen.loading = Boolean(view.props.isLoading);
+  seen.items = findNodes(view, isItem).length;
+  const hasStaticContent = findNodes(view, (node) => node.type === "EmptyView" || node.type.startsWith("Form.")).length > 0;
+  seen.hasContent = seen.items > 0 || Boolean(view.props.markdown) || hasStaticContent;
+}
+
+function classify(seen: Observation, stderrError: string): string {
+  if (seen.view && seen.hasContent) return seen.view === "Form" ? "form" : "ok";
+  if (seen.error) return "error";
+  if (seen.view) return "empty";
+  return stderrError ? "error" : "nothing";
+}
 
 async function run(ext: string, command: string): Promise<Result> {
-  const proc = Bun.spawn(["bun", path.join(import.meta.dir, "host.ts"), path.join(root, ext), command], {
-    stdin: "pipe", stdout: "pipe", stderr: "pipe",
-  });
-  let view = "", items = 0, loading = false, error = "", hasContent = false, buffer = "", probed = false;
+  const proc = startHost(path.join(root, ext), command, "pipe");
+  const seen: Observation = { view: "", items: 0, loading: false, hasContent: false, error: "", probed: false };
   const timer = setTimeout(() => proc.kill(), seconds * 1000);
-  const stderr = new Response(proc.stderr).text();
-  for await (const chunk of proc.stdout) {
-    buffer += new TextDecoder().decode(chunk);
-    let newline: number;
-    while ((newline = buffer.indexOf("\n")) >= 0) {
-      const line = buffer.slice(0, newline);
-      buffer = buffer.slice(newline + 1);
-      let message: any;
-      try { message = JSON.parse(line); } catch { continue; }
-      if (message.type === "error") error ||= message.message;
-      if (message.type === "toast" && message.style === "failure") error ||= `toast: ${message.title} ${message.message ?? ""}`;
-      if (message.type !== "render") continue;
-      const top = message.tree.children.at(-1);
-      const node = top?.children.find((child: any) => child.type !== "_slot");
-      if (!node) continue;
-      view = node.type;
-      loading = !!node.props.isLoading;
-      items = find(node, (n) => /^(List|Grid)\.Item$/.test(n.type)).length;
-      hasContent = items > 0 || !!node.props.markdown || find(node, (n) => n.type === "EmptyView" || n.type.startsWith("Form.")).length > 0;
-      if (hasContent && !loading) proc.kill();
+  const stderr = new Response(proc.stderr as ReadableStream).text();
+
+  for await (const message of hostMessages(proc.stdout)) {
+    seen.error ||= errorFrom(message);
+    const view = message.type === "render" && message.tree ? topView(message.tree).view : undefined;
+    if (!view) continue;
+    observe(view, seen);
+    if (seen.hasContent && !seen.loading) {
+      proc.kill();
+    } else if (!seen.probed && !seen.loading && seen.items === 0 && view.handlers?.includes("onSearchTextChange")) {
       // A search command is legitimately empty until someone types, so type something once.
-      else if (!probed && !loading && items === 0 && node.handlers?.includes("onSearchTextChange")) {
-        probed = true;
-        proc.stdin.write(JSON.stringify({ type: "event", id: node.id, prop: "onSearchTextChange", args: ["swift"] }) + "\n");
-        proc.stdin.flush();
-      }
+      seen.probed = true;
+      sendToHost(proc, { type: "event", id: view.id, prop: "onSearchTextChange", args: ["swift"] });
     }
   }
   clearTimeout(timer);
-  const firstError = error || (await stderr).split("\n").find((l) => /error|cannot find|not found|undefined is not/i.test(l) && !/Deprecation/.test(l)) || "";
-  let status: string;
-  if (view && hasContent) status = view === "Form" ? "form" : "ok";
-  else if (error) status = "error";
-  else if (view) status = "empty";
-  else status = firstError ? "error" : "nothing";
-  return { ext, command, status, detail: `${view || "-"} items=${items}${loading ? " loading" : ""}${probed ? " (after typing)" : ""} ${status === "ok" || status === "form" ? "" : firstError.trim().slice(0, 140)}` };
+
+  const stderrError =
+    (await stderr).split("\n").find((line) => /error|cannot find|not found|undefined is not/i.test(line) && !line.includes("Deprecation")) ?? "";
+  const firstError = seen.error || stderrError;
+  const status = classify(seen, stderrError);
+  const reason = status === "ok" || status === "form" ? "" : firstError.trim().slice(0, 140);
+  const detail = `${seen.view || "-"} items=${seen.items}${seen.loading ? " loading" : ""}${seen.probed ? " (after typing)" : ""} ${reason}`;
+  return { ext, command, status, detail };
 }
 
 const jobs: (() => Promise<Result>)[] = [];
-const skipped: Result[] = [];
+const results: Result[] = [];
 let noView = 0;
-for (const ext of fs.readdirSync(root).sort()) {
+for (const ext of fs.readdirSync(root).sort((a, b) => a.localeCompare(b))) {
   const file = path.join(root, ext, "package.json");
   if (!fs.existsSync(file)) continue;
   const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
-  const commands = manifest.commands ?? [];
-  noView += commands.filter((c: any) => c.mode !== "view").length;
-  const extRequired = required(manifest.preferences);
-  const views = commands.filter((c: any) => (c.mode ?? "view") === "view").slice(0, 2);
-  for (const command of views) {
-    const needs = [...extRequired, ...required(command.preferences)];
-    if (needs.length) skipped.push({ ext, command: command.name, status: "needs-prefs", detail: needs.join(", ") });
+  const commands: { name: string; mode?: string; preferences?: Preference[] }[] = manifest.commands ?? [];
+  const views = commands.filter((candidate) => (candidate.mode ?? "view") === "view");
+  noView += commands.length - views.length;
+  for (const command of views.slice(0, 2)) {
+    const needs = [...required(manifest.preferences), ...required(command.preferences)];
+    if (needs.length > 0) results.push({ ext, command: command.name, status: "needs-prefs", detail: needs.join(", ") });
     else jobs.push(() => run(ext, command.name));
   }
 }
 
-const results: Result[] = [...skipped];
-let next = 0;
-await Promise.all(Array.from({ length: 4 }, async () => {
-  while (next < jobs.length) results.push(await jobs[next++]());
-}));
+// Four workers, each taking the next job until none are left.
+async function worker(): Promise<void> {
+  const job = jobs.shift();
+  if (!job) return;
+  results.push(await job());
+  return worker();
+}
+await Promise.all(Array.from({ length: 4 }, worker));
+
 results.sort((a, b) => a.status.localeCompare(b.status) || a.ext.localeCompare(b.ext));
-for (const r of results) console.log(`${r.status.padEnd(11)} ${(r.ext + "/" + r.command).padEnd(46)} ${r.detail}`);
 const counts: Record<string, number> = {};
-for (const r of results) counts[r.status] = (counts[r.status] ?? 0) + 1;
+for (const result of results) {
+  console.log(`${result.status.padEnd(11)} ${(result.ext + "/" + result.command).padEnd(46)} ${result.detail}`);
+  counts[result.status] = (counts[result.status] ?? 0) + 1;
+}
 console.log("\nTOTAL", results.length, JSON.stringify(counts), `(no-view commands not run: ${noView})`);

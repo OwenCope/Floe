@@ -5,26 +5,63 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
-// Drives host.ts headlessly: bun smoke.ts <extDir> <command>. Prints a summary of each render.
+// Drives host.ts headlessly: bun smoke.ts <extDir> <command>. Prints a summary of each render, then
+// runs the second action, the first action, and pops back out. SMOKE_PASSIVE=1 stops at the first list.
+import { findNodes, hostMessages, isItem, sendToHost, startHost, topView, type TreeNode } from "./testing";
+
 const [extDir, command] = process.argv.slice(2);
-const proc = Bun.spawn(["bun", import.meta.dir + "/host.ts", extDir, command], { stdin: "pipe", stdout: "pipe", stderr: "inherit" });
-const find = (node: any, type: string, out: any[] = []) => { if (node.type === type) out.push(node); (node.children ?? []).forEach((c: any) => find(c, type, out)); return out; };
-const sendMsg = (m: any) => { proc.stdin.write(JSON.stringify(m) + "\n"); proc.stdin.flush(); };
-let step = 0, buf = "";
-const timer = setTimeout(() => { console.log("TIMEOUT"); proc.kill(); process.exit(1); }, Number(process.env.SMOKE_TIMEOUT ?? 15000));
-for await (const chunk of proc.stdout) {
-  buf += new TextDecoder().decode(chunk);
-  let i; while ((i = buf.indexOf("\n")) >= 0) {
-    const msg = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
-    if (msg.type !== "render") { console.log("MSG", JSON.stringify(msg).slice(0, 300)); if (msg.type === "exit") { clearTimeout(timer); proc.kill(); process.exit(0); } continue; }
-    const screens = msg.tree.children; const top = screens.at(-1); const view = top.children.find((c: any) => c.type !== "_slot");
-    const items = [...find(top, "List.Item"), ...find(top, "Grid.Item")];
-    console.log(`RENDER screens=${screens.length} view=${view?.type} loading=${view?.props.isLoading ?? false} items=${items.length} first=${JSON.stringify(items[0]?.props.title)?.slice(0, 80)} icon=${JSON.stringify(items[0]?.props.icon)?.slice(0, 60)} md=${JSON.stringify(view?.props.markdown)?.slice(0, 50)}`);
-    if (process.env.SMOKE_PASSIVE) { if (items.length) { console.log("ACTIONS", find(items[0], "Action").map((a: any) => a.props.title).join(" | ")); clearTimeout(timer); proc.kill(); process.exit(0); } continue; }
-    const actions = find(items[0] ?? top, "Action");
-    if (step === 0 && items.length) { step = 1; console.log("ACTIONS", actions.map((a: any) => a.props.title).join(" | ")); sendMsg({ type: "event", id: actions[1].id, prop: "onAction", args: [] }); }
-    else if (step === 1) { step = 2; sendMsg({ type: "event", id: actions[0].id, prop: "onAction", args: [] }); }
-    else if (step === 2 && screens.length === 2) { step = 3; sendMsg({ type: "pop" }); }
-    else if (step === 3 && screens.length === 1) { step = 4; sendMsg({ type: "pop" }); }
+const proc = startHost(extDir, command, "inherit");
+const passive = Boolean(process.env.SMOKE_PASSIVE);
+
+function finish(code: number): never {
+  clearTimeout(timer);
+  proc.kill();
+  process.exit(code);
+}
+
+const timer = setTimeout(() => {
+  console.log("TIMEOUT");
+  finish(1);
+}, Number(process.env.SMOKE_TIMEOUT ?? 15000));
+
+const short = (value: unknown, length: number) => JSON.stringify(value)?.slice(0, length);
+const titles = (actions: TreeNode[]) => actions.map((action) => action.props.title).join(" | ");
+const runAction = (action: TreeNode) => sendToHost(proc, { type: "event", id: action.id, prop: "onAction", args: [] });
+
+let step = 0;
+for await (const message of hostMessages(proc.stdout)) {
+  if (message.type !== "render" || !message.tree) {
+    console.log("MSG", JSON.stringify(message).slice(0, 300));
+    if (message.type === "exit") finish(0);
+    continue;
+  }
+  const { screens, top, view } = topView(message.tree);
+  if (!top) continue;
+  const items = findNodes(top, isItem);
+  console.log(
+    `RENDER screens=${screens.length} view=${view?.type} loading=${view?.props.isLoading ?? false} items=${items.length} ` +
+      `first=${short(items[0]?.props.title, 80)} icon=${short(items[0]?.props.icon, 60)} md=${short(view?.props.markdown, 50)}`,
+  );
+  const actions = findNodes(items[0] ?? top, (node) => node.type === "Action");
+  if (passive) {
+    if (items.length > 0) {
+      console.log("ACTIONS", titles(actions));
+      finish(0);
+    }
+    continue;
+  }
+  if (step === 0 && items.length > 0) {
+    step = 1;
+    console.log("ACTIONS", titles(actions));
+    runAction(actions[1]);
+  } else if (step === 1) {
+    step = 2;
+    runAction(actions[0]);
+  } else if (step === 2 && screens.length === 2) {
+    step = 3;
+    sendToHost(proc, { type: "pop" });
+  } else if (step === 3 && screens.length === 1) {
+    step = 4;
+    sendToHost(proc, { type: "pop" });
   }
 }
