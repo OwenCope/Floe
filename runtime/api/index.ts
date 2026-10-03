@@ -414,25 +414,25 @@ export class Cache {
     this.file = path.join(ctx.supportPath, `cache-${options?.namespace ?? "default"}.json`);
     this.data = readJSON(this.file);
   }
-  private persist = (key: string | undefined, value: string | undefined) => {
+  private readonly persist = (key: string | undefined, value: string | undefined) => {
     fs.writeFileSync(this.file, JSON.stringify(this.data));
     this.subscribers.forEach((subscriber) => subscriber(key, value));
   };
   get isEmpty() { return Object.keys(this.data).length === 0; }
-  get = (key: string) => this.data[key];
-  has = (key: string) => key in this.data;
-  set = (key: string, value: string) => { this.data[key] = value; this.persist(key, value); };
-  remove = (key: string) => {
+  readonly get = (key: string) => this.data[key];
+  readonly has = (key: string) => key in this.data;
+  readonly set = (key: string, value: string) => { this.data[key] = value; this.persist(key, value); };
+  readonly remove = (key: string) => {
     const existed = key in this.data;
     delete this.data[key];
     this.persist(key, undefined);
     return existed;
   };
-  clear = (_options?: { notifySubscribers?: boolean }) => {
+  readonly clear = (_options?: { notifySubscribers?: boolean }) => {
     for (const key of Object.keys(this.data)) delete this.data[key];
     this.persist(undefined, undefined);
   };
-  subscribe = (subscriber: CacheSubscriber) => {
+  readonly subscribe = (subscriber: CacheSubscriber) => {
     this.subscribers.add(subscriber);
     return () => {
       this.subscribers.delete(subscriber);
