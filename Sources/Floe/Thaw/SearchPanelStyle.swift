@@ -1,0 +1,254 @@
+//
+//  SearchPanelStyle.swift
+//  Project: Thaw
+//
+//  Copyright (Thaw) © 2026 Toni Förster
+//  Licensed under the GNU GPLv3
+//
+//  Floe changes © 2026 René Jiménez, under the same license.
+//
+//  The launcher face of Thaw 3's menu bar search panel (Panels/Search and UI/Views/SectionedList),
+//  ported to Floe as standalone views: query field metrics, palette row metrics, the row background
+//  with its selection and hover washes, section headings, and key caps.
+
+import SwiftUI
+import ThawUI
+
+/// Thaw's inspector query field: .title2 text in an interactive glass capsule, inset from the panel's
+/// edges, that reads one step more solid while it has focus.
+struct SearchQueryField<Accessory: View>: View {
+    let prompt: String
+    @Binding var text: String
+    let focusToken: Int
+    var isLoading = false
+    @ViewBuilder var accessory: Accessory
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: ThawSpacing.row) {
+            // Sized by the field's own text style, so it scales with the query.
+            Image(systemName: "magnifyingglass")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+            TextField(text: $text, prompt: Text(prompt)) { Text(prompt) }
+                .labelsHidden()
+                .textFieldStyle(.plain)
+                .font(.title2)
+                .autocorrectionDisabled(true)
+                .writingToolsBehavior(.disabled)
+                .focused($isFocused)
+            Spacer(minLength: 0)
+            if isLoading { ProgressView().controlSize(.small) }
+            accessory
+        }
+        .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
+        .thawGlass(.field(isFocused: isFocused), in: Capsule(style: .continuous))
+        .padding(.horizontal, ThawSpacing.inset)
+        .padding(.top, ThawSpacing.inset)
+        .padding(.bottom, ThawSpacing.row)
+        .onAppear {
+            // A non-activating panel does not hand first responder to a SwiftUI field synchronously.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(50))
+                isFocused = true
+            }
+        }
+        .onChange(of: focusToken) { isFocused = true }
+    }
+}
+
+/// Thaw's palette row: icon, name, and a quieter second line when it says something the name doesn't.
+struct PaletteRow<Icon: View, Trailing: View>: View {
+    let title: String
+    let subtitle: String?
+    let selected: Bool
+    @ViewBuilder var icon: Icon
+    @ViewBuilder var trailing: Trailing
+
+    var body: some View {
+        HStack(spacing: 10) {
+            icon.frame(width: 24, height: 24)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(ThawType.body).lineLimit(1)
+                if let subtitle {
+                    Text(subtitle).font(ThawType.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+            trailing
+        }
+        .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8))
+        .modifier(SearchRowBackground(selected: selected))
+    }
+}
+
+/// The selection and hover washes from Thaw's SectionedList rows.
+struct SearchRowBackground: ViewModifier {
+    let selected: Bool
+    @State private var isHovering = false
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: ThawRadius.control, style: .continuous)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .frame(minWidth: 22, minHeight: 22)
+            .contentShape([.focusEffect, .interaction], shape)
+            .background {
+                if selected {
+                    // The opaque base keeps the panel's glass from refracting behind the selected row.
+                    shape
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                        .overlay { Color.clear.thawGlass(.selection(.accentColor, strength: .selected), in: shape) }
+                } else if isHovering {
+                    Color.clear.thawGlass(.selection(.accentColor, strength: .hover), in: shape)
+                }
+            }
+            // Under Differentiate Without Color the accent wash alone is not a mark.
+            .thawSelectionCue(isSelected: selected)
+            .onHover { isHovering = $0 }
+    }
+}
+
+/// A heading row between groups of results.
+struct SearchSectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, ThawSpacing.row)
+            .padding(.leading, ThawSpacing.compact)
+    }
+}
+
+/// A flat key cap, not glass: glass per cap on the panel's glass refracts.
+struct KeyCapView: View {
+    private let text: String?
+    private let systemImage: String?
+    private let font: Font?
+
+    init(text: String, font: Font? = nil) {
+        self.text = text
+        systemImage = nil
+        self.font = font
+    }
+
+    init(systemImage: String) {
+        text = nil
+        self.systemImage = systemImage
+        font = nil
+    }
+
+    var body: some View {
+        Group {
+            if let text {
+                Text(verbatim: text)
+                    .font(font)
+                    .padding(.horizontal, ThawSpacing.tight)
+                    .padding(.vertical, ThawSpacing.hairline)
+            } else if let systemImage {
+                Image(systemName: systemImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 11, height: 11)
+                    .bold()
+                    .padding(.horizontal, ThawSpacing.compact)
+                    .padding(.vertical, ThawSpacing.tight)
+            }
+        }
+        .foregroundStyle(.secondary)
+        .background(keyShape.fill(.quaternary))
+        .overlay(keyShape.strokeBorder(.separator, lineWidth: 0.5))
+    }
+
+    private var keyShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+    }
+}
+
+/// Thaw's inspector row: owning app and name, then a preview of the item as the menu bar draws it.
+struct InspectorItemRow: View {
+    private static let iconLength: CGFloat = 26
+
+    let extra: MenuBarExtra
+    let name: String
+    let preview: CGImage?
+    /// Set while this row is being renamed; the inline field edits it.
+    var renameDraft: Binding<String>?
+    @FocusState private var isEditing: Bool
+
+    var body: some View {
+        HStack {
+            Label {
+                if let renameDraft {
+                    TextField(extra.name, text: renameDraft)
+                        .textFieldStyle(.plain)
+                        .autocorrectionDisabled(true)
+                        .focused($isEditing)
+                        .onAppear { isEditing = true }
+                } else {
+                    Text(name)
+                }
+            } icon: {
+                Group {
+                    if let url = extra.ownerURL {
+                        AppIconView(path: url.path, size: Self.iconLength)
+                    } else {
+                        Image(systemName: "menubar.rectangle").foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: Self.iconLength, height: Self.iconLength)
+            }
+            Spacer()
+            itemPreview
+        }
+        .padding(ThawSpacing.compact)
+        .thawHoverLift()
+    }
+
+    /// The item as it appears in the menu bar, captured with its backdrop.
+    private var itemPreview: some View {
+        let previewShape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+        return Group {
+            if let preview {
+                Image(decorative: preview, scale: NSScreen.main?.backingScaleFactor ?? 2)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: max(extra.frame.width, Self.iconLength), height: Self.iconLength)
+        .clipShape(previewShape)
+        .overlay { previewShape.strokeBorder(.quaternary) }
+    }
+}
+
+struct ShortcutHintButton<Hint: View>: View {
+    let title: String
+    let action: () -> Void
+    @ViewBuilder let hint: () -> Hint
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Text(title)
+                    .padding(.leading, 5)
+                hint()
+            }
+        }
+    }
+}
+
+/// Compact, uniformly sized styling shared by every bottom bar button.
+struct SearchPanelButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(height: 22)
+            .frame(minWidth: 22)
+            .padding(3)
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+    }
+}

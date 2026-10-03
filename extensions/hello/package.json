@@ -1,0 +1,87 @@
+{
+  "name": "hello",
+  "title": "Hello",
+  "description": "Sample extension exercising the runtime",
+  "author": "floe",
+  "commands": [
+    {
+      "name": "planets",
+      "title": "Browse Planets",
+      "description": "List, detail, push, copy and toast",
+      "mode": "view"
+    },
+    {
+      "name": "copy-date",
+      "title": "Copy Today's Date",
+      "description": "No-view command",
+      "mode": "no-view"
+    },
+    {
+      "name": "feedback",
+      "title": "Send Feedback",
+      "description": "Form exercising every field type",
+      "mode": "view"
+    },
+    {
+      "name": "greet",
+      "title": "Greet",
+      "description": "Uses the required preference",
+      "mode": "view"
+    },
+    {
+      "name": "echo",
+      "title": "Echo",
+      "description": "Shows its argument",
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "text",
+          "placeholder": "Text",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "tone",
+          "placeholder": "Tone",
+          "type": "dropdown",
+          "required": false,
+          "data": [
+            {
+              "title": "Calm",
+              "value": "calm"
+            },
+            {
+              "title": "Loud",
+              "value": "loud"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "greeting",
+      "title": "Greeting",
+      "description": "How the Greet command says hello",
+      "type": "textfield",
+      "required": true,
+      "placeholder": "Hello"
+    },
+    {
+      "name": "token",
+      "title": "API Token",
+      "description": "Stored in the Keychain",
+      "type": "password",
+      "required": false
+    },
+    {
+      "name": "shout",
+      "title": "Style",
+      "label": "Shout",
+      "type": "checkbox",
+      "default": false,
+      "required": false
+    }
+  ]
+}

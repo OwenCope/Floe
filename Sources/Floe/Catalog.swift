@@ -1,0 +1,280 @@
+//
+//  Catalog.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU GPLv3
+
+import AppKit
+
+enum Paths {
+    /// The checkout this binary was built from, or `FLOE_ROOT`. Only used when running unbundled (`swift run`)
+    /// or when the override is set, so an installed app never depends on it.
+    private static let checkout: URL = {
+        if let override = ProcessInfo.processInfo.environment["FLOE_ROOT"] {
+            return URL(fileURLWithPath: override)
+        }
+        return URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    }()
+
+    /// The runtime copied into the app at build time, when there is one.
+    private static let bundledRuntime: URL? = Bundle.main.resourceURL
+        .map { $0.appendingPathComponent("runtime") }
+        .flatMap { FileManager.default.fileExists(atPath: $0.appendingPathComponent("host.ts").path) ? $0 : nil }
+
+    static let isDevelopment = ProcessInfo.processInfo.environment["FLOE_ROOT"] != nil || bundledRuntime == nil
+
+    static let runtime = isDevelopment ? checkout.appendingPathComponent("runtime") : bundledRuntime!
+    static let host = runtime.appendingPathComponent("host.ts")
+
+    static let support = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Application Support/Floe")
+    /// Where builds from before the rename to Floe kept everything.
+    private static let legacySupport = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Application Support/LauncherProto")
+    /// Extensions the user added.
+    static let extensions = support.appendingPathComponent("Extensions")
+    /// Per-extension storage, preferences and build cache, by extension name.
+    static let data = support.appendingPathComponent("Data")
+
+    /// Creates the support folders. Earlier builds kept per-extension data in "extensions", which on a
+    /// case-insensitive volume is the same folder as "Extensions", so that data moves to "Data" first.
+    static func prepareSupportFolders() {
+        let fileManager = FileManager.default
+        if !fileManager.fileExists(atPath: support.path), fileManager.fileExists(atPath: legacySupport.path) {
+            try? fileManager.moveItem(at: legacySupport, to: support)
+        }
+        let names = (try? fileManager.contentsOfDirectory(atPath: support.path)) ?? []
+        if !names.contains("Data"), names.contains("extensions") {
+            try? fileManager.moveItem(at: support.appendingPathComponent("extensions"), to: data)
+        }
+        try? fileManager.createDirectory(at: data, withIntermediateDirectories: true)
+        try? fileManager.createDirectory(at: extensions, withIntermediateDirectories: true)
+    }
+    /// The checkout's sample extensions, listed only while developing.
+    static let developmentExtensions: URL? = isDevelopment ? checkout.appendingPathComponent("extensions") : nil
+    /// Extensions the Raycast app has installed. Read-only: builds and storage go to our own support folder.
+    static let raycastExtensions = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/raycast/extensions")
+
+    /// The Bun shipped inside the app, else a system copy.
+    static let bun: String? = {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return [runtime.appendingPathComponent("bin/bun").path, "/opt/homebrew/bin/bun", "\(home)/.bun/bin/bun", "/usr/local/bin/bun"]
+            .first { FileManager.default.isExecutableFile(atPath: $0) }
+    }()
+
+    static var isBunBundled: Bool { bun == runtime.appendingPathComponent("bin/bun").path }
+}
+
+struct AppEntry {
+    let name: String
+    let url: URL
+
+    static let folders = ["/Applications", "/System/Applications", "/System/Applications/Utilities", "/Applications/Utilities",
+                          FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications").path]
+
+    static func scan() -> [AppEntry] {
+        var seen = Set<String>()
+        var apps: [AppEntry] = []
+        for folder in folders {
+            let entries = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
+            for entry in entries where entry.hasSuffix(".app") {
+                let url = URL(fileURLWithPath: folder).appendingPathComponent(entry)
+                let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+                if seen.insert(url.path).inserted { apps.append(AppEntry(name: name, url: url)) }
+            }
+        }
+        return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+}
+
+/// A preference or argument declared in an extension manifest, as an editable field.
+struct FieldSpec: Identifiable {
+    let name: String
+    let title: String
+    let detail: String?
+    /// Raycast's type names: textfield, password, checkbox, dropdown, appPicker, file, directory (preferences);
+    /// text, password, dropdown (arguments).
+    let type: String
+    let required: Bool
+    let placeholder: String?
+    /// Checkbox label.
+    let label: String?
+    let options: [(title: String, value: String)]
+    let defaultValue: Any?
+
+    var id: String { name }
+    var isSecret: Bool { type == "password" }
+
+    init?(json: [String: Any]) {
+        guard let name = json["name"] as? String else { return nil }
+        self.name = name
+        self.title = json["title"] as? String ?? json["placeholder"] as? String ?? name
+        self.detail = json["description"] as? String
+        self.type = json["type"] as? String ?? "textfield"
+        self.required = json["required"] as? Bool ?? false
+        self.placeholder = json["placeholder"] as? String
+        self.label = json["label"] as? String
+        self.options = (json["data"] as? [[String: Any]] ?? []).compactMap { option in
+            guard let value = option["value"] as? String else { return nil }
+            return (option["title"] as? String ?? value, value)
+        }
+        self.defaultValue = json["default"]
+    }
+}
+
+struct ExtensionCommand: Identifiable {
+    enum Source { case local, raycast }
+
+    let extensionDir: URL
+    let extensionName: String
+    let extensionTitle: String
+    let source: Source
+    let name: String
+    let title: String
+    let mode: String
+    let icon: String?
+    let arguments: [FieldSpec]
+    let extensionPreferences: [FieldSpec]
+    let commandPreferences: [FieldSpec]
+
+    var id: String { "\(extensionName)/\(name)" }
+    var assetsPath: String { extensionDir.appendingPathComponent("assets").path }
+    var preferences: [FieldSpec] { extensionPreferences + commandPreferences }
+
+    /// Local extensions first, then Raycast's; an extension found in both is taken from the local copy.
+    static func scan(includeRaycast: Bool = true) -> [ExtensionCommand] {
+        var seen = Set<String>()
+        Paths.prepareSupportFolders()
+        let roots: [(URL, Source)] = [(Paths.extensions, .local)]
+            + (Paths.developmentExtensions.map { [($0, .local)] } ?? [])
+            + (includeRaycast ? [(Paths.raycastExtensions, .raycast)] : [])
+        return roots.flatMap { scan(root: $0.0, source: $0.1) }.filter { seen.insert($0.id).inserted }
+    }
+
+    private static func scan(root: URL, source: Source) -> [ExtensionCommand] {
+        let folders = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+        return folders.sorted { $0.lastPathComponent < $1.lastPathComponent }.flatMap { folder -> [ExtensionCommand] in
+            guard let data = try? Data(contentsOf: folder.appendingPathComponent("package.json")),
+                  let manifest = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let extensionName = manifest["name"] as? String,
+                  let commands = manifest["commands"] as? [[String: Any]] else { return [] }
+            let extensionPreferences = (manifest["preferences"] as? [[String: Any]] ?? []).compactMap(FieldSpec.init(json:))
+            return commands.compactMap { command in
+                guard let name = command["name"] as? String else { return nil }
+                let mode = command["mode"] as? String ?? "view"
+                guard mode == "view" || mode == "no-view" else { return nil }
+                return ExtensionCommand(
+                    extensionDir: folder,
+                    extensionName: extensionName,
+                    extensionTitle: manifest["title"] as? String ?? extensionName,
+                    source: source,
+                    name: name,
+                    title: command["title"] as? String ?? name,
+                    mode: mode,
+                    icon: command["icon"] as? String ?? manifest["icon"] as? String,
+                    arguments: (command["arguments"] as? [[String: Any]] ?? []).compactMap(FieldSpec.init(json:)),
+                    extensionPreferences: extensionPreferences,
+                    commandPreferences: (command["preferences"] as? [[String: Any]] ?? []).compactMap(FieldSpec.init(json:))
+                )
+            }
+        }
+    }
+}
+
+struct RootResult: Identifiable {
+    let item: RootItem
+    /// Shown above the first result of a run with the same title; only set when the query is empty.
+    let section: String?
+    var id: String { item.id }
+}
+
+/// Watches the application folders and reports changes, so newly installed apps show up without a restart.
+final class AppFolderWatcher {
+    private var sources: [DispatchSourceFileSystemObject] = []
+    private var pending: DispatchWorkItem?
+
+    init(onChange: @escaping () -> Void) {
+        for folder in AppEntry.folders {
+            let descriptor = open(folder, O_EVTONLY)
+            guard descriptor >= 0 else { continue }
+            let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .rename, .delete], queue: .main)
+            source.setEventHandler { [weak self] in
+                // Installers touch the folder several times; react once things settle.
+                self?.pending?.cancel()
+                let work = DispatchWorkItem(block: onChange)
+                self?.pending = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+            }
+            source.setCancelHandler { close(descriptor) }
+            source.resume()
+            sources.append(source)
+        }
+    }
+
+    deinit {
+        sources.forEach { $0.cancel() }
+    }
+}
+
+enum RootItem: Identifiable {
+    case app(AppEntry)
+    case command(ExtensionCommand)
+    case menuBarSearch
+    case settings
+
+    static let menuBarSearchKey = "builtin:menubar-search"
+
+    var id: String {
+        switch self {
+        case .app(let app): "app:\(app.url.path)"
+        case .command(let command): "command:\(command.id)"
+        case .menuBarSearch: Self.menuBarSearchKey
+        case .settings: "settings"
+        }
+    }
+    var title: String {
+        switch self {
+        case .app(let app): app.name
+        case .command(let command): command.title
+        case .menuBarSearch: "Search Menu Bar Items"
+        case .settings: "Floe Settings"
+        }
+    }
+    var subtitle: String? {
+        if case .command(let command) = self { return command.extensionTitle }
+        return nil
+    }
+    /// Key for aliases and hotkeys; commands keep their historical "extension/command" key.
+    var settingsKey: String? {
+        switch self {
+        case .app: id
+        case .command(let command): command.id
+        case .menuBarSearch: Self.menuBarSearchKey
+        case .settings: nil
+        }
+    }
+
+    var kind: String {
+        switch self {
+        case .app: "Application"
+        case .command: "Command"
+        case .menuBarSearch, .settings: "Floe"
+        }
+    }
+}
+
+enum Fuzzy {
+    /// Higher is better; nil means no match.
+    static func score(_ query: String, _ candidate: String) -> Int? {
+        let query = query.lowercased(), candidate = candidate.lowercased()
+        if candidate.hasPrefix(query) { return 100 - min(candidate.count - query.count, 20) }
+        let words = candidate.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+        if words.contains(where: { $0.hasPrefix(query) }) { return 75 }
+        if String(words.compactMap(\.first)).hasPrefix(query) { return 70 }
+        if candidate.contains(query) { return 55 }
+        var remaining = Substring(query)
+        for character in candidate where character == remaining.first { remaining = remaining.dropFirst() }
+        return remaining.isEmpty ? 25 : nil
+    }
+}

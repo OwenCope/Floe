@@ -1,0 +1,7 @@
+.build/
+node_modules/
+.DS_Store
+xcuserdata/
+*.xcworkspace/xcuserdata/
+.vscode/
+extensions/hacker-news/

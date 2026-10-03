@@ -1,0 +1,33 @@
+{
+  "name": "diagnostics",
+  "title": "Diagnostics",
+  "description": "Commands that fail on purpose, for testing the error screen",
+  "author": "floe",
+  "commands": [
+    {
+      "name": "throws",
+      "title": "Throw While Rendering",
+      "mode": "view"
+    },
+    {
+      "name": "exits",
+      "title": "Exit Mid-Session",
+      "mode": "view"
+    },
+    {
+      "name": "hangs",
+      "title": "Hang the Event Loop",
+      "mode": "view"
+    },
+    {
+      "name": "rejects",
+      "title": "Unhandled Rejection",
+      "mode": "view"
+    },
+    {
+      "name": "actions",
+      "title": "Nested Actions",
+      "mode": "view"
+    }
+  ]
+}

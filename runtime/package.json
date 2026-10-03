@@ -1,0 +1,2 @@
+{ "name": "floe-runtime", "private": true, "type": "module",
+  "dependencies": { "react": "^19.3.0", "react-reconciler": "^0.34.0" } }

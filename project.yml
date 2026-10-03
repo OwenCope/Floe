@@ -1,0 +1,102 @@
+# XcodeGen spec. Regenerate Floe.xcodeproj after editing: xcodegen generate
+name: Floe
+options:
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  ThawUI:
+    path: Vendor/ThawUI
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+
+targets:
+  Floe:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/Floe
+      - path: runtime
+        type: folder
+        buildPhase: none
+        excludes: [node_modules]
+      - path: scripts
+        buildPhase: none
+      - path: project.yml
+        buildPhase: none
+    dependencies:
+      - package: ThawUI
+    postBuildScripts:
+      - name: Embed Runtime
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          # Copies the extension host and its React dependencies into the app, plus Bun itself,
+          # so the installed app runs without this checkout or a system Bun.
+          DEST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/runtime"
+          if [ ! -d "$SRCROOT/runtime/node_modules/react-reconciler" ]; then
+            echo "error: runtime dependencies are missing; run 'bun install' in runtime/"
+            exit 1
+          fi
+          mkdir -p "$DEST/bin"
+          rsync -a --delete --exclude smoke.ts --exclude survey.ts --exclude bin "$SRCROOT/runtime/" "$DEST/"
+          BUN=""
+          for candidate in "${BUN_PATH:-}" /opt/homebrew/bin/bun "$HOME/.bun/bin/bun" /usr/local/bin/bun; do
+            if [ -n "$candidate" ] && [ -x "$candidate" ]; then BUN=$(realpath "$candidate"); break; fi
+          done
+          if [ -n "$BUN" ]; then
+            cmp -s "$BUN" "$DEST/bin/bun" || cp -f "$BUN" "$DEST/bin/bun"
+          else
+            echo "warning: Bun not found; the app will look for a system copy at runtime"
+          fi
+          # Stamp the commit into the built Info.plist for the About page; signing happens after this step.
+          COMMIT=$(git -C "$SRCROOT" rev-parse --short HEAD 2>/dev/null || echo "uncommitted")
+          if [ -n "$(git -C "$SRCROOT" status --porcelain 2>/dev/null | head -1)" ]; then COMMIT="$COMMIT-dirty"; fi
+          /usr/libexec/PlistBuddy -c "Set :GitCommitSHA $COMMIT" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Floe
+        NSHumanReadableCopyright: Copyright © 2026 René Jiménez. Licensed under the GNU GPLv3.
+        FloeRepositoryURL: https://github.com/thaw-app/Floe
+        # Filled in from git by the Embed Runtime step.
+        GitCommitSHA: unknown
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        LSUIElement: true
+        NSHighResolutionCapable: true
+    settings:
+      base:
+        PRODUCT_NAME: Floe
+        PRODUCT_BUNDLE_IDENTIFIER: com.diazdesandi.Floe
+        # Ad hoc ("Sign to Run Locally"); set a team here once the app needs stable permissions.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        ENABLE_HARDENED_RUNTIME: NO
+        GENERATE_INFOPLIST_FILE: NO
+        # The runtime embed step reads the checkout and Homebrew's Bun.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+schemes:
+  Floe:
+    build:
+      targets:
+        Floe: all
+    run:
+      config: Debug
+      environmentVariables:
+        - variable: FLOE_AUTORUN
+          value: hacker-news/frontpage
+          isEnabled: false
+        - variable: FLOE_DEBUG
+          value: "1"
+          isEnabled: false
+    archive:
+      config: Release
