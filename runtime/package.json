@@ -1,2 +1,3 @@
 { "name": "floe-runtime", "private": true, "type": "module",
+  "scripts": { "test": "bun test" },
   "dependencies": { "react": "^19.3.0", "react-reconciler": "^0.34.0" } }

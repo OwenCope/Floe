@@ -1,0 +1,4 @@
+# Read by `bun test` when run in runtime/, or from the repo root with `bun --config=runtime/bunfig.toml test ./runtime`.
+[test]
+# Only the runtime's own modules count: not the tests, their helpers, or the bundles the build tests write to temp folders.
+coveragePathIgnorePatterns = ["**/tests/**", "**/floe-support-*/**"]

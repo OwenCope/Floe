@@ -1,0 +1,163 @@
+//
+//  actions.test.ts
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU GPLv3
+
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
+import fs from "node:fs";
+import path from "node:path";
+import React from "react";
+import { handlePop } from "../bridge";
+import { Action, ActionPanel, Detail, Icon } from "../api/index";
+import { find, findAll, fire, installRuntime, makeTempDir, sent, settle, showScreen, type TreeNode } from "./support";
+
+const h = React.createElement;
+installRuntime("actions-tests");
+
+// Shows one action in a panel and returns its node.
+async function showAction(element: React.ReactNode): Promise<TreeNode> {
+  return find(await showScreen(h(Detail, { markdown: "host", actions: h(ActionPanel, null, element) })), "Action");
+}
+
+afterEach(() => {
+  mock.restore();
+});
+
+describe("built-in actions", () => {
+  test("have a default title and icon that props can replace", async () => {
+    const plain = await showAction(h(Action.CopyToClipboard, { content: "x" }));
+    expect(plain.props).toEqual({ title: "Copy to Clipboard", icon: "icon:Clipboard" });
+    expect(plain.handlers).toEqual(["onAction"]);
+
+    const custom = await showAction(
+      h(Action.CopyToClipboard, { content: "x", title: "Copy Name", icon: Icon.Person, shortcut: { modifiers: ["cmd"], key: "." }, style: Action.Style.Regular }),
+    );
+    expect(custom.props).toEqual({ title: "Copy Name", icon: "icon:Person", shortcut: { modifiers: ["cmd"], key: "." }, style: "regular" });
+  });
+
+  test("OpenInBrowser opens the URL, tells the extension, and closes the window", async () => {
+    const opened: string[] = [];
+    const action = await showAction(h(Action.OpenInBrowser, { url: "https://example.com", onOpen: (url: string) => opened.push(url) }));
+    expect(action.props.title).toBe("Open in Browser");
+    await fire(action, "onAction");
+    expect(sent()).toEqual([{ type: "open", target: "https://example.com" }, { type: "close" }]);
+    expect(opened).toEqual(["https://example.com"]);
+  });
+
+  test("Open passes the target and the chosen application", async () => {
+    const opened: string[] = [];
+    const action = await showAction(
+      h(Action.Open, { target: "/tmp/notes.txt", application: { name: "TextEdit", path: "/Applications/TextEdit.app" }, onOpen: (target: string) => opened.push(target) }),
+    );
+    await fire(action, "onAction");
+    expect(sent()).toEqual([{ type: "open", target: "/tmp/notes.txt", application: "/Applications/TextEdit.app" }, { type: "close" }]);
+    expect(opened).toEqual(["/tmp/notes.txt"]);
+  });
+
+  test("OpenWith opens the path", async () => {
+    await fire(await showAction(h(Action.OpenWith, { path: "/tmp/notes.txt" })), "onAction");
+    expect(sent()).toEqual([{ type: "open", target: "/tmp/notes.txt" }]);
+  });
+
+  test("CopyToClipboard copies, tells the extension, and confirms with a HUD", async () => {
+    const copied: unknown[] = [];
+    const action = await showAction(h(Action.CopyToClipboard, { content: 42, onCopy: (content: unknown) => copied.push(content) }));
+    await fire(action, "onAction");
+    expect(sent()).toEqual([
+      { type: "copy", text: "42" },
+      { type: "hud", title: "Copied to Clipboard" },
+    ]);
+    expect(copied).toEqual([42]);
+  });
+
+  test("Paste sends the text to paste and tells the extension", async () => {
+    const pasted: unknown[] = [];
+    const action = await showAction(h(Action.Paste, { content: "snippet", onPaste: (content: unknown) => pasted.push(content) }));
+    expect(action.props.title).toBe("Paste");
+    await fire(action, "onAction");
+    expect(sent()).toEqual([{ type: "paste", text: "snippet" }]);
+    expect(pasted).toEqual(["snippet"]);
+  });
+
+  test("Push shows the target as a new screen and runs onPop when it leaves", async () => {
+    const events: string[] = [];
+    const action = await showAction(
+      h(Action.Push, { title: "Details", target: h(Detail, { markdown: "pushed" }), onPush: () => events.push("push"), onPop: () => events.push("pop") }),
+    );
+    expect(action.props).toEqual({ title: "Details", icon: "icon:ArrowRight" });
+
+    const pushed = await fire(action, "onAction");
+    expect(pushed.children).toHaveLength(2);
+    expect(find(pushed.children[1], "Detail").props.markdown).toBe("pushed");
+    expect(events).toEqual(["push"]);
+
+    handlePop();
+    expect((await settle()).children).toHaveLength(1);
+    expect(events).toEqual(["push", "pop"]);
+  });
+
+  test("ShowInFinder reveals the path and closes the window", async () => {
+    const spawn = spyOn(Bun, "spawn").mockImplementation((() => ({})) as never);
+    const shown: string[] = [];
+    const action = await showAction(h(Action.ShowInFinder, { path: "/tmp/report.pdf", onShow: (file: string) => shown.push(file) }));
+    await fire(action, "onAction");
+    expect(spawn.mock.calls).toEqual([[["open", "-R", "/tmp/report.pdf"]]] as never);
+    expect(shown).toEqual(["/tmp/report.pdf"]);
+    expect(sent()).toEqual([{ type: "close" }]);
+  });
+
+  test("Trash moves the files into the user's Trash folder", async () => {
+    // HOME points at a temp folder for this test, so the real Trash is never touched.
+    const home = makeTempDir("home");
+    const realHome = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      fs.mkdirSync(path.join(home, ".Trash"));
+      const first = path.join(home, "a", "note.txt");
+      const second = path.join(home, "b", "note.txt");
+      for (const file of [first, second]) {
+        fs.mkdirSync(path.dirname(file));
+        fs.writeFileSync(file, path.dirname(file));
+      }
+      const trashed: unknown[] = [];
+      const action = await showAction(h(Action.Trash, { paths: [first, second], onTrash: (paths: unknown) => trashed.push(paths) }));
+      expect(action.props).toEqual({ title: "Move to Trash", icon: "icon:Trash" });
+      await fire(action, "onAction");
+
+      expect(fs.existsSync(first)).toBe(false);
+      expect(fs.existsSync(second)).toBe(false);
+      // The second file has the same name, so it gets a suffix instead of replacing the first.
+      const inTrash = fs.readdirSync(path.join(home, ".Trash")).sort((left, right) => left.length - right.length);
+      expect(inTrash[0]).toBe("note.txt");
+      expect(inTrash[1]).toMatch(/^note\.txt \d+$/);
+      expect(trashed).toEqual([[first, second]]);
+    } finally {
+      process.env.HOME = realHome;
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  test.each([
+    ["ToggleQuickLook", "Quick Look", "Quick Look isn't supported yet"],
+    ["CreateSnippet", "Create Snippet", "Snippets isn't supported yet"],
+    ["CreateQuicklink", "Create Quicklink", "Quicklinks isn't supported yet"],
+    ["PickDate", "Pick Date", "Date picker isn't supported yet"],
+  ] as const)("%s says it is not supported instead of failing", async (name, title, message) => {
+    const action = await showAction(h(Action[name]));
+    expect(action.props.title).toBe(title);
+    await fire(action, "onAction");
+    expect(sent()).toEqual([expect.objectContaining({ type: "toast", style: "failure", title: message, hidden: false })]);
+  });
+
+  test("a plain Action runs the extension's own handler", async () => {
+    const runs: string[] = [];
+    const tree = await showScreen(
+      h(Detail, { markdown: "", actions: h(ActionPanel, null, h(Action, { title: "First", onAction: () => runs.push("first") }), h(Action, { title: "Second", onAction: () => runs.push("second") })) }),
+    );
+    await fire(findAll(tree, "Action")[1], "onAction");
+    expect(runs).toEqual(["second"]);
+    expect(Action.PickDate.Type).toEqual({ Date: "date", DateTime: "dateTime" });
+  });
+});
