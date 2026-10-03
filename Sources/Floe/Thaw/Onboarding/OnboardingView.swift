@@ -1,0 +1,85 @@
+//
+//  OnboardingView.swift
+//  Project: Thaw
+//
+//  Copyright (Thaw) © 2026 Toni Förster
+//  Licensed under the GNU GPLv3
+//
+//  Floe changes © 2026 René Jiménez, under the same license.
+//
+//  Ported to Floe from Thaw 3: the bento of menu bar demos is replaced by Floe's own tour, the
+//  flow collects no choices so there is no outcome to hand back, and every screen can be skipped
+//  because Floe works without any grant.
+
+import SwiftUI
+import ThawUI
+
+/// Shared dimensions, sized for the access step: two permission cards side by side.
+enum ThawOnboardingWindowMetrics {
+    static let width: CGFloat = 720
+    static let height: CGFloat = 540
+}
+
+/// Ask for access after explaining its benefits; earlier screens need no grants and cannot fail for missing permissions.
+struct ThawOnboardingView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var step = OnboardingStep.welcome
+
+    private let skipsAccessStep: Bool
+    private let isReplay: Bool
+    private let onFinish: () -> Void
+
+    /// - Parameters:
+    ///   - skipsAccessStep: Ends at the tour when permissions are already granted, avoiding a redundant request.
+    ///   - isReplay: The user reopened the flow from Settings, so its last button closes it instead of opening Floe.
+    ///   - onFinish: Called once when the user finishes or skips the flow.
+    init(skipsAccessStep: Bool, isReplay: Bool = false, onFinish: @escaping () -> Void) {
+        self.skipsAccessStep = skipsAccessStep
+        self.isReplay = isReplay
+        self.onFinish = onFinish
+    }
+
+    private var finishTitle: String {
+        isReplay ? "Done" : "Open \(AppInfo.displayName)"
+    }
+
+    private func advance() {
+        if let next = step.next(skipsAccessStep: skipsAccessStep) {
+            step = next
+        } else {
+            onFinish()
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            switch step {
+            case .welcome:
+                OnboardingWelcomeView(onContinue: advance, onSkip: onFinish)
+                    .transition(.opacity)
+            case .tour:
+                OnboardingTourView(continueTitle: skipsAccessStep ? finishTitle : "Continue", onContinue: advance)
+                    .transition(.opacity)
+            case .access:
+                ThawPermissionsView(finishTitle: finishTitle, onContinue: advance)
+                    .transition(.opacity)
+            }
+        }
+        .overlay(alignment: .top) {
+            if let progress = step.progress(skipsAccessStep: skipsAccessStep) {
+                OnboardingStepIndicator(step: progress.step, total: progress.total)
+                    .padding(.top, ThawSpacing.inset)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .thawAnimation(ThawMotion.settle, value: step)
+        .transaction { transaction in
+            if reduceMotion {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
+        }
+    }
+}
