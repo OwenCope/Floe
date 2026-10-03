@@ -32,7 +32,9 @@ extension ExtensionSession {
             guard let data = try? JSONSerialization.data(withJSONObject: message) else { return }
             messages.yield(Array(data) + [0x0A])
         }
-        let hostArguments = Arguments([Paths.host.path, command.extensionDir.path, command.name, argumentsJSON])
+        // --smol trades some GC headroom for a smaller footprint: extension trees stay mounted for
+        // Back and resume, so the allocator's retention is the host's biggest memory cost.
+        let hostArguments = Arguments(["--smol", Paths.host.path, command.extensionDir.path, command.name, argumentsJSON])
         // One decoder per host: it owns the partial bytes between chunks and keeps decoding off the main actor.
         let decoder = HostMessageDecoder()
         hostTask = Task { [weak self] in
