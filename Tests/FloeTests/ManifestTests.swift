@@ -38,6 +38,33 @@ struct FieldSpecTests {
         #expect(field.defaultValue == nil)
     }
 
+    @Test(arguments: [
+        ["name": "x", "default": true],
+        ["name": "x", "default": "eu"],
+        ["name": "x", "default": 5],
+        ["name": "x", "default": 1.5],
+    ])
+    func scalarDefaultsSurviveTheRoundTrip(json: [String: Any]) throws {
+        let decoded = try #require(Fixture.field(json))
+        #expect(decoded.defaultValue != nil)
+        #expect(decoded.defaultValue as? Bool == json["default"] as? Bool)
+        #expect(decoded.defaultValue as? String == json["default"] as? String)
+        #expect(decoded.defaultValue as? Int == json["default"] as? Int)
+        #expect(decoded.defaultValue as? Double == json["default"] as? Double)
+    }
+
+    @Test func aWholeNumberDefaultStaysAnIntAndAFractionBecomesADouble() {
+        #expect(Fixture.field(["name": "x", "default": 5])?.defaultValue as? Int == 5)
+        #expect(Fixture.field(["name": "x", "default": 5])?.defaultValue as? Double == nil)
+        #expect(Fixture.field(["name": "x", "default": 1.5])?.defaultValue as? Double == 1.5)
+        #expect(Fixture.field(["name": "x", "default": 1.5])?.defaultValue as? Int == nil)
+    }
+
+    @Test func defaultsOfUnsupportedTypesBecomeNil() {
+        #expect(Fixture.field(["name": "x", "default": ["structured"]])?.defaultValue == nil)
+        #expect(Fixture.field(["name": "x", "default": ["nested": 1]])?.defaultValue == nil)
+    }
+
     @Test func argumentsUseTheirPlaceholderAsTitle() throws {
         let field = try #require(Fixture.field(["name": "text", "placeholder": "Text"]))
         #expect(field.title == "Text")

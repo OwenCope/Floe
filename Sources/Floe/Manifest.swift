@@ -8,7 +8,7 @@
 import Foundation
 
 /// A preference or argument declared in an extension manifest, as an editable field.
-struct FieldSpec: Identifiable, Decodable {
+struct FieldSpec: Identifiable, Decodable, Sendable {
     let name: String
     let title: String
     let detail: String?
@@ -20,7 +20,17 @@ struct FieldSpec: Identifiable, Decodable {
     /// Checkbox label.
     let label: String?
     let options: [(title: String, value: String)]
-    let defaultValue: Any?
+
+    /// The manifest default, kept as one of the four scalars manifests can declare, so the field
+    /// stays transferable across actors despite the untyped `defaultValue` interface below.
+    private enum DefaultValue: Sendable {
+        case bool(Bool)
+        case string(String)
+        case int(Int)
+        case double(Double)
+    }
+
+    private let storedDefault: DefaultValue?
 
     var id: String {
         name
@@ -28,6 +38,17 @@ struct FieldSpec: Identifiable, Decodable {
 
     var isSecret: Bool {
         type == "password"
+    }
+
+    /// A default is a string or, for a checkbox, a boolean; it stays untyped because it is passed on as JSON.
+    var defaultValue: Any? {
+        switch storedDefault {
+        case let .bool(value): value
+        case let .double(value): value
+        case let .int(value): value
+        case let .string(value): value
+        case nil: nil
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -53,11 +74,12 @@ struct FieldSpec: Identifiable, Decodable {
         self.label = try container.decodeIfPresent(String.self, forKey: .label)
         self.options = try (container.decodeIfPresent(Lossy<Option>.self, forKey: .options)?.elements ?? [])
             .map { ($0.title ?? $0.value, $0.value) }
-        // A default is a string or, for a checkbox, a boolean; it stays untyped because it is passed on as JSON.
-        self.defaultValue = (try? container.decode(Bool.self, forKey: .defaultValue))
-            ?? (try? container.decode(String.self, forKey: .defaultValue))
-            ?? (try? container.decode(Int.self, forKey: .defaultValue))
-            ?? (try? container.decode(Double.self, forKey: .defaultValue))
+        // A default is a string or, for a checkbox, a boolean; the scalar order here is the
+        // precedence, so a whole number stays an Int and only genuine fractions become Double.
+        storedDefault = (try? container.decode(Bool.self, forKey: .defaultValue)).map(DefaultValue.bool)
+            ?? (try? container.decode(String.self, forKey: .defaultValue)).map(DefaultValue.string)
+            ?? (try? container.decode(Int.self, forKey: .defaultValue)).map(DefaultValue.int)
+            ?? (try? container.decode(Double.self, forKey: .defaultValue)).map(DefaultValue.double)
     }
 }
 
@@ -83,8 +105,8 @@ struct Lossy<Element: Decodable>: Decodable {
     }
 }
 
-struct ExtensionCommand: Identifiable {
-    enum Source { case local, raycast }
+struct ExtensionCommand: Identifiable, Sendable {
+    enum Source: Sendable { case local, raycast }
 
     let extensionDir: URL
     let extensionName: String
@@ -150,7 +172,7 @@ struct ExtensionCommand: Identifiable {
     }
 }
 
-struct AppEntry {
+struct AppEntry: Sendable {
     let name: String
     let url: URL
 }

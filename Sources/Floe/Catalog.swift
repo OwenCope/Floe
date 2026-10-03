@@ -122,6 +122,14 @@ extension ExtensionCommand {
     }
 }
 
+extension CatalogSnapshot {
+    /// A catalog scanned on the spot, for the diagnostic modes that print or render one state and
+    /// exit. The GUI never uses this: its model starts empty and fills from the worker.
+    static func scanningNow(includeRaycast: Bool) -> CatalogSnapshot {
+        CatalogSnapshot(apps: AppEntry.scan(), commands: ExtensionCommand.scan(includeRaycast: includeRaycast))
+    }
+}
+
 /// Watches the application folders and reports changes, so newly installed apps show up without a restart.
 final class AppFolderWatcher {
     private var sources: [DispatchSourceFileSystemObject] = []
