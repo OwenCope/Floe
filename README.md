@@ -73,7 +73,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 ### App
 
 - [ ] Browse, install and update extensions
-- [ ] Hot reload for extension development
+- [x] Hot reload for extension development
 - [ ] Settings sync, import and export
 - [ ] App icon
 - [ ] Signed and notarized releases with updates
@@ -86,7 +86,7 @@ Read the shared [Thaw/Floe contribution policy](https://github.com/thaw-app/.git
 ## Acknowledgments
 
 - [Thaw](https://github.com/thaw-app/Thaw): the ThawUI design system, the hotkey code, and the designs for the search panel, the settings sidebar and the About page. GPL-3.0.
-- Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer `AI.ask`, and its hang watchdog, each modified for Floe ([source](https://gitlab.com/droppyformac1/droppy-code)). AGPL-3.0 with attribution terms; its license and third-party notices are in [docs/licenses](docs/licenses).
+- Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer `AI.ask`, its hang watchdog and the folder watcher behind hot reload, each modified for Floe ([source](https://gitlab.com/droppyformac1/droppy-code)). AGPL-3.0 with attribution terms; its license and third-party notices are in [docs/licenses](docs/licenses).
 - [CompactSlider](https://github.com/buh/CompactSlider), used by ThawUI. MIT.
 - [Bun](https://bun.sh), which runs extensions. MIT.
 - [React](https://react.dev) and react-reconciler, which render them. MIT.

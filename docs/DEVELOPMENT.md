@@ -50,6 +50,9 @@ Commands with required preferences or arguments ask for them in the panel before
     the request an extension makes are in `HostRequest.swift`.
   - `HangWatchdog.swift` samples the app when its main thread stops answering for four seconds and writes the stacks
     to `~/Library/Logs/Floe`.
+  - `DirectoryWatcher.swift` watches a folder tree with FSEvents. `HotReload.swift` uses it to restart an open view
+    command when a file under its extension's `src/` or `assets/`, or its `package.json`, is saved. Only local
+    extensions with a `src/` folder are watched, never the ones Raycast installed.
 - `CREDITS.md` and `Sources/Floe/Credits.swift` are written by `scripts/generate-credits.py`; run it after changing a dependency.
 - `Vendor/ThawUI`: design system copied from thaw-app/Thaw (commit in `Vendor/ThawUI/UPSTREAM`).
 - `Vendor/ThawConcurrency`: Thaw's timeout and one-shot continuation helpers, copied the same way.

@@ -196,6 +196,25 @@ describe("bundle", () => {
     expect(fs.readFileSync(output, "utf8")).not.toContain("// marker");
   });
 
+  // What hot reload relies on: the app restarts the command after a save and the restart must not find the old bundle.
+  // The times are the file system's own here, and the save is an editor's: a new file renamed over the old one.
+  test("bundles again after an ordinary save of a file the entry imports", async () => {
+    const extDir = makeExtension(
+      { "src/saved.ts": 'import { label } from "./lib/label";\nexport default () => label;', "src/lib/label.ts": 'export const label = "before the save";' },
+      "saved",
+    );
+    const output = await bundle(findEntry());
+    expect(fs.readFileSync(output, "utf8")).toContain("before the save");
+
+    await Bun.sleep(20);
+    write(path.join(extDir, "src/lib/label.ts.tmp"), 'export const label = "after the save";');
+    fs.renameSync(path.join(extDir, "src/lib/label.ts.tmp"), path.join(extDir, "src/lib/label.ts"));
+    expect(await bundle(findEntry())).toBe(output);
+    const code = fs.readFileSync(output, "utf8");
+    expect(code).toContain("after the save");
+    expect(code).not.toContain("before the save");
+  });
+
   test("builds again when the output is missing even though the fingerprint matches", async () => {
     makeExtension({ "src/lost.ts": "export default () => 1;" }, "lost");
     const output = await bundle(findEntry());

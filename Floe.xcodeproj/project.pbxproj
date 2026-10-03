@@ -39,6 +39,7 @@
 		69FA09CF14D792E717C7D569 /* Permission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44808651241F3E3186FE6311 /* Permission.swift */; };
 		6D78BD03B2BA3DDF1F14B9D8 /* Node.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE235E95146CA7BA1F7ADC3F /* Node.swift */; };
 		7151EAD1E7A84F8F938C5B0B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50ADD0E066254B7397123694 /* SettingsView.swift */; };
+		78089551521EC8A3D75F61F6 /* DirectoryWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2443DAEFA2A54768C09AA21 /* DirectoryWatcher.swift */; };
 		793CE9F8C14ADDBA6777D252 /* PropFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD3746F8BA517FB6A621DEA /* PropFormat.swift */; };
 		7A005EB359E6552057859AE5 /* HostMessageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8200641F16833CB9507DCEBD /* HostMessageDecoder.swift */; };
 		7AA8462C1633C42D19EC665F /* SearchRanker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF4D81C831111FE2EA1FE13 /* SearchRanker.swift */; };
@@ -78,6 +79,7 @@
 		DE519FFD07518B87C28314BA /* Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219F645E1E608A4BB123BFB4 /* Modifiers.swift */; };
 		E4F2BF5C06A34F0C81C63ACD /* Subprocess in Frameworks */ = {isa = PBXBuildFile; productRef = A5734F6D7F1BB261482C7608 /* Subprocess */; };
 		E90B7E506C03D9DD853A1C04 /* ChatCompletionStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3403F2FFC4C6AC53013ACA55 /* ChatCompletionStream.swift */; };
+		EB149923CB5A04D5012DD6B5 /* HotReload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7998806F2EEFDB2C0D99FC0 /* HotReload.swift */; };
 		EDB220A71026548DB214E898 /* MenuBarLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2207765089964A4BDDF2F7B4 /* MenuBarLogic.swift */; };
 		EF336ED0ABEE5F7045163631 /* FloeIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE33B90505045A8A2B0BEA4 /* FloeIntents.swift */; };
 		FA8EA9B40FA7FF26B6D03FB3 /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B83CE1B17D83A1AC6396FF /* HotkeyRecorder.swift */; };
@@ -145,6 +147,7 @@
 		9A4B4D2BFD7E89034E454C8A /* HangWatchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HangWatchdog.swift; sourceTree = "<group>"; };
 		9BE02887C615B7B2720B554E /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
 		9F2F8CA05EA6EA73E3BE7992 /* CommandLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLookup.swift; sourceTree = "<group>"; };
+		A2443DAEFA2A54768C09AA21 /* DirectoryWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryWatcher.swift; sourceTree = "<group>"; };
 		A2B945A754222839702B06CD /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 		A3F1F04CB5B238D464961288 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A48EE7BCE3DB6DB75403FC86 /* GlassSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSupport.swift; sourceTree = "<group>"; };
@@ -161,6 +164,7 @@
 		D2349D78CC267E82F6B8211A /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		D4DCB3DFC16635F2E970DEF1 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		D54900730524DDEA357356AE /* LoginEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginEnvironment.swift; sourceTree = "<group>"; };
+		D7998806F2EEFDB2C0D99FC0 /* HotReload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotReload.swift; sourceTree = "<group>"; };
 		E6F2A419B59FCCDC76E1C76C /* coverage.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = coverage.sh; sourceTree = "<group>"; };
 		E8233E45D6302FD179B5EDA3 /* Ranking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranking.swift; sourceTree = "<group>"; };
 		ED5AE6CC56910A19D88E7BA9 /* PermissionsSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsSettingsSection.swift; sourceTree = "<group>"; };
@@ -238,6 +242,7 @@
 				1EAFF08383C7623D0B69A028 /* FormViews.swift */,
 				8200641F16833CB9507DCEBD /* HostMessageDecoder.swift */,
 				20B7EEA754DB688FCB7EF7D0 /* HostRequest.swift */,
+				D7998806F2EEFDB2C0D99FC0 /* HotReload.swift */,
 				EDE7878F039A72C2B646A417 /* LauncherAppearance.swift */,
 				4E70D96CFBBB4B6A322E7BDB /* main.swift */,
 				9282FBD75C06A6410E879C91 /* Manifest.swift */,
@@ -307,6 +312,7 @@
 			isa = PBXGroup;
 			children = (
 				3403F2FFC4C6AC53013ACA55 /* ChatCompletionStream.swift */,
+				A2443DAEFA2A54768C09AA21 /* DirectoryWatcher.swift */,
 				9A4B4D2BFD7E89034E454C8A /* HangWatchdog.swift */,
 				D54900730524DDEA357356AE /* LoginEnvironment.swift */,
 				7DB0B59E18CDED97CC2F777E /* Shell.swift */,
@@ -480,6 +486,7 @@
 				FFCB0259382D909C8B55D0C9 /* CommandLookup.swift in Sources */,
 				2AF26B7E12E19083A8225647 /* Credits.swift in Sources */,
 				0D4EF422AC6B3010B1895BFF /* DebugOptions.swift in Sources */,
+				78089551521EC8A3D75F61F6 /* DirectoryWatcher.swift in Sources */,
 				DC2E662CC58403BDAE09B454 /* ErrorView.swift in Sources */,
 				EF336ED0ABEE5F7045163631 /* FloeIntents.swift in Sources */,
 				AC56A0840099872CA023DBFA /* FormViews.swift in Sources */,
@@ -487,6 +494,7 @@
 				353A52B29E333F36719A0E14 /* HangWatchdog.swift in Sources */,
 				7A005EB359E6552057859AE5 /* HostMessageDecoder.swift in Sources */,
 				1D9E7B36F2E4D07D64364470 /* HostRequest.swift in Sources */,
+				EB149923CB5A04D5012DD6B5 /* HotReload.swift in Sources */,
 				FA8EA9B40FA7FF26B6D03FB3 /* HotkeyRecorder.swift in Sources */,
 				C6498EE31AE4D16010D5A257 /* HotkeyRegistry.swift in Sources */,
 				BA801F87D598934046F77403 /* KeyCode.swift in Sources */,

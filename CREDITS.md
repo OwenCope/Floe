@@ -4,7 +4,7 @@ What Floe is built from. This file is written by `scripts/generate-credits.py`;
 change the script and run it again instead of editing the list.
 
 - [Thaw](https://github.com/thaw-app/Thaw): ThawUI, ThawConcurrency, the hotkey code, the HUD and the search panel design. GPL-3.0.
-- [Droppy Code](https://gitlab.com/droppyformac1/droppy-code): Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer AI.ask, and its hang watchdog, each modified for Floe. AGPL-3.0.
+- [Droppy Code](https://gitlab.com/droppyformac1/droppy-code): Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer AI.ask, its hang watchdog and the folder watcher behind hot reload, each modified for Floe. AGPL-3.0.
 - [CompactSlider](https://github.com/buh/CompactSlider) `2.1.0`: Used by ThawUI. MIT.
 - [Sparkle](https://sparkle-project.org) `2.10.0`: Checks for updates and installs them. MIT.
 - [swift-subprocess](https://github.com/swiftlang/swift-subprocess) `1.0.0`: Starts and stops the process an extension runs in. Apache-2.0.

@@ -85,6 +85,8 @@ final class LauncherModel: ObservableObject {
     private var hasLoadedCommands = false
     private var didAutorun = false
     private var pendingReset: DispatchWorkItem?
+    /// Watches the open command's extension while it is one being developed (see HotReload.swift).
+    private var sourceWatcher: DirectoryWatcher?
     @Published private(set) var apps: [AppEntry] = []
     private var commands: [ExtensionCommand] {
         allCommands.filter { !settings.disabledExtensions.contains($0.extensionName) }
@@ -458,6 +460,29 @@ final class LauncherModel: ObservableObject {
         }
         self.session = session
         session.start()
+        sourceWatcher = HotReload.watchedFolder(for: command).flatMap { folder in
+            DirectoryWatcher(directory: folder, isRelevant: HotReload.restarts) { [weak self, weak session] paths in
+                DispatchQueue.main.async {
+                    guard let self, let session else { return }
+                    self.reload(session, changed: paths)
+                }
+            }
+        }
+    }
+
+    /// A file of the open command's extension was saved: runs the command again as `retry` does.
+    /// A panel that is hidden while its command waits to be resumed stays hidden.
+    private func reload(_ watched: ExtensionSession, changed paths: [String]) {
+        guard session === watched else { return }
+        if HotReload.changesManifest(paths) {
+            reloadCommands()
+        }
+        if pendingReset == nil {
+            retry()
+        } else {
+            end(watched)
+            launch(watched.command, arguments: watched.arguments)
+        }
     }
 
     private func handle(_ message: [String: Any], from session: ExtensionSession) {
@@ -498,6 +523,7 @@ final class LauncherModel: ObservableObject {
         session.stop(after: 0.5)
         if self.session === session {
             self.session = nil
+            sourceWatcher = nil
             focusToken += 1
         }
     }

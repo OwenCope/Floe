@@ -22,7 +22,7 @@ struct Credit: Identifiable {
 enum Credits {
     static let all: [Credit] = [
         Credit(name: "Thaw", detail: "ThawUI, ThawConcurrency, the hotkey code, the HUD and the search panel design. GPL-3.0.", link: "thaw"),
-        Credit(name: "Droppy Code", detail: "Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer AI.ask, and its hang watchdog, each modified for Floe. AGPL-3.0.", link: "droppyCode"),
+        Credit(name: "Droppy Code", detail: "Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer AI.ask, its hang watchdog and the folder watcher behind hot reload, each modified for Floe. AGPL-3.0.", link: "droppyCode"),
         Credit(name: "CompactSlider", detail: "Used by ThawUI. MIT.", link: "compactSlider"),
         Credit(name: "Sparkle", detail: "Checks for updates and installs them. MIT.", link: "sparkle"),
         Credit(name: "swift-subprocess", detail: "Starts and stops the process an extension runs in. Apache-2.0.", link: "swiftSubprocess"),
