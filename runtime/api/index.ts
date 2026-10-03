@@ -404,41 +404,8 @@ export const LocalStorage = {
   },
 };
 
-type CacheSubscriber = (key: string | undefined, data: string | undefined) => void;
-// Methods are arrow properties because @raycast/utils passes them around unbound (cache.subscribe → useSyncExternalStore).
-export class Cache {
-  private readonly file: string;
-  private readonly data: Record<string, string>;
-  private readonly subscribers = new Set<CacheSubscriber>();
-  constructor(options?: { namespace?: string; capacity?: number }) {
-    this.file = path.join(ctx.supportPath, `cache-${options?.namespace ?? "default"}.json`);
-    this.data = readJSON(this.file);
-  }
-  private readonly persist = (key: string | undefined, value: string | undefined) => {
-    fs.writeFileSync(this.file, JSON.stringify(this.data));
-    this.subscribers.forEach((subscriber) => subscriber(key, value));
-  };
-  get isEmpty() { return Object.keys(this.data).length === 0; }
-  readonly get = (key: string) => this.data[key];
-  readonly has = (key: string) => key in this.data;
-  readonly set = (key: string, value: string) => { this.data[key] = value; this.persist(key, value); };
-  readonly remove = (key: string) => {
-    const existed = key in this.data;
-    delete this.data[key];
-    this.persist(key, undefined);
-    return existed;
-  };
-  readonly clear = (_options?: { notifySubscribers?: boolean }) => {
-    for (const key of Object.keys(this.data)) delete this.data[key];
-    this.persist(undefined, undefined);
-  };
-  readonly subscribe = (subscriber: CacheSubscriber) => {
-    this.subscribers.add(subscriber);
-    return () => {
-      this.subscribers.delete(subscriber);
-    };
-  };
-}
+// The bounded implementation lives in cache.ts; this re-export keeps the API surface stable.
+export { Cache } from "../cache";
 
 export function getPreferenceValues<T = Props>(): T {
   // The app resolves defaults, stored values and Keychain secrets and passes the result in.
