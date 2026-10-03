@@ -52,11 +52,12 @@ actor HostMessageDecoder {
             search = buffer.index(after: newline)
             lineStart = search
         }
-        // Consume the completed lines once per chunk, not once per line. Dropping bytes moves the
-        // start of the buffer, so the search position is reset with it.
-        scanned = buffer.distance(from: search, to: buffer.endIndex)
-        if search > buffer.startIndex {
-            buffer.removeSubrange(buffer.startIndex ..< search)
+        // [start, lineStart) holds finished lines, [lineStart, end) a partial line that has been
+        // searched already. Compaction may only drop the finished part — dropping searched bytes of
+        // the partial line would lose them — and scanned is counted from lineStart after that.
+        scanned = buffer.distance(from: lineStart, to: buffer.endIndex)
+        if lineStart > buffer.startIndex {
+            buffer.removeSubrange(buffer.startIndex ..< lineStart)
         }
         return messages
     }

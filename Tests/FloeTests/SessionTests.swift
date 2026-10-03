@@ -10,6 +10,7 @@ import Foundation
 import Testing
 
 /// Drives a session with the messages a host would send, without starting a process.
+@MainActor
 struct ExtensionSessionTests {
     /// What the session sent to the host and handed back to the model.
     private final class Recorder {
@@ -30,8 +31,18 @@ struct ExtensionSessionTests {
     }
 
     private func render(_ view: [String: Any], screenID: Int = 50) {
-        let tree = Fixture.node("root", id: 0, children: [Fixture.node("_screen", id: screenID, children: [view])])
-        session.handle(["type": "render", "tree": tree])
+        apply(["type": "render", "tree": Fixture.node("root", id: 0, children: [Fixture.node("_screen", id: screenID, children: [view])])])
+    }
+
+    /// Serializes a message the way the host sends it and applies it through the production parser.
+    private func apply(_ json: [String: Any]) {
+        guard let encoded = try? JSONSerialization.data(withJSONObject: json),
+              let message = DecodedHostMessage.decode(encoded)
+        else {
+            Issue.record("the test message \(json["type"] as? String ?? "") is not representable")
+            return
+        }
+        session.apply(message)
     }
 
     private var planets: [String: Any] {
@@ -107,38 +118,25 @@ struct ExtensionSessionTests {
         #expect(session.selection == 1)
     }
 
-    @Test func messagesArriveSplitAcrossChunksAndSeveralPerChunk() throws {
-        let first = try JSONSerialization.data(withJSONObject: ["type": "hud", "title": "Copied"])
-        let second = try JSONSerialization.data(withJSONObject: ["type": "close"])
-        var stream = first + Data("\n".utf8) + second + Data("\nnot json\n".utf8)
-        let tail = stream.suffix(from: 10)
-        stream = stream.prefix(10)
-
-        session.receive(stream)
-        #expect(recorder.forwarded.isEmpty, "nothing is handled until its line is complete")
-        session.receive(Data(tail))
-        #expect(recorder.forwarded.compactMap { $0["type"] as? String } == ["hud", "close"])
-    }
-
     // MARK: Toasts and errors
 
     @Test func aToastIsShownAndHiddenByItsIdentifier() {
-        session.handle(["type": "toast", "id": 4, "style": "animated", "title": "Loading", "message": "planets"])
+        apply(["type": "toast", "id": 4, "style": "animated", "title": "Loading", "message": "planets"])
         #expect(session.toast == ToastState(id: 4, style: "animated", title: "Loading", message: "planets"))
-        session.handle(["type": "toast", "id": 9, "hidden": true])
+        apply(["type": "toast", "id": 9, "hidden": true])
         #expect(session.toast?.id == 4, "hiding another toast leaves this one")
-        session.handle(["type": "toast", "id": 4, "hidden": true])
+        apply(["type": "toast", "id": 4, "hidden": true])
         #expect(session.toast == nil)
     }
 
     @Test func aToastWithoutDetailsGetsDefaults() {
-        session.handle(["type": "toast"])
+        apply(["type": "toast"])
         #expect(session.toast == ToastState(id: 0, style: "success", title: "", message: nil))
     }
 
     @Test func aNonFatalErrorIsAFailureToastAndTheViewStays() {
         render(planets)
-        session.handle(["type": "error", "message": "Request failed", "fatal": false])
+        apply(["type": "error", "message": "Request failed", "fatal": false])
         #expect(session.toast == ToastState(id: -1, style: "failure", title: "Extension error", message: "Request failed"))
         #expect(session.failure == nil)
         #expect(session.rows.count == 3)
@@ -146,14 +144,14 @@ struct ExtensionSessionTests {
 
     @Test func aFatalErrorBecomesAFailureWithTheStackAndTheLog() {
         session.appendLog(Data("stderr line\n".utf8))
-        session.handle(["type": "error", "message": "Render failed", "stack": "Error: Render failed\n  at Command", "fatal": true])
+        apply(["type": "error", "message": "Render failed", "stack": "Error: Render failed\n  at Command", "fatal": true])
         #expect(session.failure?.kind == .error)
         #expect(session.failure?.message == "Render failed")
         #expect(session.failure?.details == "Error: Render failed\n  at Command\n\nstderr line\n")
     }
 
     @Test func anErrorWithoutAMessageStillSaysSomething() {
-        session.handle(["type": "error", "fatal": true])
+        apply(["type": "error", "fatal": true])
         #expect(session.failure?.message == "Unknown error")
         #expect(session.failure?.details.isEmpty == true)
     }
@@ -191,7 +189,7 @@ struct ExtensionSessionTests {
     }
 
     @Test func aCrashAfterAnErrorKeepsTheError() {
-        session.handle(["type": "error", "message": "Render failed", "fatal": true])
+        apply(["type": "error", "message": "Render failed", "fatal": true])
         session.processEnded(status: 1, wasSignalled: false)
         #expect(session.failure?.kind == .error)
         #expect(recorder.forwarded.isEmpty)
@@ -214,7 +212,7 @@ struct ExtensionSessionTests {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
         session.heartbeat(now: start)
         session.heartbeat(now: start + 9)
-        session.handle(["type": "pong"])
+        apply(["type": "pong"])
         #expect(session.failure == nil)
         #expect(session.pingSentAt == nil)
 
@@ -223,8 +221,8 @@ struct ExtensionSessionTests {
     }
 
     @Test func aPongDoesNotClearAnErrorOrCrash() {
-        session.handle(["type": "error", "message": "Render failed", "fatal": true])
-        session.handle(["type": "pong"])
+        apply(["type": "error", "message": "Render failed", "fatal": true])
+        apply(["type": "pong"])
         #expect(session.failure?.kind == .error)
     }
 
@@ -233,13 +231,13 @@ struct ExtensionSessionTests {
     @Test func clearSearchBarEmptiesTheField() {
         render(planets)
         session.searchText = "ma"
-        session.handle(["type": "clearSearchBar"])
+        apply(["type": "clearSearchBar"])
         #expect(session.searchText.isEmpty)
     }
 
     @Test(arguments: ["close", "exit", "popToRoot", "hud", "open", "copy", "paste", "openPreferences"])
     func messagesTheSessionDoesNotOwnGoToTheModel(type: String) {
-        session.handle(["type": type, "title": "payload"])
+        apply(["type": type, "title": "payload"])
         #expect(recorder.forwarded.count == 1)
         #expect(recorder.forwarded.first?["type"] as? String == type)
         #expect(recorder.forwarded.first?["title"] as? String == "payload")
@@ -372,54 +370,5 @@ struct ExtensionSessionTests {
         render(planets)
         session.activateMenuEntry(at: 9)
         #expect(recorder.sent.isEmpty)
-    }
-
-    // MARK: Receive timings
-
-    /// Opt-in samples (FLOE_PERF_REPORT=1) for how long the host's bytes take to frame, decode and
-    /// apply through the session's receive path, which does all of that on one thread. The samples
-    /// include the row recomputation, since the receive path cannot separate the two.
-    @Test(.disabled(if: ProcessInfo.processInfo.environment["FLOE_PERF_REPORT"] == nil))
-    func reportReceiveTimings() throws {
-        for count in [1000, 10000] {
-            let message = try JSONSerialization.data(withJSONObject: ["type": "render", "tree": Self.syntheticTree(count: count)]) + Data("\n".utf8)
-            let chunks = stride(from: 0, to: message.count, by: 1024).map { start in
-                message[start ..< min(start + 1024, message.count)]
-            }
-            var oneChunk: [Double] = []
-            var inKibChunks: [Double] = []
-            for _ in 0 ..< 5 {
-                oneChunk.append(Self.milliseconds { session.receive(message) })
-                #expect(session.rows.map(\.id) == Array(100 ..< 100 + count), "the whole tree is applied")
-                inKibChunks.append(Self.milliseconds { for chunk in chunks {
-                    session.receive(chunk)
-                } })
-                #expect(session.rows.map(\.id) == Array(100 ..< 100 + count), "chunks reassemble into the same tree")
-            }
-            Self.report("receive", items: count, oneChunk: oneChunk, inKibChunks: inKibChunks)
-        }
-    }
-
-    private static func syntheticTree(count: Int) -> [String: Any] {
-        Fixture.node("root", id: 0, children: [
-            Fixture.node("_screen", id: 2, children: [
-                Fixture.node("List", id: 3, children: (0 ..< count).map { index in
-                    Fixture.item("Item \(index)", id: 100 + index, actions: [Fixture.action("Show", id: 100_000 + index)])
-                }),
-            ]),
-        ])
-    }
-
-    private static func milliseconds(_ body: () -> Void) -> Double {
-        let start = DispatchTime.now()
-        body()
-        return Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000
-    }
-
-    private static func report(_ label: String, items: Int, oneChunk: [Double], inKibChunks: [Double]) {
-        func format(_ samples: [Double]) -> String {
-            samples.map { String(format: "%.2f", $0) }.joined(separator: ", ")
-        }
-        print("[perf] \(label) items=\(items) oneChunk(ms)=\(format(oneChunk)) kibChunks(ms)=\(format(inKibChunks))")
     }
 }

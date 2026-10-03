@@ -82,6 +82,22 @@ struct HostMessageDecoderTests {
         #expect(await decoder.append(Data("\n".utf8)).map { types([$0]) } == [["hud"]])
     }
 
+    @Test func manyPartialAppendsKeepThePartialLineIntact() async {
+        let message = line(["type": "hud", "title": "Copied", "message": "done"])
+        for chunk in [1, 3, 17, message.count - 1, message.count] {
+            let decoder = HostMessageDecoder()
+            var received: [DecodedHostMessage] = []
+            var offset = 0
+            while offset < message.count {
+                let end = min(offset + chunk, message.count)
+                received += await decoder.append(message[offset ..< end])
+                offset = end
+            }
+            #expect(received.map { types([$0]) } == [["hud"]], "chunk size \(chunk)")
+            #expect(fields(received[0])["title"] as? String == "Copied", "chunk size \(chunk)")
+        }
+    }
+
     @Test func aRenderWithAnUnreadableTreeDecodesAsAnEmptyRoot() async {
         let decoder = HostMessageDecoder()
         #expect(await decoder.append(line(["type": "render", "tree": "nope"])).map { tree($0) == nil } == [true])
@@ -141,5 +157,76 @@ struct HostMessageDecoderTests {
         await release.open()
         _ = await delivery.result
         #expect(applied == ["hud", "close"])
+    }
+
+    // MARK: Timings
+
+    /// Opt-in samples (FLOE_PERF_REPORT=1) for the same synthetic trees the old receive path measured:
+    /// decoding alone, and decoding plus main-actor application. Application runs on the test's main
+    /// actor, so the combined samples exclude the MainActor.run hop the process relay pays.
+    @Test(.disabled(if: ProcessInfo.processInfo.environment["FLOE_PERF_REPORT"] == nil))
+    @MainActor
+    func reportDecoderTimings() async throws {
+        let session = ExtensionSession(command: Fixture.command("planets"))
+        for count in [1000, 10000] {
+            let message = try JSONSerialization.data(withJSONObject: ["type": "render", "tree": Self.syntheticTree(count: count)]) + Data("\n".utf8)
+            let chunks = stride(from: 0, to: message.count, by: 1024).map { start in
+                message[start ..< min(start + 1024, message.count)]
+            }
+            var decodeOnly: [Double] = []
+            var decodeOnlyKib: [Double] = []
+            var decodeAndApply: [Double] = []
+            var decodeAndApplyKib: [Double] = []
+            for _ in 0 ..< 5 {
+                let decoder = HostMessageDecoder()
+                await decodeAndApply.append(Self.milliseconds {
+                    for decoded in await decoder.append(message) {
+                        session.apply(decoded)
+                    }
+                })
+                #expect(session.rows.map(\.id) == Array(100 ..< 100 + count), "the whole tree is applied")
+                await decodeAndApplyKib.append(Self.milliseconds {
+                    for chunk in chunks {
+                        for decoded in await decoder.append(chunk) {
+                            session.apply(decoded)
+                        }
+                    }
+                })
+                #expect(session.rows.map(\.id) == Array(100 ..< 100 + count), "chunks reassemble into the same tree")
+
+                let lone = HostMessageDecoder()
+                await decodeOnly.append(Self.milliseconds { _ = await lone.append(message) })
+                await decodeOnlyKib.append(Self.milliseconds {
+                    for chunk in chunks {
+                        _ = await lone.append(chunk)
+                    }
+                })
+            }
+            Self.report("decoder", items: count, oneChunk: decodeOnly, inKibChunks: decodeOnlyKib)
+            Self.report("decoder+apply", items: count, oneChunk: decodeAndApply, inKibChunks: decodeAndApplyKib)
+        }
+    }
+
+    private static func syntheticTree(count: Int) -> [String: Any] {
+        Fixture.node("root", id: 0, children: [
+            Fixture.node("_screen", id: 2, children: [
+                Fixture.node("List", id: 3, children: (0 ..< count).map { index in
+                    Fixture.item("Item \(index)", id: 100 + index, actions: [Fixture.action("Show", id: 100_000 + index)])
+                }),
+            ]),
+        ])
+    }
+
+    private static func milliseconds(_ body: () async -> Void) async -> Double {
+        let start = DispatchTime.now()
+        await body()
+        return Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000
+    }
+
+    private static func report(_ label: String, items: Int, oneChunk: [Double], inKibChunks: [Double]) {
+        func format(_ samples: [Double]) -> String {
+            samples.map { String(format: "%.2f", $0) }.joined(separator: ", ")
+        }
+        print("[perf] \(label) items=\(items) oneChunk(ms)=\(format(oneChunk)) kibChunks(ms)=\(format(inKibChunks))")
     }
 }

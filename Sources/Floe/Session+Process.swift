@@ -33,6 +33,8 @@ extension ExtensionSession {
             messages.yield(Array(data) + [0x0A])
         }
         let hostArguments = Arguments([Paths.host.path, command.extensionDir.path, command.name, argumentsJSON])
+        // One decoder per host: it owns the partial bytes between chunks and keeps decoding off the main actor.
+        let decoder = HostMessageDecoder()
         hostTask = Task { [weak self] in
             do {
                 let result = try await Subprocess.run(
@@ -48,7 +50,11 @@ extension ExtensionSession {
                     try await Self.relay(
                         execution,
                         outgoing: outgoing,
-                        output: { [weak self] data in await MainActor.run { [weak self] in self?.receive(data) } },
+                        output: { [weak self] data in
+                            await decoder.deliver(data) { message in
+                                await MainActor.run { [weak self] in self?.apply(message) }
+                            }
+                        },
                         errors: { [weak self] data in await MainActor.run { [weak self] in self?.appendLog(data) } }
                     )
                     // The host closed its output, so nothing more will be read from its input.

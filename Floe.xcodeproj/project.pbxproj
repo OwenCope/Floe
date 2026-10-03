@@ -34,6 +34,7 @@
 		6D78BD03B2BA3DDF1F14B9D8 /* Node.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE235E95146CA7BA1F7ADC3F /* Node.swift */; };
 		7151EAD1E7A84F8F938C5B0B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50ADD0E066254B7397123694 /* SettingsView.swift */; };
 		793CE9F8C14ADDBA6777D252 /* PropFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD3746F8BA517FB6A621DEA /* PropFormat.swift */; };
+		7A005EB359E6552057859AE5 /* HostMessageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8200641F16833CB9507DCEBD /* HostMessageDecoder.swift */; };
 		7AA8462C1633C42D19EC665F /* SearchRanker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF4D81C831111FE2EA1FE13 /* SearchRanker.swift */; };
 		81D83FF9FD5FC4DC74AC8EE9 /* UpdateLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = A973D1BA8F8EDEB12D15D62F /* UpdateLogic.swift */; };
 		824417A33AE3D6A87DF9AEEA /* AboutSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A91D9CFF52277A3BF983DF /* AboutSettingsPane.swift */; };
@@ -113,6 +114,7 @@
 		75D0E68444359C8482786364 /* Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
 		78D37EBDD2D6EF547319287E /* ThawUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ThawUI; path = Vendor/ThawUI; sourceTree = SOURCE_ROOT; };
 		7E56A00A425C8E51794B5129 /* AppPermissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPermissions.swift; sourceTree = "<group>"; };
+		8200641F16833CB9507DCEBD /* HostMessageDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostMessageDecoder.swift; sourceTree = "<group>"; };
 		8487FD4DDFB449E52573EB31 /* MarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
 		864C7BB5E54860DE8DF05C2F /* OnboardingWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWelcomeView.swift; sourceTree = "<group>"; };
 		866B13B630D11859A77DA3CE /* OnboardingTourView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTourView.swift; sourceTree = "<group>"; };
@@ -208,6 +210,7 @@
 				FA2E083CF3F384F6C4F5041F /* DebugOptions.swift */,
 				A955598F6D439FDD893F9174 /* ErrorView.swift */,
 				1EAFF08383C7623D0B69A028 /* FormViews.swift */,
+				8200641F16833CB9507DCEBD /* HostMessageDecoder.swift */,
 				4E70D96CFBBB4B6A322E7BDB /* main.swift */,
 				9282FBD75C06A6410E879C91 /* Manifest.swift */,
 				8487FD4DDFB449E52573EB31 /* MarkdownParser.swift */,
@@ -436,6 +439,7 @@
 				EF336ED0ABEE5F7045163631 /* FloeIntents.swift in Sources */,
 				AC56A0840099872CA023DBFA /* FormViews.swift in Sources */,
 				6958B0B9E6D87E2783CFD57A /* GlassSupport.swift in Sources */,
+				7A005EB359E6552057859AE5 /* HostMessageDecoder.swift in Sources */,
 				FA8EA9B40FA7FF26B6D03FB3 /* HotkeyRecorder.swift in Sources */,
 				C6498EE31AE4D16010D5A257 /* HotkeyRegistry.swift in Sources */,
 				BA801F87D598934046F77403 /* KeyCode.swift in Sources */,

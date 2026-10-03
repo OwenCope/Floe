@@ -75,7 +75,6 @@ final class ExtensionSession: ObservableObject {
     var hostTask: Task<Void, Never>?
     /// Set while the host is running.
     var processID: pid_t?
-    private var buffer = Data()
     /// The tail of the host's stderr, shown on the error screen.
     private(set) var log = ""
     var isStopping = false
@@ -96,23 +95,14 @@ final class ExtensionSession: ObservableObject {
         send(["type": "event", "id": node.id, "prop": prop, "args": args])
     }
 
-    /// Takes whatever bytes the host wrote; messages are handled as each line completes.
-    func receive(_ data: Data) {
-        buffer.append(data)
-        while let newline = buffer.firstIndex(of: 0x0A) {
-            let line = buffer.subdata(in: buffer.startIndex ..< newline)
-            buffer.removeSubrange(buffer.startIndex ... newline)
-            if let message = try? JSONSerialization.jsonObject(with: line) as? [String: Any] {
-                handle(message)
-            }
-        }
-    }
-
-    func handle(_ message: [String: Any]) {
-        switch message["type"] as? String {
-        case "render":
+    /// Applies one message the decoder has already framed, decoded and, for renders, built the tree
+    /// for. Runs on the main actor, in the order the host wrote the lines.
+    @MainActor
+    func apply(_ message: DecodedHostMessage) {
+        switch message {
+        case let .render(tree):
             let previousScreen = screen?.id
-            root = Node(json: message["tree"])
+            root = tree
             recomputeRows()
             // Keep the open submenu only while it still exists.
             if let open = actionPath.last, actionPanel?.descendants(ofType: "ActionPanel.Submenu").contains(where: { $0.id == open.id }) != true {
@@ -126,18 +116,25 @@ final class ExtensionSession: ObservableObject {
                 selection = 0
                 actionMenuOpen = false
             }
+        case let .fields(message):
+            apply(message)
+        }
+    }
+
+    private func apply(_ fields: [String: Any]) {
+        switch fields["type"] as? String {
         case "toast":
-            let id = message["id"] as? Int ?? 0
-            if message["hidden"] as? Bool == true {
+            let id = fields["id"] as? Int ?? 0
+            if fields["hidden"] as? Bool == true {
                 if toast?.id == id {
                     toast = nil
                 }
             } else {
                 let state = ToastState(
                     id: id,
-                    style: message["style"] as? String ?? "success",
-                    title: message["title"] as? String ?? "",
-                    message: message["message"] as? String
+                    style: fields["style"] as? String ?? "success",
+                    title: fields["title"] as? String ?? "",
+                    message: fields["message"] as? String
                 )
                 toast = state
                 guard state.style != "animated" else { return }
@@ -148,9 +145,9 @@ final class ExtensionSession: ObservableObject {
                 }
             }
         case "error":
-            let text = message["message"] as? String ?? "Unknown error"
-            if message["fatal"] as? Bool == true {
-                let details = [message["stack"] as? String, log.isEmpty ? nil : log].compactMap(\.self).joined(separator: "\n\n")
+            let text = fields["message"] as? String ?? "Unknown error"
+            if fields["fatal"] as? Bool == true {
+                let details = [fields["stack"] as? String, log.isEmpty ? nil : log].compactMap(\.self).joined(separator: "\n\n")
                 failure = SessionFailure(kind: .error, message: text, details: details)
             } else {
                 toast = ToastState(id: -1, style: "failure", title: "Extension error", message: text)
@@ -163,7 +160,7 @@ final class ExtensionSession: ObservableObject {
         case "clearSearchBar":
             searchText = ""
         default:
-            onMessage(message)
+            onMessage(fields)
         }
     }
 
