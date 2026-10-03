@@ -7,8 +7,8 @@
 
 import AppKit
 import Carbon.HIToolbox
-import Testing
 @testable import Floe
+import Testing
 
 struct ModifiersTests {
     private static let single: [(Modifiers, NSEvent.ModifierFlags, CGEventFlags, Int, String)] = [
@@ -19,8 +19,13 @@ struct ModifiersTests {
     ]
 
     @Test(arguments: single)
-    func eachModifierConvertsToAndFromEverySystemRepresentation(modifier: Modifiers, appKit: NSEvent.ModifierFlags, coreGraphics: CGEventFlags,
-                                                                carbon: Int, symbol: String) {
+    func eachModifierConvertsToAndFromEverySystemRepresentation(
+        modifier: Modifiers,
+        appKit: NSEvent.ModifierFlags,
+        coreGraphics: CGEventFlags,
+        carbon: Int,
+        symbol: String
+    ) {
         #expect(modifier.nsEventFlags == appKit)
         #expect(modifier.cgEventFlags == coreGraphics)
         #expect(modifier.carbonFlags == carbon)
@@ -95,9 +100,18 @@ struct KeyCombinationTests {
     }
 
     @Test func buildsFromAKeyEvent() throws {
-        let event = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0,
-                                                  windowNumber: 0, context: nil, characters: "K", charactersIgnoringModifiers: "k",
-                                                  isARepeat: false, keyCode: UInt16(kVK_ANSI_K)))
+        let event = try #require(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command, .shift],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "K",
+            charactersIgnoringModifiers: "k",
+            isARepeat: false,
+            keyCode: UInt16(kVK_ANSI_K)
+        ))
         #expect(KeyCombination(event: event) == KeyCombination(key: .k, modifiers: [.command, .shift]))
     }
 

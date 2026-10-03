@@ -47,7 +47,7 @@ jobs:
             exit 0
           fi
 
-          patterns='(\.swift$|(^|/)Package\.resolved$|^Floe\.xcodeproj/|^project\.yml$|^Resources/|^Vendor/|^runtime/|^extensions/|^scripts/|^sonar-project\.properties$|^\.github/workflows/ci\.yml$)'
+          patterns='(\.swift$|(^|/)Package\.resolved$|^Floe\.xcodeproj/|^project\.yml$|^Resources/|^Vendor/|^runtime/|^extensions/|^scripts/|^sonar-project\.properties$|^\.swiftlint|^\.swiftformat$|^\.github/workflows/ci\.yml$)'
           if git diff --name-only "$range" | grep -E "$patterns" >/dev/null; then
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "Code-related paths changed."
@@ -55,6 +55,27 @@ jobs:
             echo "code=false" >> "$GITHUB_OUTPUT"
             echo "No code-related paths changed; heavy jobs will no-op."
           fi
+
+  lint:
+    needs: changes
+    if: github.repository == 'thaw-app/Floe'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip lint (no code changes)
+        if: needs.changes.outputs.code != 'true'
+        run: echo "No code-related paths changed; skipping SwiftLint."
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code == 'true'
+        with:
+          persist-credentials: false
+
+      - name: Run SwiftLint
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work \
+            ghcr.io/realm/swiftlint:0.65.1@sha256:f47e083201e47a136cda5ae847595bfe00226c444ca226fa74fa5dc648a9b057 \
+            swiftlint --strict
 
   # Vendor/ThawUI declares swift-tools-version 6.4, so the build needs Xcode 27;
   # there is no Xcode 26 job as in Thaw.

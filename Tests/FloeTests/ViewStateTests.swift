@@ -5,9 +5,9 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
+@testable import Floe
 import Foundation
 import Testing
-@testable import Floe
 
 struct ListStateTests {
     private func list(props: [String: Any] = [:], handlers: [String] = [], children: [[String: Any]]) -> Node {
@@ -172,7 +172,9 @@ struct FormStateTests {
         Fixture.node("Form.TextField", id: 8, props: ["id": "controlled", "value": "From the extension", "defaultValue": "Ignored"]),
     ])
 
-    private var view: Node { Fixture.tree(form) }
+    private var view: Node {
+        Fixture.tree(form)
+    }
 
     private func field(_ id: String) throws -> Node {
         try #require(ViewState.formFields(of: view).first { $0.props["id"] as? String == id })
@@ -185,15 +187,15 @@ struct FormStateTests {
     }
 
     @Test func aFieldsValueIsTheControlledValueThenTypedThenDefault() throws {
-        #expect(ViewState.formValue(try field("controlled"), typed: ["controlled": "Typed"]) as? String == "From the extension")
-        #expect(ViewState.formValue(try field("body"), typed: ["body": "Typed"]) as? String == "Typed")
-        #expect(ViewState.formValue(try field("body"), typed: [:]) as? String == "Hello")
-        #expect(ViewState.formValue(try field("subject"), typed: [:]) == nil)
+        #expect(try ViewState.formValue(field("controlled"), typed: ["controlled": "Typed"]) as? String == "From the extension")
+        #expect(try ViewState.formValue(field("body"), typed: ["body": "Typed"]) as? String == "Typed")
+        #expect(try ViewState.formValue(field("body"), typed: [:]) as? String == "Hello")
+        #expect(try ViewState.formValue(field("subject"), typed: [:]) == nil)
     }
 
     @Test func aDropdownWithNothingChosenUsesItsFirstItem() throws {
-        #expect(ViewState.formValue(try field("area"), typed: [:]) as? String == "ui")
-        #expect(ViewState.formValue(try field("area"), typed: ["area": "runtime"]) as? String == "runtime")
+        #expect(try ViewState.formValue(field("area"), typed: [:]) as? String == "ui")
+        #expect(try ViewState.formValue(field("area"), typed: ["area": "runtime"]) as? String == "runtime")
     }
 
     @Test func aNodeWithoutAnIdHasNoValue() {

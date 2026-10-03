@@ -12,13 +12,23 @@ enum Fuzzy {
     static func score(_ query: String, _ candidate: String) -> Int? {
         let query = query.lowercased()
         let candidate = candidate.lowercased()
-        if candidate.hasPrefix(query) { return 100 - min(candidate.count - query.count, 20) }
+        if candidate.hasPrefix(query) {
+            return 100 - min(candidate.count - query.count, 20)
+        }
         let words = candidate.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-        if words.contains(where: { $0.hasPrefix(query) }) { return 75 }
-        if String(words.compactMap(\.first)).hasPrefix(query) { return 70 }
-        if candidate.contains(query) { return 55 }
+        if words.contains(where: { $0.hasPrefix(query) }) {
+            return 75
+        }
+        if String(words.compactMap(\.first)).hasPrefix(query) {
+            return 70
+        }
+        if candidate.contains(query) {
+            return 55
+        }
         var remaining = Substring(query)
-        for character in candidate where character == remaining.first { remaining = remaining.dropFirst() }
+        for character in candidate where character == remaining.first {
+            remaining = remaining.dropFirst()
+        }
         return remaining.isEmpty ? 25 : nil
     }
 }
@@ -29,7 +39,7 @@ enum Ranking {
     static func frecency(count: Int, age: TimeInterval) -> Double {
         let weight: Double = switch age {
         case ..<3600: 4
-        case ..<86_400: 2
+        case ..<86400: 2
         case ..<604_800: 1
         case ..<2_592_000: 0.5
         default: 0.25
@@ -41,8 +51,12 @@ enum Ranking {
     static func score(query: String, title: String, alias: String?) -> Int? {
         let titleScore = Fuzzy.score(query, title)
         guard let alias = alias?.lowercased(), !alias.isEmpty else { return titleScore }
-        if alias == query.lowercased() { return 1000 }
-        if alias.hasPrefix(query.lowercased()) { return max(titleScore ?? 0, 95) }
+        if alias == query.lowercased() {
+            return 1000
+        }
+        if alias.hasPrefix(query.lowercased()) {
+            return max(titleScore ?? 0, 95)
+        }
         return titleScore
     }
 
@@ -64,8 +78,14 @@ enum Ranking {
     }
 
     /// With a query: match quality first, nudged by how often and how recently each item is used.
-    static func search(_ all: [RootItem], query: String, favorites: [String], alias: (RootItem) -> String?,
-                       frecency: (String) -> Double, limit: Int = 40) -> [RootResult] {
+    static func search(
+        _ all: [RootItem],
+        query: String,
+        favorites: [String],
+        alias: (RootItem) -> String?,
+        frecency: (String) -> Double,
+        limit: Int = 40
+    ) -> [RootResult] {
         all.compactMap { item -> (RootItem, Double)? in
             guard let match = score(query: query, title: item.title, alias: alias(item)) else { return nil }
             let boost = min(20, frecency(item.id) * 2) + (favorites.contains(item.id) ? 5 : 0)
@@ -78,6 +98,6 @@ enum Ranking {
 
     /// A menu bar item matches on its name, or less strongly on the app that owns it.
     static func menuBarScore(query: String, name: String, owner: String) -> Int? {
-        [Fuzzy.score(query, name), Fuzzy.score(query, owner).map { $0 - 10 }].compactMap { $0 }.max()
+        [Fuzzy.score(query, name), Fuzzy.score(query, owner).map { $0 - 10 }].compactMap(\.self).max()
     }
 }

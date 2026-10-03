@@ -5,13 +5,18 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
-import Testing
 @testable import Floe
+import Testing
 
 struct NodeTests {
     @Test func parsesTypePropsHandlersAndChildren() throws {
-        let node = try #require(Node(json: Fixture.node("List", id: 7, props: ["isLoading": true], handlers: ["onSearchTextChange"],
-                                                        children: [Fixture.item("One", id: 8)])))
+        let node = try #require(Node(json: Fixture.node(
+            "List",
+            id: 7,
+            props: ["isLoading": true],
+            handlers: ["onSearchTextChange"],
+            children: [Fixture.item("One", id: 8)]
+        )))
         #expect(node.id == 7)
         #expect(node.type == "List")
         #expect(node.bool("isLoading"))

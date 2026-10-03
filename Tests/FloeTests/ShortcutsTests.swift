@@ -6,8 +6,8 @@
 //  Licensed under the GNU GPLv3
 
 import AppKit
-import Testing
 @testable import Floe
+import Testing
 
 struct ShortcutsTests {
     @Test(arguments: [(125, 1), (126, -1), (121, 9), (116, -9)] as [(UInt16, Int)])

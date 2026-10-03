@@ -11,8 +11,13 @@ import Foundation
 struct MenuEntry: Identifiable {
     let node: Node
     let section: String?
-    var isSubmenu: Bool { node.type == "ActionPanel.Submenu" }
-    var id: Int { node.id }
+    var isSubmenu: Bool {
+        node.type == "ActionPanel.Submenu"
+    }
+
+    var id: Int {
+        node.id
+    }
 }
 
 /// What the panel shows for a rendered tree: the top screen's view, its rows, actions and form values.
@@ -52,8 +57,12 @@ enum ViewState {
 
     /// Raycast filters a list itself unless the extension handles search text, or says otherwise with `filtering`.
     static func filtersLocally(_ view: Node) -> Bool {
-        if let filtering = view.props["filtering"] as? Bool { return filtering }
-        if view.props["filtering"] != nil { return true }
+        if let filtering = view.props["filtering"] as? Bool {
+            return filtering
+        }
+        if view.props["filtering"] != nil {
+            return true
+        }
         return !view.handlers.contains("onSearchTextChange")
     }
 
@@ -113,9 +122,13 @@ enum ViewState {
     /// The field's current value: the extension's controlled `value`, else what was typed, else its default.
     static func formValue(_ field: Node, typed: [String: Any]) -> Any? {
         guard let id = field.props["id"] as? String else { return nil }
-        if let value = field.props["value"] ?? typed[id] ?? field.props["defaultValue"] { return value }
+        if let value = field.props["value"] ?? typed[id] ?? field.props["defaultValue"] {
+            return value
+        }
         // Like Raycast, a dropdown with nothing chosen shows (and submits) its first item.
-        if field.type == "Form.Dropdown" { return field.descendants(ofType: "Dropdown.Item").first?.props["value"] }
+        if field.type == "Form.Dropdown" {
+            return field.descendants(ofType: "Dropdown.Item").first?.props["value"]
+        }
         return nil
     }
 
@@ -140,7 +153,9 @@ enum ViewState {
 
     /// Dates cross the bridge tagged so the host can turn them back into Date objects.
     static func wireValue(_ value: Any, field: Node) -> Any {
-        if field.type == "Form.DatePicker", let iso = value as? String { return ["$date": iso] }
+        if field.type == "Form.DatePicker", let iso = value as? String {
+            return ["$date": iso]
+        }
         return value
     }
 }

@@ -11,7 +11,9 @@ import Foundation
 enum FieldValues {
     /// Checkboxes edit as "true" or "false"; everything else as its text.
     static func text(from value: Any) -> String {
-        if let bool = value as? Bool { return bool ? "true" : "false" }
+        if let bool = value as? Bool {
+            return bool ? "true" : "false"
+        }
         return value as? String ?? "\(value)"
     }
 
@@ -44,8 +46,13 @@ enum PreferenceResolver {
 
     /// Stored values first, then manifest defaults; an unset checkbox is false.
     /// `stored` holds the plain values by storage key and `secret` looks up password fields.
-    static func resolve(extensionFields: [FieldSpec], commandFields: [FieldSpec], commandName: String,
-                        stored: [String: Any], secret: (String) -> String?) -> [String: Any] {
+    static func resolve(
+        extensionFields: [FieldSpec],
+        commandFields: [FieldSpec],
+        commandName: String,
+        stored: [String: Any],
+        secret: (String) -> String?
+    ) -> [String: Any] {
         var result: [String: Any] = [:]
         let scoped = extensionFields.map { ($0, String?.none) } + commandFields.map { ($0, String?.some(commandName)) }
         for (field, scope) in scoped {
@@ -64,7 +71,9 @@ enum PreferenceResolver {
     static func missingRequired(_ fields: [FieldSpec], values: [String: Any]) -> [FieldSpec] {
         fields.filter { field in
             guard field.required else { return false }
-            if let text = values[field.name] as? String { return text.isEmpty }
+            if let text = values[field.name] as? String {
+                return text.isEmpty
+            }
             return values[field.name] == nil
         }
     }

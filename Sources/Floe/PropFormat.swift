@@ -11,7 +11,9 @@ import Foundation
 enum PropFormat {
     /// A string, a number, or `{ value }` wrapping either.
     static func text(_ value: Any?) -> String? {
-        if let number = value as? NSNumber, !(value is String) { return number.stringValue }
+        if let number = value as? NSNumber, !(value is String) {
+            return number.stringValue
+        }
         return value as? String ?? ((value as? [String: Any])?["value"]).flatMap(text)
     }
 

@@ -5,9 +5,9 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
+@testable import Floe
 import Foundation
 import Testing
-@testable import Floe
 
 /// Drives a session with the messages a host would send, without starting a process.
 struct ExtensionSessionTests {
@@ -159,9 +159,9 @@ struct ExtensionSessionTests {
     }
 
     @Test func theLogKeepsOnlyItsTail() {
-        session.appendLog(Data(String(repeating: "a", count: 19_000).utf8))
-        session.appendLog(Data(String(repeating: "b", count: 2_000).utf8))
-        #expect(session.log.count == 16_000)
+        session.appendLog(Data(String(repeating: "a", count: 19000).utf8))
+        session.appendLog(Data(String(repeating: "b", count: 2000).utf8))
+        #expect(session.log.count == 16000)
         #expect(session.log.hasSuffix("bbbb"))
     }
 

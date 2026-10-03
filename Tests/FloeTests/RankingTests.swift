@@ -5,9 +5,9 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
+@testable import Floe
 import Foundation
 import Testing
-@testable import Floe
 
 struct FuzzyTests {
     @Test func prefixBeatsWordPrefixBeatsAcronymBeatsSubstringBeatsSubsequence() throws {
@@ -58,8 +58,18 @@ struct RankingTests {
         items.first { $0.title == title }!.id
     }
 
-    @Test(arguments: [(0.0, 4.0), (3599, 4), (3600, 2), (86_399, 2), (86_400, 1), (604_799, 1),
-                      (604_800, 0.5), (2_591_999, 0.5), (2_592_000, 0.25), (1e9, 0.25)])
+    @Test(arguments: [
+        (0.0, 4.0),
+        (3599, 4),
+        (3600, 2),
+        (86399, 2),
+        (86400, 1),
+        (604_799, 1),
+        (604_800, 0.5),
+        (2_591_999, 0.5),
+        (2_592_000, 0.25),
+        (1e9, 0.25)
+    ])
     func frecencyWeightFallsOffWithAge(age: TimeInterval, weight: Double) {
         #expect(Ranking.frecency(count: 1, age: age) == weight)
         #expect(Ranking.frecency(count: 3, age: age) == weight * 3)
@@ -85,8 +95,15 @@ struct RankingTests {
         let usage = [id("Calendar"): 5.0, id("Hacker News"): 2.0]
         let results = Ranking.browse(items, favorites: [id("Notes")], frecency: { usage[$0] ?? 0 })
 
-        #expect(results.map(\.item.title) == ["Notes", "Calendar", "Hacker News", "Browse Planets", "Search Menu Bar Items",
-                                              "Floe Settings", "Calculator"])
+        #expect(results.map(\.item.title) == [
+            "Notes",
+            "Calendar",
+            "Hacker News",
+            "Browse Planets",
+            "Search Menu Bar Items",
+            "Floe Settings",
+            "Calculator",
+        ])
         #expect(results.map(\.section) == ["Favorites", "Suggestions", "Suggestions", "Commands", "Commands", "Commands", "Applications"])
     }
 
@@ -115,8 +132,13 @@ struct RankingTests {
     }
 
     @Test func usageBoostIsCappedSoAnExactAliasStillWins() {
-        let results = Ranking.search(items, query: "c", favorites: [], alias: { $0.title == "Hacker News" ? "c" : nil },
-                                     frecency: { $0 == self.id("Calculator") ? 1_000_000 : 0 })
+        let results = Ranking.search(
+            items,
+            query: "c",
+            favorites: [],
+            alias: { $0.title == "Hacker News" ? "c" : nil },
+            frecency: { $0 == self.id("Calculator") ? 1_000_000 : 0 }
+        )
         #expect(results.first?.item.title == "Hacker News")
     }
 
@@ -126,7 +148,7 @@ struct RankingTests {
     }
 
     @Test func searchRespectsTheLimit() {
-        let many = (0..<60).map { Fixture.app("App \($0)") }
+        let many = (0 ..< 60).map { Fixture.app("App \($0)") }
         #expect(Ranking.search(many, query: "app", favorites: [], alias: { _ in nil }, frecency: { _ in 0 }).count == 40)
         #expect(Ranking.search(many, query: "app", favorites: [], alias: { _ in nil }, frecency: { _ in 0 }, limit: 3).count == 3)
     }

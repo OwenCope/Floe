@@ -29,15 +29,21 @@ struct Node: Identifiable {
         children.first { $0.type == "_slot" && $0.props["name"] as? String == name }?.children.first
     }
 
-    var content: [Node] { children.filter { $0.type != "_slot" } }
+    var content: [Node] {
+        children.filter { $0.type != "_slot" }
+    }
 
     /// Raycast accepts either a plain string or `{ value, tooltip }` for most text props.
     func string(_ key: String) -> String? {
-        if let string = props[key] as? String { return string }
+        if let string = props[key] as? String {
+            return string
+        }
         return (props[key] as? [String: Any])?["value"] as? String
     }
 
-    func bool(_ key: String) -> Bool { props[key] as? Bool ?? false }
+    func bool(_ key: String) -> Bool {
+        props[key] as? Bool ?? false
+    }
 
     func descendants(ofType type: String) -> [Node] {
         (self.type == type ? [self] : []) + children.flatMap { $0.descendants(ofType: type) }
@@ -47,5 +53,7 @@ struct Node: Identifiable {
 struct Row: Identifiable {
     let node: Node
     let sectionTitle: String?
-    var id: Int { node.id }
+    var id: Int {
+        node.id
+    }
 }

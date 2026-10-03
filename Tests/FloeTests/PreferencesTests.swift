@@ -5,8 +5,8 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
-import Testing
 @testable import Floe
+import Testing
 
 struct FieldValuesTests {
     @Test func checkboxesEditAsTrueOrFalseAndEverythingElseAsText() {
@@ -37,8 +37,12 @@ struct FieldValuesTests {
     }
 
     @Test func missingListsRequiredFieldsThatAreStillEmpty() {
-        let fields = [Fixture.field("token", type: "password", required: true), Fixture.field("name", required: true),
-                      Fixture.field("optional"), Fixture.field("agree", type: "checkbox", required: true)]
+        let fields = [
+            Fixture.field("token", type: "password", required: true),
+            Fixture.field("name", required: true),
+            Fixture.field("optional"),
+            Fixture.field("agree", type: "checkbox", required: true),
+        ]
         #expect(FieldValues.missing(fields, texts: ["name": "Ada"]).map(\.name) == ["token"])
         #expect(FieldValues.missing(fields, texts: ["token": "", "name": ""]).map(\.name) == ["token", "name"])
         #expect(FieldValues.missing(fields, texts: ["token": "t", "name": "n"]).isEmpty, "a required checkbox always has a value")
@@ -55,8 +59,13 @@ struct PreferenceResolverTests {
     private let commandFields = [Fixture.field("days", defaultValue: "3"), Fixture.field("greeting")]
 
     private func resolve(stored: [String: Any] = [:], secrets: [String: String] = [:]) -> [String: Any] {
-        PreferenceResolver.resolve(extensionFields: extensionFields, commandFields: commandFields, commandName: "forecast",
-                                   stored: stored, secret: { secrets[$0] })
+        PreferenceResolver.resolve(
+            extensionFields: extensionFields,
+            commandFields: commandFields,
+            commandName: "forecast",
+            stored: stored,
+            secret: { secrets[$0] }
+        )
     }
 
     @Test func commandPreferencesAreStoredUnderTheCommandsName() {

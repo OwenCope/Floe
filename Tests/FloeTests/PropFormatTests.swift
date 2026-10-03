@@ -5,9 +5,9 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
+@testable import Floe
 import Foundation
 import Testing
-@testable import Floe
 
 struct PropFormatTests {
     @Test func textReadsStringsNumbersAndValueObjects() {
