@@ -1,0 +1,49 @@
+# SwiftPM, Bun and GitHub Actions dependency updates (OpenSSF dependency_monitoring).
+version: 2
+updates:
+  - package-ecosystem: "swift"
+    directories:
+      - "/"
+      - "/Vendor/ThawUI"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    assignees:
+      - "diazdesandi"
+    groups:
+      swift:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "bun"
+    directory: "/runtime"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    assignees:
+      - "diazdesandi"
+    groups:
+      bun:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    assignees:
+      - "diazdesandi"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

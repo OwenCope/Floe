@@ -1,0 +1,88 @@
+name: Verify embedded Bun
+description: >-
+  Check that the Bun executable inside Floe.app is signed in a way the notary
+  service accepts and still runs under the hardened runtime.
+
+# The Embed Runtime build phase copies Bun into
+# Contents/Resources/runtime/bin/bun. Bun's releases are signed with its
+# developers' Developer ID, with the hardened runtime, a secure timestamp and
+# the JIT entitlements Bun needs. That is what the notary service asks of every
+# executable in a bundle, so the workflows do not re-sign it. Xcode's archive
+# export may re-sign nested executables with the exporting identity; either
+# signer is fine as long as the checks below hold, and the JIT entitlement is
+# the one that matters: without it Bun crashes on launch.
+
+inputs:
+  app-path:
+    description: Path to the Floe.app bundle to check
+    required: true
+  team-id:
+    description: Team ID the Bun signature must carry (empty = any Developer ID)
+    required: false
+    default: ""
+  selftest:
+    description: Also run the app's selftest against the checkout's extensions using the embedded Bun
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Check Bun signature
+      shell: bash
+      env:
+        APP_PATH: ${{ inputs.app-path }}
+        EXPECTED_TEAM_ID: ${{ inputs.team-id }}
+      run: |
+        set -euo pipefail
+        bun="$APP_PATH/Contents/Resources/runtime/bin/bun"
+
+        # The build phase only warns when it finds no Bun to copy.
+        if [[ ! -x "$bun" ]]; then
+          echo "::error::No Bun at $bun. The Embed Runtime build phase did not find one to copy."
+          exit 1
+        fi
+
+        info="$(codesign -dvvv "$bun" 2>&1)"
+        echo "$info" | grep -E '^(Identifier|Format|CodeDirectory|Authority|Timestamp|TeamIdentifier)='
+        entitlements="$(codesign -d --entitlements - --xml "$bun" 2>/dev/null || true)"
+
+        fail=0
+        check() {
+          if ! grep -Eq "$1" <<<"$2"; then
+            echo "::error::Embedded Bun: $3"
+            fail=1
+          fi
+        }
+        check '^Authority=Developer ID Application: ' "$info" "not signed with a Developer ID Application certificate."
+        check '^CodeDirectory .*flags=0x[0-9a-f]+\(.*runtime.*\)' "$info" "hardened runtime is not enabled."
+        check '^Timestamp=' "$info" "signature has no secure timestamp."
+        check 'com\.apple\.security\.cs\.allow-jit' "$entitlements" "com.apple.security.cs.allow-jit entitlement is missing, so Bun cannot run under the hardened runtime."
+        if [[ -n "$EXPECTED_TEAM_ID" ]]; then
+          check "^TeamIdentifier=${EXPECTED_TEAM_ID}\$" "$info" "not signed by team ${EXPECTED_TEAM_ID}."
+        fi
+        if ! codesign --verify --strict "$bun"; then
+          echo "::error::Embedded Bun: signature does not verify."
+          fail=1
+        fi
+        if [[ "$fail" -ne 0 ]]; then
+          exit 1
+        fi
+
+        # A missing JIT entitlement shows up here as a crash.
+        "$bun" --version
+        "$bun" -e 'let sum = 0; for (let i = 0; i < 1e6; i++) sum += i; console.log(`bun ran: ${sum}`)'
+
+    # A failed command still exits 0, so the output is checked as well.
+    - name: Selftest with the embedded Bun
+      if: inputs.selftest == 'true'
+      shell: bash
+      env:
+        APP_PATH: ${{ inputs.app-path }}
+        FLOE_ROOT: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        export FLOE_BUN="$APP_PATH/Contents/Resources/runtime/bin/bun"
+        output="$("$APP_PATH/Contents/MacOS/Floe" --selftest hello planets)"
+        echo "$output"
+        grep -q '^SELFTEST OK' <<<"$output"

@@ -1,0 +1,502 @@
+name: Release
+
+# Manual only; pushing a tag never releases. Drafts until attach-provenance
+# adds the attestations. There is no update feed: the release carries the DMG.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish (for example, 0.1.0 or 0.2.0-beta.1)
+        required: true
+        type: string
+      publish_release:
+        description: Publish the GitHub Release (uncheck to leave as draft)
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: >-
+          Dry run: build, sign and notarize the DMG and report. Creates no
+          release, Sigstore signature or attestation.
+        required: false
+        type: boolean
+        default: false
+      release_notes:
+        description: >-
+          Optional manual override for release notes (Markdown). If left blank,
+          notes are taken from the CHANGELOG.md section for this tag (Keep a
+          Changelog style: "## [tag]"), and when there is none GitHub generates
+          them. Multi-line text is easiest via
+          gh workflow run release.yml -f release_notes="$(cat notes.md)"
+          The web UI's field is single-line.
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  # Dry runs publish nothing, so they must not queue behind, or block, a real release.
+  group: release${{ inputs.dry_run && '-dry-run' || '' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: github.repository == 'thaw-app/Floe'
+    # GitHub-hosted Xcode 27 preview image (arm64); xcode-27-xlarge for more cores.
+    runs-on: xcode-27
+    # The Apple secrets exist only in the `prod` environment, which needs a
+    # reviewer's approval; they aren't read before that. The other jobs stay
+    # outside it.
+    environment: prod
+    permissions:
+      contents: write
+      id-token: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      dmg-name: ${{ steps.sbom-meta.outputs.dmg-name }}
+      dmg-digest: ${{ steps.sbom-meta.outputs.dmg-digest }}
+      sbom-name: ${{ steps.sbom-meta.outputs.name }}
+      sbom-digest: ${{ steps.sbom-meta.outputs.sbom-digest }}
+    env:
+      APP_NAME: "Floe.app"
+      DMG_NAME: "Floe.dmg"
+    steps:
+      # A local composite action has to exist on disk before it can run, so
+      # this sparse checkout brings in .github/actions and nothing else.
+      - name: Checkout build actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
+      - name: Checkout source
+        id: source
+        uses: ./.github/actions/checkout-source
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+
+      - name: Resolve tag
+        id: meta
+        env:
+          TAG_NAME: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TAG_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9._]+)?$ ]]; then
+            echo "Invalid tag name format. Must be in the form 1.2.3 or 1.2.3-rc.1"
+            exit 1
+          fi
+
+          # The app's version is written in Info.plist, not derived from the
+          # tag, so a tag that disagrees would ship a mislabelled build.
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info.plist)"
+          if [[ "$TAG_NAME" != "$version" && "$TAG_NAME" != "$version"-* ]]; then
+            echo "::error::Tag $TAG_NAME does not match CFBundleShortVersionString $version at that tag. Update the version in project.yml, regenerate, and tag again."
+            exit 1
+          fi
+
+          prerelease=false
+          if [[ "$TAG_NAME" == *-* ]]; then
+            prerelease=true
+          fi
+
+          {
+            echo "tag=$TAG_NAME"
+            echo "version=$version"
+            echo "build=$build"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "tag=$TAG_NAME version=$version build=$build prerelease=$prerelease"
+
+      - name: Resolve release notes
+        id: notes
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          import uuid
+
+          tag = os.environ["TAG"]
+          notes = os.environ.get("RELEASE_NOTES_INPUT", "")
+          source = "release_notes input"
+
+          # Without manual notes, use this tag's CHANGELOG.md section ("## [x.y.z]" to
+          # the next "## ") from the checked-out release tag.
+          changelog = "CHANGELOG.md" if os.path.isfile("CHANGELOG.md") else None
+          if not notes.strip() and changelog:
+              text = open(changelog, encoding="utf-8").read()
+              heading = re.compile(
+                  r"^##\s+\[?" + re.escape(tag) + r"\]?.*$", re.MULTILINE
+              )
+              match = heading.search(text)
+              if match:
+                  rest = text[match.end():]
+                  next_heading = re.search(r"^##\s+", rest, re.MULTILINE)
+                  section = rest[: next_heading.start()] if next_heading else rest
+                  notes = section.strip()
+                  source = changelog
+              else:
+                  source = f"GitHub-generated (no {changelog} section for {tag})"
+          elif not notes.strip():
+              source = "GitHub-generated (no release_notes input, no CHANGELOG.md)"
+
+          notes = notes.strip()
+          delimiter = f"notes_{uuid.uuid4().hex}"
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"body<<{delimiter}\n{notes}\n{delimiter}\n")
+              f.write(f"generate={'false' if notes else 'true'}\n")
+              f.write(f"source={source}\n")
+
+          print(f"Release notes source: {source}")
+          PY
+
+      # Installs to ~/.bun/bin/bun, one of the places the Embed Runtime build
+      # phase looks for the Bun it copies into the app. This is the Bun that ships.
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+
+      # The Embed Runtime build phase fails without runtime/node_modules.
+      - name: Install runtime dependencies
+        working-directory: runtime
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Select latest installed Xcode (including betas)
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest
+
+      - name: Configure signing
+        uses: thaw-app/org-ci/actions/configure-signing@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          apple-application-cert: ${{ secrets.APPLE_APPLICATION_CERT }}
+          apple-application-cert-password: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
+          apple-id: ${{ secrets.APPLE_ID }}
+          apple-id-password: ${{ secrets.APPLE_ID_PASSWORD }}
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+
+      # Overrides project.yml's ad hoc signing on the command line: Developer ID
+      # identity, team, manual style and the hardened runtime.
+      - name: Build
+        uses: thaw-app/org-ci/actions/build@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+          project-name: ${{ steps.source.outputs.project-name }}
+          scheme-name: Floe
+          deployment-target: ${{ steps.source.outputs.deployment-target }}
+
+      # Before anything is sent to Apple: the archived app must contain Bun as
+      # its developers signed it (team 7FRXF46ZSN).
+      - name: Verify embedded Bun (archive)
+        uses: ./.github/actions/verify-embedded-bun
+        with:
+          app-path: build/Archive.xcarchive/Products/Applications/${{ env.APP_NAME }}
+          team-id: 7FRXF46ZSN
+
+      # Exports with a secure timestamp, notarizes and staples the app, then
+      # packages and signs the DMG.
+      - name: Export Archive
+        uses: thaw-app/org-ci/actions/export-and-package@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+          app-name: ${{ env.APP_NAME }}
+          dmg-name: ${{ env.DMG_NAME }}
+
+      - name: Notarize
+        uses: thaw-app/org-ci/actions/notarize-and-validate@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          dmg-name: ${{ env.DMG_NAME }}
+          app-name: ${{ env.APP_NAME }}
+
+      # The export may have re-signed Bun. Check the app that went into the DMG
+      # and run it once with its own Bun before anything is published.
+      - name: Verify embedded Bun (exported app)
+        uses: ./.github/actions/verify-embedded-bun
+        with:
+          app-path: build/Export/${{ env.APP_NAME }}
+          selftest: "true"
+
+      - name: Generate CycloneDX SBOM
+        id: sbom-meta
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          DMG_NAME: ${{ env.DMG_NAME }}
+          # Syft pinned by version and archive digest; bump both from the release's
+          # syft_<version>_checksums.txt.
+          SYFT_VERSION: 1.42.3
+          SYFT_SHA256_DARWIN_ARM64: d71ee7db2be0fe2e96f679fd9d69ef04274cc86c8604707797080a21070b3f32
+          SYFT_SHA256_DARWIN_AMD64: c00d01b7c43504708c8922d643d1cbaefa62ca8876baa4d2c2cf4c3be43707a9
+        run: |
+          set -euo pipefail
+
+          case "$(uname -m)" in
+            arm64) syft_arch=arm64; syft_sha="$SYFT_SHA256_DARWIN_ARM64" ;;
+            x86_64) syft_arch=amd64; syft_sha="$SYFT_SHA256_DARWIN_AMD64" ;;
+            *) echo "Unsupported runner architecture: $(uname -m)"; exit 1 ;;
+          esac
+
+          bin="$RUNNER_TEMP/syft-bin"
+          archive="$RUNNER_TEMP/syft.tar.gz"
+          mkdir -p "$bin"
+          curl -sSfL --retry 3 \
+            "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_darwin_${syft_arch}.tar.gz" \
+            -o "$archive"
+          echo "${syft_sha}  ${archive}" | shasum -a 256 -c -
+          tar -xzf "$archive" -C "$bin" syft
+          export PATH="$bin:$PATH"
+          syft version
+
+          # Scan the source tree: SwiftPM deps are statically linked, so only
+          # Package.resolved lists them, and runtime/ holds the JavaScript that
+          # ships. Build output, packaging tools and CI files are excluded.
+          sbom_name="Floe_${TAG}.cdx.json"
+          sbom_path="build/${sbom_name}"
+          syft scan dir:. \
+            --exclude './build/**' \
+            --exclude './create-dmg/**' \
+            --exclude './brand-assets/**' \
+            --exclude './.git/**' \
+            --exclude './.github/**' \
+            --source-name Floe \
+            --source-version "$TAG" \
+            -o "cyclonedx-json=${sbom_path}"
+          test -f "$sbom_path"
+          ls -la "$sbom_path"
+
+          # Basename-only checksums so `shasum -c` works after downloading the release assets.
+          (
+            cd build
+            shasum -a 256 "$sbom_name" | tee "${sbom_name}.sha256"
+            shasum -a 256 "$DMG_NAME" | tee "${DMG_NAME}.sha256"
+          )
+
+          sbom_hex="$(awk '{print $1}' "build/${sbom_name}.sha256")"
+          dmg_hex="$(awk '{print $1}' "build/${DMG_NAME}.sha256")"
+
+          {
+            echo "path=${sbom_path}"
+            echo "name=${sbom_name}"
+            echo "dmg-name=${DMG_NAME}"
+            echo "sbom-digest=sha256:${sbom_hex}"
+            echo "dmg-digest=sha256:${dmg_hex}"
+          } >> "$GITHUB_OUTPUT"
+
+      # Skipped on a dry run: keyless signing writes a permanent, public entry to
+      # the Sigstore transparency log, which cannot be retracted afterwards.
+      - name: Install cosign
+        if: ${{ !inputs.dry_run }}
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Sign installer DMG and SBOM (Sigstore)
+        if: ${{ !inputs.dry_run }}
+        env:
+          COSIGN_YES: "true"
+          DMG_PATH: build/${{ env.DMG_NAME }}
+          SBOM_PATH: ${{ steps.sbom-meta.outputs.path }}
+        run: |
+          set -euo pipefail
+          cosign version
+          cosign sign-blob --bundle "${DMG_PATH}.sigstore.json" "$DMG_PATH"
+          cosign sign-blob --bundle "${SBOM_PATH}.sigstore.json" "$SBOM_PATH"
+          ls -la "${DMG_PATH}.sigstore.json" "${SBOM_PATH}.sigstore.json"
+
+      - name: Create GitHub Release (DMG + SBOM)
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          # softprops v3 uses the token input (env GITHUB_TOKEN is ignored).
+          token: ${{ github.token }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          files: |
+            build/${{ env.DMG_NAME }}
+            build/${{ env.DMG_NAME }}.sigstore.json
+            build/${{ env.DMG_NAME }}.sha256
+            ${{ steps.sbom-meta.outputs.path }}
+            ${{ steps.sbom-meta.outputs.path }}.sigstore.json
+            ${{ steps.sbom-meta.outputs.path }}.sha256
+          body: ${{ steps.notes.outputs.body }}
+          # Only when neither the input nor CHANGELOG.md gave any notes.
+          generate_release_notes: ${{ steps.notes.outputs.generate == 'true' }}
+          # Always a draft; attach-provenance publishes it once the attestations are
+          # attached, so an unattested release can't ship.
+          draft: true
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+
+      - name: Dry run report
+        if: ${{ inputs.dry_run }}
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          BUILD: ${{ steps.meta.outputs.build }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
+          NOTES_SOURCE: ${{ steps.notes.outputs.source }}
+          DMG_NAME: ${{ env.DMG_NAME }}
+          SBOM_NAME: ${{ steps.sbom-meta.outputs.name }}
+          SBOM_PATH: ${{ steps.sbom-meta.outputs.path }}
+          WOULD_DRAFT: ${{ !inputs.publish_release }}
+        run: |
+          set -euo pipefail
+
+          s() { printf '%s\n' "$*" >> "$GITHUB_STEP_SUMMARY"; }
+
+          # Exact byte count, humanised, because `du` rounds a 75-byte file up to a 4K block.
+          human() {
+            stat -f%z "$1" | awk '
+              $1 >= 1048576 { printf "%.1f MB\n", $1/1048576; next }
+              $1 >= 1024    { printf "%.1f KB\n", $1/1024; next }
+                            { printf "%d B\n", $1 }'
+          }
+
+          s "# Dry run: nothing was published"
+          s ""
+          s "The DMG was built, signed and notarized, but no GitHub Release was"
+          s "created and no blob was signed with Sigstore or attested. Re-run with"
+          s "**Dry run** unchecked to publish."
+          s ""
+          s "| Setting | Value |"
+          s "| --- | --- |"
+          s "| Tag | \`${TAG}\` |"
+          s "| App version (build) | \`${VERSION}\` (\`${BUILD}\`) |"
+          s "| Prerelease | \`${PRERELEASE}\` |"
+          s "| Release notes | ${NOTES_SOURCE} |"
+          s "| Release would be created as | $([[ "$WOULD_DRAFT" == "true" ]] && echo 'draft' || echo '**published**') |"
+
+          s ""
+          s "## Would upload to \`${GITHUB_REPOSITORY}\` (release \`${TAG}\`)"
+          s ""
+          s "| Asset | Size | SHA-256 |"
+          s "| --- | ---: | --- |"
+          for f in "build/${DMG_NAME}" "build/${DMG_NAME}.sha256" "$SBOM_PATH" "${SBOM_PATH}.sha256"; do
+            [[ -f "$f" ]] || { s "| \`$(basename "$f")\` | _missing_ | n/a |"; continue; }
+            s "| \`$(basename "$f")\` | $(human "$f") | \`$(shasum -a 256 "$f" | cut -c1-16)…\` |"
+          done
+          s "| \`${DMG_NAME}.sigstore.json\` | n/a | _skipped: signing is disabled on dry runs_ |"
+          s "| \`${SBOM_NAME}.sigstore.json\` | n/a | _skipped: signing is disabled on dry runs_ |"
+          s "| \`${DMG_NAME}.intoto.jsonl\` | n/a | _skipped: provenance is disabled on dry runs_ |"
+          s "| \`${SBOM_NAME}.intoto.jsonl\` | n/a | _skipped: provenance is disabled on dry runs_ |"
+
+          s ""
+          s "## SBOM contents (\`${SBOM_NAME}\`)"
+          s ""
+          if [[ -f "$SBOM_PATH" ]]; then
+            s "| Component | Version |"
+            s "| --- | --- |"
+            python3 - <<'PY'
+          import json, os, sys
+          d = json.load(open(os.environ["SBOM_PATH"]))
+          comps = [c for c in d.get("components", []) if c.get("purl")]
+          out = open(os.environ["GITHUB_STEP_SUMMARY"], "a")
+          for c in sorted(comps, key=lambda c: c["name"].lower()):
+              out.write("| `%s` | `%s` |\n" % (c["name"], c.get("version", "?")))
+          if not comps:
+              out.write("| _no packaged components found_ | n/a |\n")
+          print("SBOM lists %d component(s)" % len(comps))
+          PY
+          else
+            s "_SBOM not generated._"
+          fi
+
+          s ""
+          s "Full artifacts are attached to this run as \`dry-run-${TAG}\`."
+
+      - name: Upload dry run artifacts
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dry-run-${{ steps.meta.outputs.tag }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            build/${{ env.DMG_NAME }}
+            build/${{ env.DMG_NAME }}.sha256
+            ${{ steps.sbom-meta.outputs.path }}
+            ${{ steps.sbom-meta.outputs.path }}.sha256
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/buildagent.keychain" || true
+
+  # Provenance signing runs in a reusable workflow with its own signing identity.
+  # Skipped on dry run: attestations are permanent Sigstore / GitHub records.
+  attest-dmg:
+    needs: release
+    if: ${{ github.repository == 'thaw-app/Floe' && !inputs.dry_run }}
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+    uses: ./.github/workflows/attest-build-provenance.yml
+    with:
+      subject-name: ${{ needs.release.outputs.dmg-name }}
+      subject-digest: ${{ needs.release.outputs.dmg-digest }}
+
+  attest-sbom:
+    needs: release
+    if: ${{ github.repository == 'thaw-app/Floe' && !inputs.dry_run }}
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+    uses: ./.github/workflows/attest-build-provenance.yml
+    with:
+      subject-name: ${{ needs.release.outputs.sbom-name }}
+      subject-digest: ${{ needs.release.outputs.sbom-digest }}
+
+  attach-provenance:
+    needs: [release, attest-dmg, attest-sbom]
+    if: ${{ github.repository == 'thaw-app/Floe' && !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download DMG provenance
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.attest-dmg.outputs.artifact-name }}
+          path: provenance
+
+      - name: Download SBOM provenance
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.attest-sbom.outputs.artifact-name }}
+          path: provenance
+
+      # No checkout here, so gh cannot infer the repository from a git remote.
+      - name: Upload provenance to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.release.outputs.tag }}
+          DMG_BUNDLE: ${{ needs.attest-dmg.outputs.bundle-name }}
+          SBOM_BUNDLE: ${{ needs.attest-sbom.outputs.bundle-name }}
+        run: |
+          set -euo pipefail
+          dmg_bundle="provenance/${DMG_BUNDLE}"
+          sbom_bundle="provenance/${SBOM_BUNDLE}"
+          test -f "$dmg_bundle"
+          test -f "$sbom_bundle"
+          ls -la provenance/
+          gh release upload "$TAG" "$dmg_bundle" "$sbom_bundle" --clobber
+          echo "Attached provenance to release ${TAG}"
+
+      # Publishes once both bundles are attached.
+      - name: Publish release
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" --draft=false
+          echo "Published release ${TAG} with provenance attached"

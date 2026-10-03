@@ -1,0 +1,125 @@
+name: Build DMG
+
+# Manual signed, notarized DMG as a short-lived artifact, never a release.
+# Keep workflow_dispatch as the only trigger: the job reads the signing secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to build (empty = the commit on the selected workflow branch)
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: build-dmg-${{ inputs.ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-dmg:
+    if: github.repository == 'thaw-app/Floe'
+    # GitHub-hosted Xcode 27 preview image (arm64); xcode-27-xlarge for more cores.
+    runs-on: xcode-27
+    # The Apple secrets exist only in the `prod` environment, which needs a
+    # reviewer's approval; they aren't read before that. Only workflow_dispatch
+    # starts this job, so a pull request from a fork cannot reach it.
+    environment: prod
+    env:
+      APP_NAME: "Floe.app"
+      DMG_NAME: "Floe-dev.dmg"
+    steps:
+      # A local composite action has to exist on disk before it can run, so
+      # this sparse checkout brings in .github/actions and nothing else.
+      - name: Checkout build actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
+      - name: Checkout source
+        id: source
+        uses: ./.github/actions/checkout-source
+        with:
+          ref: ${{ inputs.ref }}
+
+      # Installs to ~/.bun/bin/bun, one of the places the Embed Runtime build
+      # phase looks for the Bun it copies into the app. This is the Bun that ships.
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+
+      # The Embed Runtime build phase fails without runtime/node_modules.
+      - name: Install runtime dependencies
+        working-directory: runtime
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Select latest installed Xcode (including betas)
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest
+
+      - name: Configure signing
+        uses: thaw-app/org-ci/actions/configure-signing@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          apple-application-cert: ${{ secrets.APPLE_APPLICATION_CERT }}
+          apple-application-cert-password: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
+          apple-id: ${{ secrets.APPLE_ID }}
+          apple-id-password: ${{ secrets.APPLE_ID_PASSWORD }}
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+
+      # Overrides project.yml's ad hoc signing on the command line: Developer ID
+      # identity, team, manual style and the hardened runtime.
+      - name: Build
+        uses: thaw-app/org-ci/actions/build@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+          project-name: ${{ steps.source.outputs.project-name }}
+          scheme-name: Floe
+          deployment-target: ${{ steps.source.outputs.deployment-target }}
+
+      # Before anything is sent to Apple: the archived app must contain Bun as
+      # its developers signed it (team 7FRXF46ZSN).
+      - name: Verify embedded Bun (archive)
+        uses: ./.github/actions/verify-embedded-bun
+        with:
+          app-path: build/Archive.xcarchive/Products/Applications/${{ env.APP_NAME }}
+          team-id: 7FRXF46ZSN
+
+      # Exports with a secure timestamp, notarizes and staples the app, then
+      # packages and signs the DMG.
+      - name: Export Archive
+        uses: thaw-app/org-ci/actions/export-and-package@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+          app-name: ${{ env.APP_NAME }}
+          dmg-name: ${{ env.DMG_NAME }}
+
+      - name: Notarize
+        uses: thaw-app/org-ci/actions/notarize-and-validate@d90bbc87aa4dff91d3bc9e30fb6ceef0765bd986
+        with:
+          dmg-name: ${{ env.DMG_NAME }}
+          app-name: ${{ env.APP_NAME }}
+
+      # The export may have re-signed Bun. Check the app that goes into the DMG
+      # and run it once with its own Bun before the artifact is uploaded.
+      - name: Verify embedded Bun (exported app)
+        uses: ./.github/actions/verify-embedded-bun
+        with:
+          app-path: build/Export/${{ env.APP_NAME }}
+          selftest: "true"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Floe-dmg-${{ steps.source.outputs.commit }}
+          path: build/${{ env.DMG_NAME }}
+          retention-days: 3
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/buildagent.keychain" || true

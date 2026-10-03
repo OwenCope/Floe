@@ -1,0 +1,61 @@
+# This workflow uses actions that are not certified by GitHub. They are provided
+# by a third-party and are governed by separate terms of service, privacy
+# policy, and support documentation.
+
+name: Scorecard
+on:
+  # Only the default branch is supported for publishing results / badge.
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly on Saturdays.
+    - cron: "30 1 * * 6"
+  workflow_dispatch:
+
+# Read-only default; the analysis job declares its own full permission set.
+permissions:
+  contents: read
+
+jobs:
+  analysis:
+    if: github.repository == 'thaw-app/Floe'
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed to upload the results to code-scanning dashboard.
+      security-events: write
+      # Needed to publish results and enable a badge (this repo is public).
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Run analysis"
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publishes results to the OpenSSF REST API and enables the README badge.
+          publish_results: true
+          # Optional fine-grained PAT secret with admin-level repository read access so
+          # Branch-Protection can be evaluated when classic protection APIs are used.
+          # Without it the workflow token is used and that check is less complete.
+          repo_token: ${{ secrets.SCORECARD_READ_TOKEN || github.token }}
+
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: "Upload to code-scanning"
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: results.sarif
