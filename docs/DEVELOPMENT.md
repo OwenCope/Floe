@@ -66,6 +66,18 @@ samples instead, including `diagnostics`, which fails on purpose to exercise the
 | ⌘, | anywhere | settings |
 | ↵, ⌘⇧C | error screen | try again, copy details |
 
+## Tests
+
+    swift test                                   # Swift Testing suites in Tests/FloeTests
+    bun --config=runtime/bunfig.toml test ./runtime   # runtime suites in runtime/tests
+    ./scripts/coverage.sh --summary              # both, with coverage per measured file
+
+The Swift tests import the app's module directly and never launch it. Logic lives in files that can run
+in a test (`Ranking`, `Manifest`, `ViewState`, `MarkdownParser`, `Shortcuts`, `PropFormat`, `Preferences`,
+`MenuBarLogic`, `Settings`, `Session`); views, the process, the Keychain and Accessibility code are excluded
+from coverage in `sonar-project.properties`, which also states the rule. New decision logic belongs in a
+measured file with a suite beside it.
+
 ## Checks
 
     bun runtime/smoke.ts extensions/hello planets          # host only

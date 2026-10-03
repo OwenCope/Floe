@@ -76,7 +76,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [ ] Settings sync, import and export
 - [ ] App icon
 - [ ] Signed and notarized releases with updates
-- [ ] Automated tests
+- [x] Automated tests
 
 ## Acknowledgments
 
