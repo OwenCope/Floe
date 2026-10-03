@@ -9,6 +9,22 @@ options:
 packages:
   ThawUI:
     path: Vendor/ThawUI
+  ThawConcurrency:
+    path: Vendor/ThawConcurrency
+  # Keep in step with Package.swift and with sparkle-version in .github/workflows/release.yml.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
+  # Keep these three in step with Package.swift.
+  swift-subprocess:
+    url: https://github.com/swiftlang/swift-subprocess
+    exactVersion: 1.0.0
+  swift-markdown:
+    url: https://github.com/swiftlang/swift-markdown
+    exactVersion: 0.9.0
+  swift-argument-parser:
+    url: https://github.com/apple/swift-argument-parser
+    exactVersion: 1.8.2
 
 settings:
   base:
@@ -21,6 +37,7 @@ targets:
     platform: macOS
     sources:
       - path: Sources/Floe
+      - path: Resources/AppIcon.icon
       - path: runtime
         type: folder
         buildPhase: none
@@ -31,6 +48,14 @@ targets:
         buildPhase: none
     dependencies:
       - package: ThawUI
+      - package: ThawConcurrency
+      - package: Sparkle
+      - package: swift-subprocess
+        product: Subprocess
+      - package: swift-markdown
+        product: Markdown
+      - package: swift-argument-parser
+        product: ArgumentParser
     postBuildScripts:
       - name: Embed Runtime
         basedOnDependencyAnalysis: false
@@ -74,6 +99,12 @@ targets:
           compactSlider: https://github.com/buh/CompactSlider
           bun: https://bun.sh
           react: https://react.dev
+          sparkle: https://sparkle-project.org
+          swiftSubprocess: https://github.com/swiftlang/swift-subprocess
+          swiftMarkdown: https://github.com/swiftlang/swift-markdown
+          swiftArgumentParser: https://github.com/apple/swift-argument-parser
+          swiftCmark: https://github.com/swiftlang/swift-cmark
+          swiftSystem: https://github.com/apple/swift-system
         # Filled in from git by the Embed Runtime step.
         GitCommitSHA: unknown
         CFBundleShortVersionString: "0.1.0"
@@ -81,10 +112,16 @@ targets:
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSUIElement: true
         NSHighResolutionCapable: true
+        # Sparkle updates. The appcast is published to this repository's gh-pages branch by
+        # .github/workflows/release.yml.
+        SUFeedURL: https://thaw-app.github.io/Floe/appcast.xml
+        # PLACEHOLDER: updates stay off while this is empty. Paste the public key printed by
+        # Sparkle's generate_keys here (see "Releases and updates" in docs/DEVELOPMENT.md).
+        SUPublicEDKey: ""
     settings:
       base:
         PRODUCT_NAME: Floe
-        PRODUCT_BUNDLE_IDENTIFIER: com.diazdesandi.Floe
+        PRODUCT_BUNDLE_IDENTIFIER: com.thaw.floe
         # Ad hoc ("Sign to Run Locally"); set a team here once the app needs stable permissions.
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"

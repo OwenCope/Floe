@@ -16,7 +16,7 @@ SCHEME="Floe"
 CONFIG="Release"
 APP_NAME="Floe"
 DEST="/Applications/$APP_NAME.app"
-BUNDLE_ID="com.diazdesandi.Floe"
+BUNDLE_ID="com.thaw.floe"
 DERIVED=".build/xcode"
 LAUNCH=1
 
