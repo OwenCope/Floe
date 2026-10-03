@@ -1,0 +1,39 @@
+//
+//  Credits.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU GPLv3
+
+// Written by scripts/generate-credits.py. Change the script and run it again instead of editing this file.
+
+/// One project Floe is built from, as the About page's Credits sheet lists it.
+struct Credit: Identifiable {
+    let name: String
+    let detail: String
+    /// Names an entry in Info.plist's FloeLinks.
+    let link: String
+
+    var id: String {
+        name
+    }
+}
+
+enum Credits {
+    static let all: [Credit] = [
+        Credit(name: "Thaw", detail: "ThawUI, ThawConcurrency, the hotkey code, the HUD and the search panel design. GPL-3.0.", link: "thaw"),
+        Credit(name: "CompactSlider", detail: "Used by ThawUI. MIT.", link: "compactSlider"),
+        Credit(name: "Sparkle", detail: "Checks for updates and installs them. MIT.", link: "sparkle"),
+        Credit(name: "swift-subprocess", detail: "Starts and stops the process an extension runs in. Apache-2.0.", link: "swiftSubprocess"),
+        Credit(name: "swift-system", detail: "Used by swift-subprocess. Apache-2.0.", link: "swiftSystem"),
+        Credit(name: "swift-markdown", detail: "Reads the Markdown in detail views. Apache-2.0.", link: "swiftMarkdown"),
+        Credit(name: "swift-cmark", detail: "Used by swift-markdown. BSD-2-Clause.", link: "swiftCmark"),
+        Credit(name: "swift-argument-parser", detail: "Reads the command line options. Apache-2.0.", link: "swiftArgumentParser"),
+        Credit(name: "Bun", detail: "Runs extensions. MIT.", link: "bun"),
+        Credit(name: "React", detail: "Renders extensions. MIT.", link: "react"),
+        Credit(name: "react-reconciler", detail: "Turns what an extension renders into Floe's views. MIT.", link: "react"),
+        Credit(name: "Raycast extensions", detail: "The API Floe implements; each extension keeps its own license.", link: "raycastExtensions"),
+    ]
+
+    static let trademark = "Raycast is a trademark of Raycast Technologies Inc. Floe is not affiliated with Raycast."
+}

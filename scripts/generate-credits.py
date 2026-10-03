@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+"""Generates Floe's credits from its dependencies.
+
+Usage, from anywhere:
+    scripts/generate-credits.py
+
+Writes two files:
+    CREDITS.md                  the list for the repository, with versions
+    Sources/Floe/Credits.swift  the same list for the About page's Credits sheet
+
+Adapted from Thaw's script of the same name, which builds CREDITS.md from a translators export.
+Floe has no translations yet, so this one lists what the app is built from. Versions are read
+from the files that pin them, so run it again after changing a dependency:
+    Package.resolved      Swift packages
+    runtime/package.json  the extension runtime's packages
+Links come from FloeLinks in project.yml, the one place the app's web links are kept.
+
+Every path is fixed and relative to the repository, so the script reads and writes nowhere else.
+"""
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import NamedTuple, Optional
+
+ROOT = Path(__file__).resolve().parent.parent
+PROJECT = ROOT / "project.yml"
+SWIFT_PINS = ROOT / "Package.resolved"
+RUNTIME_MANIFEST = ROOT / "runtime" / "package.json"
+MARKDOWN = ROOT / "CREDITS.md"
+SWIFT = ROOT / "Sources" / "Floe" / "Credits.swift"
+
+
+class Dependency(NamedTuple):
+    name: str
+    # The entry in project.yml's FloeLinks that holds the project's URL.
+    link: str
+    license: str
+    # What Floe uses it for, as a sentence without the final period.
+    use: str
+    # Where the version comes from: "swift", "runtime" or "" for none.
+    source: str = ""
+    # The Package.resolved identity or package.json name to look up.
+    key: str = ""
+    # Left out of the credits until its version can be found, for dependencies still being added.
+    optional: bool = False
+
+
+DEPENDENCIES = [
+    Dependency("Thaw", "thaw", "GPL-3.0",
+               "ThawUI, ThawConcurrency, the hotkey code, the HUD and the search panel design"),
+    Dependency("CompactSlider", "compactSlider", "MIT", "Used by ThawUI", "swift", "compactslider"),
+    Dependency("Sparkle", "sparkle", "MIT", "Checks for updates and installs them", "swift", "sparkle",
+               optional=True),
+    Dependency("swift-subprocess", "swiftSubprocess", "Apache-2.0", "Starts and stops the process an extension runs in",
+               "swift", "swift-subprocess"),
+    Dependency("swift-system", "swiftSystem", "Apache-2.0", "Used by swift-subprocess", "swift", "swift-system"),
+    Dependency("swift-markdown", "swiftMarkdown", "Apache-2.0", "Reads the Markdown in detail views",
+               "swift", "swift-markdown"),
+    Dependency("swift-cmark", "swiftCmark", "BSD-2-Clause", "Used by swift-markdown", "swift", "swift-cmark"),
+    Dependency("swift-argument-parser", "swiftArgumentParser", "Apache-2.0", "Reads the command line options",
+               "swift", "swift-argument-parser"),
+    Dependency("Bun", "bun", "MIT", "Runs extensions"),
+    Dependency("React", "react", "MIT", "Renders extensions", "runtime", "react"),
+    Dependency("react-reconciler", "react", "MIT", "Turns what an extension renders into Floe's views",
+               "runtime", "react-reconciler"),
+    Dependency("Raycast extensions", "raycastExtensions", "each extension keeps its own license",
+               "The API Floe implements"),
+]
+
+TRADEMARK = "Raycast is a trademark of Raycast Technologies Inc. Floe is not affiliated with Raycast."
+
+
+def read_links() -> dict:
+    """The name and URL of each entry under FloeLinks in project.yml."""
+    links = {}
+    inside = False
+    for line in PROJECT.read_text(encoding="utf-8").splitlines():
+        if line.strip() == "FloeLinks:":
+            inside = True
+            continue
+        if not inside:
+            continue
+        match = re.fullmatch(r"\s+(\w+):\s+(https?://\S+)", line)
+        if match is None:
+            break
+        links[match.group(1)] = match.group(2)
+    return links
+
+
+def swift_version(identity: str) -> Optional[str]:
+    """The version, or short revision, Package.resolved pins a Swift package at."""
+    if not SWIFT_PINS.is_file():
+        return None
+    pins = json.loads(SWIFT_PINS.read_text(encoding="utf-8")).get("pins", [])
+    for pin in pins:
+        if pin.get("identity") == identity:
+            state = pin.get("state", {})
+            return state.get("version") or state.get("revision", "")[:7] or None
+    return None
+
+
+def runtime_version(name: str) -> Optional[str]:
+    """The version range runtime/package.json asks for."""
+    manifest = json.loads(RUNTIME_MANIFEST.read_text(encoding="utf-8"))
+    return manifest.get("dependencies", {}).get(name)
+
+
+VERSION_READERS = {"swift": swift_version, "runtime": runtime_version}
+
+
+def version_of(dependency: Dependency) -> Optional[str]:
+    reader = VERSION_READERS.get(dependency.source)
+    return reader(dependency.key) if reader else None
+
+
+def listed(dependencies: list) -> list:
+    """Each dependency with its version, without the optional ones that are not pinned yet."""
+    pairs = [(dependency, version_of(dependency)) for dependency in dependencies]
+    return [(dependency, version) for dependency, version in pairs if version or not dependency.optional]
+
+
+def detail(dependency: Dependency) -> str:
+    """The line under a name: what it is used for, then its license."""
+    license_text = dependency.license
+    separator = ". " if license_text[0].isupper() else "; "
+    return f"{dependency.use}{separator}{license_text}."
+
+
+def render_markdown(entries: list, links: dict) -> str:
+    lines = [
+        "# Credits",
+        "",
+        "What Floe is built from. This file is written by `scripts/generate-credits.py`;",
+        "change the script and run it again instead of editing the list.",
+        "",
+    ]
+    for dependency, version in entries:
+        url = links.get(dependency.link)
+        name = f"[{dependency.name}]({url})" if url else dependency.name
+        pinned = f" `{version}`" if version else ""
+        lines.append(f"- {name}{pinned}: {detail(dependency)}")
+    lines += ["", TRADEMARK, ""]
+    return "\n".join(lines)
+
+
+def swift_string(text: str) -> str:
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+SWIFT_HEADER = """\
+//
+//  Credits.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU GPLv3
+
+// Written by scripts/generate-credits.py. Change the script and run it again instead of editing this file.
+
+/// One project Floe is built from, as the About page's Credits sheet lists it.
+struct Credit: Identifiable {
+    let name: String
+    let detail: String
+    /// Names an entry in Info.plist's FloeLinks.
+    let link: String
+
+    var id: String { name }
+}
+
+enum Credits {
+    static let all: [Credit] = [
+"""
+
+SWIFT_FOOTER = """\
+    ]
+
+    static let trademark = {trademark}
+}}
+"""
+
+
+def render_swift(entries: list) -> str:
+    rows = [
+        f"        Credit(name: {swift_string(dependency.name)}, detail: {swift_string(detail(dependency))}, "
+        f"link: {swift_string(dependency.link)}),\n"
+        for dependency, _ in entries
+    ]
+    return SWIFT_HEADER + "".join(rows) + SWIFT_FOOTER.format(trademark=swift_string(TRADEMARK))
+
+
+def warn_about_missing_links(entries: list, links: dict) -> None:
+    for dependency, _ in entries:
+        if dependency.link not in links:
+            print(f"warning: project.yml's FloeLinks has no '{dependency.link}' entry, "
+                  f"so {dependency.name} is listed without a link", file=sys.stderr)
+
+
+def main() -> int:
+    links = read_links()
+    entries = listed(DEPENDENCIES)
+    warn_about_missing_links(entries, links)
+    MARKDOWN.write_text(render_markdown(entries, links), encoding="utf-8")
+    SWIFT.write_text(render_swift(entries), encoding="utf-8")
+    kept = [dependency for dependency, _ in entries]
+    skipped = [dependency.name for dependency in DEPENDENCIES if dependency not in kept]
+    note = f", left out until pinned: {', '.join(skipped)}" if skipped else ""
+    print(f"wrote {MARKDOWN.name} and {SWIFT.relative_to(ROOT)}: {len(entries)} entries{note}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
