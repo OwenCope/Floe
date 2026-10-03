@@ -632,7 +632,14 @@ struct IconView: View {
         case symbol(String), image(NSImage), remote(URL), text(String), none
     }
 
-    private static let cache = NSCache<NSString, NSImage>()
+    /// Icons render at 18-32 points, so decoded bitmaps are kept at a 3x pixel target and the cache
+    /// holds a bounded byte budget: a 1024 px asset then costs kilobytes instead of ~4 megabytes.
+    private static let cache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.totalCostLimit = 32 * 1024 * 1024
+        return cache
+    }()
+
     private static let symbols: [String: String] = [
         "Globe": "globe", "Star": "star.fill", "Clipboard": "doc.on.clipboard", "Link": "link", "Trash": "trash",
         "Finder": "folder", "Folder": "folder", "Document": "doc", "Calendar": "calendar", "Clock": "clock",
@@ -649,9 +656,10 @@ struct IconView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private func resolve(_ value: Any?) -> Resolved {
+        let pixels = Self.pixelSize(for: size)
         if let dict = value as? [String: Any] {
             if let path = dict["fileIcon"] as? String {
-                return cachedImage(key: "fileIcon:\(path)") { NSWorkspace.shared.icon(forFile: path) }.map(Resolved.image) ?? .none
+                return cachedImage(key: "fileIcon:\(path)", pixels: pixels) { NSWorkspace.shared.icon(forFile: path) }.map(Resolved.image) ?? .none
             }
             // Raycast's { source: { light, dark } } picks per appearance.
             if let source = dict["source"] as? [String: Any] {
@@ -672,7 +680,7 @@ struct IconView: View {
             return .remote(url)
         }
         if string.hasPrefix("data:"), let comma = string.firstIndex(of: ",") {
-            let image = cachedImage(key: string) {
+            let image = cachedImage(key: string, pixels: pixels) {
                 let payload = String(string[string.index(after: comma)...])
                 let data = string[..<comma].contains(";base64")
                     ? Data(base64Encoded: payload)
@@ -682,7 +690,7 @@ struct IconView: View {
             return image.map(Resolved.image) ?? .none
         }
         // Asset names repeat across extensions (most ship an "icon.png"), so the cache key is the full path.
-        if let path = assetPath(string), let image = cachedImage(key: path, load: { NSImage(contentsOfFile: path) }) {
+        if let path = assetPath(string), let image = cachedImage(key: path, pixels: pixels, load: { NSImage(contentsOfFile: path) }) {
             return .image(image)
         }
         return string.count <= 2 ? .text(string) : .none
@@ -701,13 +709,39 @@ struct IconView: View {
         return FileManager.default.fileExists(atPath: path) ? path : nil
     }
 
-    private func cachedImage(key: String, load: () -> NSImage?) -> NSImage? {
+    private func cachedImage(key: String, pixels: Int, load: () -> NSImage?) -> NSImage? {
         if let cached = Self.cache.object(forKey: key as NSString) {
             return cached
         }
-        guard let image = load() else { return nil }
-        Self.cache.setObject(image, forKey: key as NSString)
+        guard let loaded = load() else { return nil }
+        let image = Self.downsampled(loaded, to: pixels)
+        let bytes = image.representations.reduce(0) { $0 + $1.pixelsWide * $1.pixelsHigh * 4 }
+        Self.cache.setObject(image, forKey: key as NSString, cost: bytes)
         return image
+    }
+
+    /// Draws the image's bitmap into at most `pixels` on its longer side; smaller images pass through.
+    private static func downsampled(_ image: NSImage, to pixels: Int) -> NSImage {
+        guard let source = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              max(source.width, source.height) > pixels
+        else { return image }
+        let scale = CGFloat(pixels) / CGFloat(max(source.width, source.height))
+        let width = max(1, Int((CGFloat(source.width) * scale).rounded()))
+        let height = max(1, Int((CGFloat(source.height) * scale).rounded()))
+        let space = CGColorSpace(name: CGColorSpace.sRGB) ?? source.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return image }
+        context.interpolationQuality = .high
+        context.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let drawn = context.makeImage() else { return image }
+        let result = NSImage(size: NSSize(width: width, height: height))
+        result.addRepresentation(NSBitmapImageRep(cgImage: drawn))
+        return result
+    }
+
+    static func pixelSize(for points: CGFloat) -> Int {
+        Int((points * 3).rounded())
     }
 
     /// tintColor and mask can sit at any level: { value: { source, tintColor } } is common.
