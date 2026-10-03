@@ -1,0 +1,92 @@
+name: Bug Report
+description: Report something broken or behaving wrong.
+title: "[Bug] "
+type: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search [open and closed issues](https://github.com/thaw-app/Floe/issues?q=is%3Aissue) first, and check the [TODO list](https://github.com/thaw-app/Floe#todo) in the README: what is listed there is not supported yet.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What went wrong, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: Floe version and commit
+      description: Both are on the About page in Floe's settings.
+      placeholder: e.g. 0.1.0 (e088aa5)
+    validations:
+      required: true
+
+  - type: input
+    id: macos_version
+    attributes:
+      label: macOS version
+      placeholder: e.g. 26.6.2 or 27.0
+    validations:
+      required: true
+
+  - type: input
+    id: extension
+    attributes:
+      label: Extension and command
+      description: The extension and the command that were running. Leave empty if the bug is not about an extension.
+      placeholder: e.g. hacker-news / frontpage
+    validations:
+      required: false
+
+  - type: dropdown
+    id: extension_source
+    attributes:
+      label: Where the extension came from
+      options:
+        - Raycast's folder (~/.config/raycast/extensions)
+        - Floe's folder (~/Library/Application Support/Floe/Extensions)
+        - The extensions folder of a Floe checkout
+        - Not about an extension
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_details
+    attributes:
+      label: Error details
+      description: |
+        If Floe showed its error screen, press Copy Details (⌘⇧C) there and paste the result. Remove anything private first, such as tokens or paths you don't want to share.
+      render: text
+    validations:
+      required: false
+
+  - type: upload
+    id: evidence
+    attributes:
+      label: Screenshots or a screen recording
+      description: A screenshot or a short recording covers most visual bugs.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else?
+      description: Extension preferences that matter, whether the same command works in Raycast, when it started happening.
+    validations:
+      required: false
