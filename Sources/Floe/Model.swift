@@ -52,9 +52,13 @@ final class LauncherModel: ObservableObject {
     // The app delegate replaces these; the defaults keep the model usable without a window.
     var hidePanel: () -> Void = { /* no panel */ }
     var showPanel: () -> Void = { /* no panel */ }
-    var showHUD: (String) -> Void = { _ in /* no HUD */ }
+    var showHUD: (String) -> Void = { _ in
+        // No HUD.
+    }
     /// Opens the settings window, optionally on one extension's page.
-    var openSettings: (String?) -> Void = { _ in /* no settings window */ }
+    var openSettings: (String?) -> Void = { _ in
+        // No settings window.
+    }
     /// Pops the Actions menu under its button in the menu bar search's bottom bar.
     var showMenuBarActions: () -> Void = { /* set by the Actions button */ }
 

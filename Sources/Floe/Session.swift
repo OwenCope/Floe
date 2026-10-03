@@ -58,7 +58,9 @@ final class ExtensionSession: ObservableObject {
     }
 
     /// Messages the session does not handle itself: close, exit, popToRoot, hud, open, copy, paste.
-    var onMessage: ([String: Any]) -> Void = { _ in /* set by the model */ }
+    var onMessage: ([String: Any]) -> Void = { _ in
+        // Set by the model.
+    }
 
     private let process = Process()
     private let input = Pipe()

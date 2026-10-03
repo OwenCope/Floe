@@ -33,7 +33,9 @@ struct HotkeyRecorder<Label: View>: View {
 
     init(
         keyCombination: Binding<KeyCombination?>,
-        onRecordingChange: @escaping (Bool) -> Void = { _ in /* nothing to suspend */ },
+        onRecordingChange: @escaping (Bool) -> Void = { _ in
+            // Nothing to suspend.
+        },
         @ViewBuilder label: () -> Label
     ) {
         self._keyCombination = keyCombination
@@ -144,8 +146,12 @@ private final class KeyCapture {
     var isShowingReservedWarning = false
 
     @ObservationIgnored private var monitor: Any?
-    @ObservationIgnored private var onRecordingChange: (Bool) -> Void = { _ in /* set by start */ }
-    @ObservationIgnored private var onCapture: (KeyCombination) -> Void = { _ in /* set by start */ }
+    @ObservationIgnored private var onRecordingChange: (Bool) -> Void = { _ in
+        // Set by start.
+    }
+    @ObservationIgnored private var onCapture: (KeyCombination) -> Void = { _ in
+        // Set by start.
+    }
 
     /// Begins intercepting key presses. Global hotkeys stand down for the duration,
     /// so the combination being replaced cannot fire while the replacement is typed.
