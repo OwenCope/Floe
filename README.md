@@ -78,6 +78,10 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [ ] Signed and notarized releases with updates
 - [x] Automated tests
 
+## Contributing
+
+Read the shared [Thaw/Floe contribution policy](https://github.com/thaw-app/.github/blob/main/.github/CONTRIBUTING.md), [Security Policy](https://github.com/thaw-app/.github/blob/main/.github/SECURITY.md), and [Code of Conduct](https://github.com/thaw-app/.github/blob/main/.github/CODE_OF_CONDUCT.md). Build commands and tests are in [Development](docs/DEVELOPMENT.md).
+
 ## Acknowledgments
 
 - [Thaw](https://github.com/thaw-app/Thaw): the ThawUI design system, the hotkey code, and the designs for the search panel, the settings sidebar and the About page. GPL-3.0.
