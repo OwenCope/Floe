@@ -24,6 +24,16 @@ struct ListStateTests {
         #expect(ViewState.view(in: nil) == nil)
     }
 
+    /// Since the renderer transmits only the visible screen, snapshots carry a single screen.
+    @Test func findsTheViewOnASingleScreenSnapshot() {
+        let root = Fixture.tree(Fixture.node("root", children: [
+            Fixture.node("_screen", children: [Fixture.slot("unused", Fixture.node("X")), Fixture.node("Detail", id: 2)]),
+        ]))
+        #expect(ViewState.screen(in: root)?.children.count == 2)
+        #expect(ViewState.view(in: root)?.id == 2)
+        #expect(ViewState.isList(root) == false)
+    }
+
     @Test(arguments: [("List", true), ("Grid", true), ("Detail", false), ("Form", false)])
     func listsAndGridsAreLists(type: String, expected: Bool) {
         #expect(ViewState.isList(Fixture.tree(Fixture.node(type))) == expected)

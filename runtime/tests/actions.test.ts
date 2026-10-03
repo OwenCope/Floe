@@ -89,8 +89,8 @@ describe("built-in actions", () => {
     expect(action.props).toEqual({ title: "Details", icon: "icon:ArrowRight" });
 
     const pushed = await fire(action, "onAction");
-    expect(pushed.children).toHaveLength(2);
-    expect(find(pushed.children[1], "Detail").props.markdown).toBe("pushed");
+    expect(pushed.children).toHaveLength(1);
+    expect(find(pushed, "Detail").props.markdown).toBe("pushed");
     expect(events).toEqual(["push"]);
 
     handlePop();

@@ -118,6 +118,24 @@ struct ExtensionSessionTests {
         #expect(session.selection == 1)
     }
 
+    /// The renderer transmits only the visible screen: root A, pushed B, then A again with fresh rows.
+    @Test func singleScreenSnapshotsKeepIdentityAndDropTheHiddenScreen() {
+        render(Fixture.node("List", id: 60, children: [Fixture.item("Mercury", id: 1)]), screenID: 50)
+        session.searchText = "mer"
+        session.selection = 1
+
+        render(Fixture.node("Detail", id: 70, children: [Fixture.slot("actions", Fixture.node("Action", id: 11, props: ["title": "Pushed"]))]), screenID: 51)
+        #expect(session.searchText.isEmpty, "a pushed screen resets the search like any screen change")
+        #expect(session.actions.map(\.id) == [11])
+
+        render(Fixture.node("List", id: 60, children: [Fixture.item("Mercury", id: 1), Fixture.item("Venus", id: 2)]), screenID: 50)
+        #expect(session.screen?.id == 50, "the restored screen keeps its original id")
+        #expect(session.view?.id == 60)
+        #expect(session.rows.map(\.id) == [1, 2], "the restored screen's latest rows")
+        #expect(session.root?.descendants(ofType: "Detail").contains(where: { $0.id == 70 }) != true, "the hidden screen's nodes are gone")
+        #expect(session.actions.isEmpty, "the hidden screen's actions are gone")
+    }
+
     // MARK: Toasts and errors
 
     @Test func aToastIsShownAndHiddenByItsIdentifier() {

@@ -287,23 +287,31 @@ function PlanetDetail({ name }: { name: string }) {
     onBack: pop,
   });
 }
+// Each render transmits only the visible screen, so a navigation tree holds exactly one screen.
 const markdowns = (tree: TreeNode) => tree.children.map((screen) => find(screen, "Detail").props.markdown);
+const screens = (tree: TreeNode) => tree.children;
 
 describe("navigation", () => {
-  test("each pushed view becomes a new screen on top of the ones below", async () => {
+  test("each pushed view becomes the one transmitted screen", async () => {
     const tree = await showScreen(h(PlanetDetail, { name: "Saturn" }));
-    expect(types(tree.children)).toEqual(["_screen"]);
+    expect(types(screens(tree))).toEqual(["_screen"]);
+    const rootScreen = screens(tree)[0];
     const pushed = await fire(find(tree, "Detail"), "onDeeper");
-    expect(markdowns(pushed)).toEqual(["# Saturn (0)", "# Saturn moon (0)"]);
+    expect(types(screens(pushed))).toEqual(["_screen"], "the stack depth does not add transmitted screens");
+    expect(markdowns(pushed)).toEqual(["# Saturn moon (0)"]);
+    expect(screens(pushed)[0].id).not.toBe(rootScreen.id, "a pushed screen is a new node");
   });
 
-  test("a lower screen keeps its state while another is on top", async () => {
+  test("a lower screen keeps its id and state across a push and a pop", async () => {
     const tree = await showScreen(h(PlanetDetail, { name: "Saturn" }));
+    const rootScreen = screens(tree)[0];
     const root = find(tree, "Detail");
     await fire(root, "onVisit");
     const pushed = await fire(root, "onDeeper");
-    const popped = await fire(find(pushed.children[1], "Detail"), "onBack");
-    expect(markdowns(popped)).toEqual(["# Saturn (1)"]);
+    const popped = await fire(find(pushed, "Detail"), "onBack");
+    expect(markdowns(popped)).toEqual(["# Saturn (1)"], "the visits state survived the push");
+    expect(screens(popped)[0].id).toBe(rootScreen.id, "the restored screen keeps its node id");
+    expect(find(popped, "Detail").id).toBe(root.id);
   });
 
   test("the app's pop message pops one screen, runs onPop, and exits at the root", async () => {
@@ -328,8 +336,8 @@ describe("navigation", () => {
   test("pop to root drops every pushed screen at once", async () => {
     const tree = await showScreen(h(PlanetDetail, { name: "Jupiter" }));
     const second = await fire(find(tree, "Detail"), "onDeeper");
-    const third = await fire(find(second.children[1], "Detail"), "onDeeper");
-    expect(third.children).toHaveLength(3);
+    const third = await fire(find(second, "Detail"), "onDeeper");
+    expect(screens(third)).toHaveLength(1, "the stack depth does not change the transmitted screens");
 
     handlePopToRoot();
     expect(markdowns(await settle())).toEqual(["# Jupiter (0)"]);

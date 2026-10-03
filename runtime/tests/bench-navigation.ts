@@ -161,10 +161,13 @@ for (let depth = 2; depth <= stackedDetails + 1; depth++) {
 dispatchEvent(refreshRow.id, "onRefresh", []);
 await nextRender("hidden root refresh");
 
-dispatchEvent(detailNode.id, "onBack", []);
-capture = await nextRender("restored detail", (tree) => findTopmost(tree, "detail")?.props.markdown === `# Detail ${stackedDetails}`);
-report("restored-detail", capture);
-detailNode = findTopmost(JSON.parse(capture.line).tree as Tree, "detail")!;
+// Pop back down the stack one detail at a time, then to the root.
+for (let depth = stackedDetails; depth >= 1; depth--) {
+    dispatchEvent(detailNode.id, "onBack", []);
+    capture = await nextRender(`restored detail ${depth}`, (tree) => findTopmost(tree, "detail")?.props.markdown === `# Detail ${depth}`);
+    report(`restored-detail-${depth}`, capture);
+    detailNode = findTopmost(JSON.parse(capture.line).tree as Tree, "detail")!;
+}
 
 dispatchEvent(detailNode.id, "onBack", []);
 capture = await nextRender("restored root", (tree) => listRows(tree) === rowCount);

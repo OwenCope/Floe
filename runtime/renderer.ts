@@ -69,13 +69,27 @@ function serialize(node: Child): unknown {
   return { id: node.id, type: node.type, props, handlers, children: node.children.map(serialize) };
 }
 
+// Navigation keeps lower screens mounted so Back can restore them, but Swift only shows the last one:
+// the envelope keeps every non-screen root child in place while hidden screen subtrees are skipped
+// before serialization ever walks them. The live tree is not touched.
+function serializeRoot(root: Instance) {
+  const visible = root.children.findLast((child) => child.type === "_screen");
+  return {
+    id: root.id,
+    type: root.type,
+    props: {},
+    handlers: [],
+    children: root.children.flatMap((child) => (child !== visible && child.type === "_screen" ? [] : [serialize(child)])),
+  };
+}
+
 let flushScheduled = false;
 function scheduleFlush() {
   if (flushScheduled) return;
   flushScheduled = true;
   setTimeout(() => {
     flushScheduled = false;
-    send({ type: "render", tree: serialize(container) });
+    send({ type: "render", tree: serializeRoot(container) });
   }, 4);
 }
 

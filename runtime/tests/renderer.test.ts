@@ -210,6 +210,79 @@ describe("initial children", () => {
   });
 });
 
+describe("visible screen projection", () => {
+  test("a root without screens serializes as before", async () => {
+    const tree = await show(h("panel", { title: "Planets" }, h("row", null, "Mercury")));
+    expect(tree).toMatchObject({ id: 0, type: "root", props: {}, handlers: [] });
+    expect(tree.children.map((child) => child.type)).toEqual(["panel"]);
+    expect(text(find(tree, "row"))).toBe("Mercury");
+  });
+
+  test("an empty root serializes with no children", async () => {
+    const tree = await show(null);
+    expect(tree.children).toEqual([]);
+  });
+
+  test("only the last of several screen siblings is transmitted", async () => {
+    const tree = await show(
+      h(
+        React.Fragment,
+        null,
+        h("_screen", { key: 0 }, h("row", { title: "lower" })),
+        h("_screen", { key: 1 }, h("row", { title: "upper" })),
+      ),
+    );
+    const screens = tree.children;
+    expect(screens).toHaveLength(1);
+    expect(screens[0].type).toBe("_screen");
+    expect(find(screens[0], "row").props.title).toBe("upper");
+    expect(findAll(tree, "row").map((row) => row.props.title)).toEqual(["upper"], "the hidden screen is not serialized");
+  });
+
+  test("non-screen root siblings keep their places around the visible screen", async () => {
+    const tree = await show(
+      h(
+        React.Fragment,
+        null,
+        h("panel", { title: "before" }),
+        h("_screen", { key: 0 }, h("row", { title: "lower" })),
+        h("_screen", { key: 1 }, h("row", { title: "upper" })),
+        h("panel", { title: "after" }),
+      ),
+    );
+    expect(tree.children.map((child) => [child.type, child.props.title])).toEqual([
+      ["panel", "before"],
+      ["_screen", undefined],
+      ["panel", "after"],
+    ]);
+    expect(find(tree.children[1], "row").props.title).toBe("upper");
+  });
+
+  test("hidden screens are not traversed for serialization", async () => {
+    let reads = 0;
+    let visibleReads = 0;
+    const counted = { get mark() { reads += 1; return true; } };
+    const visibleCounted = { get mark() { visibleReads += 1; return true; } };
+    function Screens() {
+      const [pushed, setPushed] = useState(false);
+      return h(
+        React.Fragment,
+        null,
+        h("_screen", { key: 0 }, h("row", { counted, title: `lower ${pushed}` })),
+        pushed ? h("_screen", { key: 1 }, h("row", { visibleCounted, title: "upper" })) : null,
+        h("lever", { onPush: () => setPushed(true) }),
+      );
+    }
+    const tree = await show(h(Screens));
+    expect(reads).toBe(1, "the visible screen is serialized");
+
+    const pushed = await fire(find(tree, "lever"), "onPush");
+    expect(find(pushed, "row").props.title).toBe("upper");
+    expect(visibleReads).toBe(1, "the visible screen is still serialized");
+    expect(reads).toBe(1, "pushing a screen stops visiting the hidden prop");
+  });
+});
+
 describe("dispatchEvent", () => {
   test("passes the arguments to the handler", async () => {
     const calls: unknown[][] = [];
