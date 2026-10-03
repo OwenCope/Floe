@@ -26,7 +26,7 @@ xcrun llvm-cov export -format=lcov \
     "$BUNDLE/Contents/MacOS/$(basename "$BUNDLE" .xctest)" \
     -instr-profile "$BIN/codecov/default.profdata" \
     -ignore-filename-regex='(\.build|Tests|Vendor)/' >coverage/swift.lcov
-python3 scripts/lcov-to-sonar.py coverage/swift.lcov coverage/swift.xml
+python3 scripts/lcov-to-sonar.py
 
 say "Runtime tests…"
 # No package in runtime/ needs an install script, so none are allowed to run.
