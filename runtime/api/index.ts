@@ -408,7 +408,7 @@ type CacheSubscriber = (key: string | undefined, data: string | undefined) => vo
 // Methods are arrow properties because @raycast/utils passes them around unbound (cache.subscribe → useSyncExternalStore).
 export class Cache {
   private readonly file: string;
-  private data: Record<string, string>;
+  private readonly data: Record<string, string>;
   private readonly subscribers = new Set<CacheSubscriber>();
   constructor(options?: { namespace?: string; capacity?: number }) {
     this.file = path.join(ctx.supportPath, `cache-${options?.namespace ?? "default"}.json`);
@@ -428,7 +428,10 @@ export class Cache {
     this.persist(key, undefined);
     return existed;
   };
-  clear = (_options?: { notifySubscribers?: boolean }) => { this.data = {}; this.persist(undefined, undefined); };
+  clear = (_options?: { notifySubscribers?: boolean }) => {
+    for (const key of Object.keys(this.data)) delete this.data[key];
+    this.persist(undefined, undefined);
+  };
   subscribe = (subscriber: CacheSubscriber) => {
     this.subscribers.add(subscriber);
     return () => {
