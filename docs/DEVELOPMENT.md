@@ -48,6 +48,8 @@ Commands with required preferences or arguments ask for them in the panel before
   - `AI.ask` is answered by one-shot `claude` or `codex` runs (`TextGeneration.swift`) or by a streamed request to an
     OpenAI-compatible API (`ChatCompletionStream.swift`). Settings › General › AI picks between them; the choice and
     the request an extension makes are in `HostRequest.swift`.
+  - `HangWatchdog.swift` samples the app when its main thread stops answering for four seconds and writes the stacks
+    to `~/Library/Logs/Floe`.
 - `CREDITS.md` and `Sources/Floe/Credits.swift` are written by `scripts/generate-credits.py`; run it after changing a dependency.
 - `Vendor/ThawUI`: design system copied from thaw-app/Thaw (commit in `Vendor/ThawUI/UPSTREAM`).
 - `Vendor/ThawConcurrency`: Thaw's timeout and one-shot continuation helpers, copied the same way.

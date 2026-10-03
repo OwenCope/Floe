@@ -22,6 +22,7 @@
 		1EE414B8D4D91989A2F64ED1 /* MenuBarItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6517001EBFA66B4BD7F1DA69 /* MenuBarItems.swift */; };
 		2AF26B7E12E19083A8225647 /* Credits.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEB425F614388AB1A87EBF09 /* Credits.swift */; };
 		2C01D7D6CC11901EB25ABE81 /* AISettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205C86145D30F43EBD39AF0E /* AISettingsSection.swift */; };
+		353A52B29E333F36719A0E14 /* HangWatchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4B4D2BFD7E89034E454C8A /* HangWatchdog.swift */; };
 		361E83BBF8F979512CD7AEF3 /* OnboardingSequencer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEDEE9B782C234A4509ADE9E /* OnboardingSequencer.swift */; };
 		3708D44C226149ED3BCE44C0 /* SettingsSearchNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96930AAEECE7733AB82EE655 /* SettingsSearchNavigation.swift */; };
 		3A1F84EB0C1D33947F6AAA6A /* ThawConcurrency in Frameworks */ = {isa = PBXBuildFile; productRef = 173A0A05D7E3A728FA4139D5 /* ThawConcurrency */; };
@@ -141,6 +142,7 @@
 		92EFACED3FB57AE107F4B30B /* UpdateConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateConsentSheet.swift; sourceTree = "<group>"; };
 		93C9A4E8B1189CAE2502F5A5 /* SearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchModel.swift; sourceTree = "<group>"; };
 		96930AAEECE7733AB82EE655 /* SettingsSearchNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSearchNavigation.swift; sourceTree = "<group>"; };
+		9A4B4D2BFD7E89034E454C8A /* HangWatchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HangWatchdog.swift; sourceTree = "<group>"; };
 		9BE02887C615B7B2720B554E /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
 		9F2F8CA05EA6EA73E3BE7992 /* CommandLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLookup.swift; sourceTree = "<group>"; };
 		A2B945A754222839702B06CD /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
@@ -305,6 +307,7 @@
 			isa = PBXGroup;
 			children = (
 				3403F2FFC4C6AC53013ACA55 /* ChatCompletionStream.swift */,
+				9A4B4D2BFD7E89034E454C8A /* HangWatchdog.swift */,
 				D54900730524DDEA357356AE /* LoginEnvironment.swift */,
 				7DB0B59E18CDED97CC2F777E /* Shell.swift */,
 				46789D9D3D1E774F7F4F3A5F /* TextGeneration.swift */,
@@ -481,6 +484,7 @@
 				EF336ED0ABEE5F7045163631 /* FloeIntents.swift in Sources */,
 				AC56A0840099872CA023DBFA /* FormViews.swift in Sources */,
 				6958B0B9E6D87E2783CFD57A /* GlassSupport.swift in Sources */,
+				353A52B29E333F36719A0E14 /* HangWatchdog.swift in Sources */,
 				7A005EB359E6552057859AE5 /* HostMessageDecoder.swift in Sources */,
 				1D9E7B36F2E4D07D64364470 /* HostRequest.swift in Sources */,
 				FA8EA9B40FA7FF26B6D03FB3 /* HotkeyRecorder.swift in Sources */,

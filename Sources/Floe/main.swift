@@ -383,6 +383,8 @@ if options.selftest.count == 2 {
 
 // Read once, in the background: extensions and AI.ask run tools found on the login shell's PATH.
 Task { await LoginEnvironment.load() }
+// From here on a frozen main thread leaves a report in ~/Library/Logs/Floe.
+HangWatchdog.start()
 
 let delegate = AppDelegate()
 NSApplication.shared.delegate = delegate
