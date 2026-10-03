@@ -7,6 +7,7 @@
 <p align="center">
   <a href="#features">Features</a> ·
   <a href="docs/DEVELOPMENT.md">Building</a> ·
+  <a href="#todo">TODO</a> ·
   <a href="#acknowledgments">Acknowledgments</a>
 </p>
 
@@ -16,19 +17,60 @@
 
 ## Features
 
-- Open apps and commands from one hotkey, ranked by how often and how recently you use them
-- Run Raycast extensions as they are, including the ones already installed in Raycast, on a Bun runtime bundled with the app
-- Search the menu bar's items and open their menus from the keyboard, with previews of the items in view, recents, and your own names for items
-- Fill in extension forms, preferences, and arguments, with passwords kept in the Keychain
-- Give apps, commands, and the menu bar search their own aliases and hotkeys, and pin favorites
-- See what went wrong when a command throws, crashes, or stops responding, then try it again
-- Built on ThawUI, the design system from [Thaw](https://github.com/thaw-app/Thaw), for macOS 26 and later
+- One hotkey opens apps and commands, ranked by how often and how recently you use them.
+- Runs Raycast extensions unmodified, including the ones Raycast has already installed, on a Bun runtime that ships inside the app.
+- Searches the menu bar's items and opens their menus from the keyboard. Recently opened items come first, items in view get a preview, and you can give any item your own name.
+- Extension forms, preferences and arguments work. Passwords go in the Keychain.
+- Apps, commands and the menu bar search can each have an alias and a hotkey. Favorites stay at the top.
+- When a command throws, crashes or hangs, Floe shows the log and lets you run it again.
+- Built on ThawUI, the design system from [Thaw](https://github.com/thaw-app/Thaw), for macOS 26 and later.
 
-Floe is early: there are no releases yet, so build it from source. Extensions that sign in with OAuth, menu bar commands, and background commands don't run yet.
+Floe is early. There are no releases yet, so build it from source, and the list below is what doesn't work.
+
+## TODO
+
+### Extensions
+
+- [ ] OAuth sign-in (GitHub, Notion, Linear, Spotify, Todoist)
+- [ ] Menu bar commands
+- [ ] Background and interval commands
+- [ ] Selected text and the Finder selection
+- [ ] Pasting into the frontmost app
+- [ ] Confirmation dialogs inside the panel
+- [ ] `launchCommand` and deeplinks
+- [ ] AI and AI tools
+- [ ] Grid layout and full detail metadata
+- [ ] App picker for preferences
+- [ ] Toast actions
+- [ ] Swift and Rust helpers in extensions built from source
+
+### Built in
+
+- [ ] Clipboard history
+- [ ] Snippets with text expansion
+- [ ] Quicklinks and fallback commands
+- [ ] Calculator, with unit and currency conversion
+- [ ] Emoji and symbols
+- [ ] File search
+- [ ] System commands (sleep, lock, empty Trash)
+- [ ] Calendar
+- [ ] Floating notes
+- [ ] Search an app's menus
+- [ ] Script commands
+- [ ] AI chat
+
+### App
+
+- [ ] Browse, install and update extensions
+- [ ] Hot reload for extension development
+- [ ] Settings sync, import and export
+- [ ] App icon
+- [ ] Signed and notarized releases with updates
+- [ ] Automated tests
 
 ## Acknowledgments
 
-- [Thaw](https://github.com/thaw-app/Thaw): the ThawUI design system, hotkey code and the About and settings sidebar designs. GPL-3.0.
+- [Thaw](https://github.com/thaw-app/Thaw): the ThawUI design system, the hotkey code, and the designs for the search panel, the settings sidebar and the About page. GPL-3.0.
 - [CompactSlider](https://github.com/buh/CompactSlider), used by ThawUI. MIT.
 - [Bun](https://bun.sh), which runs extensions. MIT.
 - [React](https://react.dev) and react-reconciler, which render them. MIT.
