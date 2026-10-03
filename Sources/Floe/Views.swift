@@ -121,8 +121,8 @@ struct RootView: View {
     var body: some View {
         let results = model.results
         VStack(spacing: 0) {
-            SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken) { EmptyView() }
-            if results.isEmpty {
+            SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken, isLoading: model.isLoadingCatalog) { EmptyView() }
+            if results.isEmpty, !model.isLoadingCatalog {
                 ThawEmptyState(
                     systemImage: "magnifyingglass",
                     title: "Nothing matches",

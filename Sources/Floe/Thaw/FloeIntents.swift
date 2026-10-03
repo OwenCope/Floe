@@ -101,13 +101,14 @@ struct CommandEntity: AppEntity {
     }
 }
 
-/// Lists the commands of the extensions that are switched on. The list lives in the running
-/// model, so the query reads it on the main actor; when Floe is not ready it returns nothing
-/// instead of failing.
+/// Lists the commands of the extensions that are switched on. The list lives in the running model,
+/// so the query joins whatever catalog load is in flight on the main actor; when Floe is not ready
+/// it returns nothing instead of failing.
 struct CommandEntityQuery: EntityStringQuery {
     @MainActor
-    static func runnableCommands() -> [ExtensionCommand] {
+    static func runnableCommands() async -> [ExtensionCommand] {
         guard let model = floeModel() else { return [] }
+        await model.waitForCommands()
         return CommandLookup.enabled(model.allCommands, disabledExtensions: AppSettings.shared.disabledExtensions)
     }
 
@@ -143,7 +144,8 @@ struct RunCommandIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         guard let model = floeModel() else { throw FloeIntentError.appNotReady }
-        guard let match = CommandLookup.command(withID: command.id, in: CommandEntityQuery.runnableCommands()) else {
+        let available = await CommandEntityQuery.runnableCommands()
+        guard let match = CommandLookup.command(withID: command.id, in: available) else {
             throw FloeIntentError.commandNotFound
         }
         UsageStore.shared.recordUse(of: RootItem.command(match).id)

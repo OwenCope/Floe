@@ -10,6 +10,7 @@
 		0214D1658AFF0A195F3C0604 /* ThawHUDPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15BDEE94D408295874A7461E /* ThawHUDPlacement.swift */; };
 		032EB45470A494A9B1129BB1 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DCB3DFC16635F2E970DEF1 /* Session.swift */; };
 		05DE26C5F339D6E008D554CE /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F1F04CB5B238D464961288 /* OnboardingView.swift */; };
+		08EBD958FD49AE0D1BA860A9 /* CatalogLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8834D1F068570DEC8D2B961F /* CatalogLoader.swift */; };
 		097D5FBD5255D9F68DBB9AA9 /* PermissionsSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5AE6CC56910A19D88E7BA9 /* PermissionsSettingsSection.swift */; };
 		0A296B921416DFE1A91C9108 /* KeyCombination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42251D9E5402360C16FC6AAC /* KeyCombination.swift */; };
 		0BC64F0460816DA11AB2F393 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E70D96CFBBB4B6A322E7BDB /* main.swift */; };
@@ -118,6 +119,7 @@
 		8487FD4DDFB449E52573EB31 /* MarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
 		864C7BB5E54860DE8DF05C2F /* OnboardingWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWelcomeView.swift; sourceTree = "<group>"; };
 		866B13B630D11859A77DA3CE /* OnboardingTourView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTourView.swift; sourceTree = "<group>"; };
+		8834D1F068570DEC8D2B961F /* CatalogLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLoader.swift; sourceTree = "<group>"; };
 		8AE33B90505045A8A2B0BEA4 /* FloeIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloeIntents.swift; sourceTree = "<group>"; };
 		9282FBD75C06A6410E879C91 /* Manifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Manifest.swift; sourceTree = "<group>"; };
 		92EFACED3FB57AE107F4B30B /* UpdateConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateConsentSheet.swift; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 			children = (
 				15D53C4BCA0A6B29EB4EAFF1 /* Thaw */,
 				25EC183CDF6B0E67A8C1CFAA /* Catalog.swift */,
+				8834D1F068570DEC8D2B961F /* CatalogLoader.swift */,
 				9F2F8CA05EA6EA73E3BE7992 /* CommandLookup.swift */,
 				BEB425F614388AB1A87EBF09 /* Credits.swift */,
 				FA2E083CF3F384F6C4F5041F /* DebugOptions.swift */,
@@ -432,6 +435,7 @@
 				824417A33AE3D6A87DF9AEEA /* AboutSettingsPane.swift in Sources */,
 				86B68EECCB3D41E47E4ED450 /* AppPermissions.swift in Sources */,
 				9E04C7EBCECD435BB2D88A7E /* Catalog.swift in Sources */,
+				08EBD958FD49AE0D1BA860A9 /* CatalogLoader.swift in Sources */,
 				FFCB0259382D909C8B55D0C9 /* CommandLookup.swift in Sources */,
 				2AF26B7E12E19083A8225647 /* Credits.swift in Sources */,
 				0D4EF422AC6B3010B1895BFF /* DebugOptions.swift in Sources */,

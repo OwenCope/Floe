@@ -98,6 +98,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.$allCommands
             .sink { _ in DispatchQueue.main.async { FloeShortcuts.updateAppShortcutParameters() } }
             .store(in: &cancellables)
+        // Everything the panel needs is wired up: the catalog can fill in behind it now.
+        model.startCatalogLoading()
 
         UpdatesManager.shared.performSetup()
 
@@ -264,7 +266,7 @@ Paths.prepareSupportFolders()
 let options = DebugOptions.parseOrExit()
 
 if let query = options.search {
-    let model = LauncherModel()
+    let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
     model.query = query
     for result in model.results.prefix(8) {
         print("\(result.section.map { "[\($0)] " } ?? "")\(result.item.title) (\(result.item.kind))\(model.alias(for: result.item).map { " (alias \($0))" } ?? "")")
@@ -275,7 +277,7 @@ if let query = options.search {
 // Catches slow page switches.
 if options.benchSettings {
     _ = NSApplication.shared
-    let model = LauncherModel()
+    let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
     let selection = SettingsSelection()
     let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 820, height: 560), styleMask: [.titled], backing: .buffered, defer: false)
     window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: .shared, selection: selection))
@@ -338,7 +340,7 @@ if options.menuBar {
 if let path = options.panelSnapshot {
     _ = NSApplication.shared
     let folder = URL(fileURLWithPath: path)
-    let model = LauncherModel()
+    let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
     let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -4000, y: -4000), size: LauncherView.windowSize(menuBarSearch: false)), styleMask: [.borderless], backing: .buffered, defer: false)
     window.contentView = NSHostingView(rootView: LauncherView(model: model))
     window.orderFrontRegardless()

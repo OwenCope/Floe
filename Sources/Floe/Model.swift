@@ -39,6 +39,8 @@ final class LauncherModel: ObservableObject {
     @Published var focusToken = 0
     /// Every command found, including those of disabled extensions; the settings window lists these.
     @Published private(set) var allCommands: [ExtensionCommand] = []
+    /// True until the first apps and commands scans have both published, or a snapshot was injected.
+    @Published private(set) var isLoadingCatalog = true
 
     /// True while the panel shows the menu bar item search instead of the root search.
     @Published private(set) var isSearchingMenuBar = false
@@ -71,21 +73,93 @@ final class LauncherModel: ObservableObject {
     /// Pops the Actions menu under its button in the menu bar search's bottom bar.
     var showMenuBarActions: () -> Void = { /* set by the Actions button */ }
 
-    private let settings = AppSettings.shared
-    private let usage = UsageStore.shared
+    private let settings: AppSettings
+    private let usage: UsageStore
+    private let scanner: any CatalogScanning
+    /// Bumped per request, so a result can tell whether its request is still the newest one.
+    private var appsGeneration = 0
+    private var commandsGeneration = 0
+    private var appsTask: Task<Void, Never>?
+    private var commandsTask: Task<Void, Never>?
+    private var hasLoadedApps = false
+    private var hasLoadedCommands = false
+    private var didAutorun = false
     private var pendingReset: DispatchWorkItem?
-    @Published private(set) var apps = AppEntry.scan()
+    @Published private(set) var apps: [AppEntry] = []
     private var commands: [ExtensionCommand] {
         allCommands.filter { !settings.disabledExtensions.contains($0.extensionName) }
     }
 
-    init() {
+    /// Construction never scans: without a snapshot the model starts with the built-in entries only,
+    /// and `startCatalogLoading()` fills in the rest once the UI is wired up.
+    init(
+        scanner: any CatalogScanning = CatalogLoader(),
+        settings: AppSettings = .shared,
+        usage: UsageStore = .shared,
+        snapshot: CatalogSnapshot? = nil
+    ) {
+        self.scanner = scanner
+        self.settings = settings
+        self.usage = usage
+        if let snapshot {
+            apps = snapshot.apps
+            allCommands = snapshot.commands
+            hasLoadedApps = true
+            hasLoadedCommands = true
+            isLoadingCatalog = false
+        }
+        refresh()
+    }
+
+    /// Kicks off the initial scans in the worker. Called after the panel and its subscriptions exist,
+    /// so their publications are heard from the start.
+    func startCatalogLoading() {
+        reloadApps()
         reloadCommands()
     }
 
     func reloadCommands() {
-        allCommands = ExtensionCommand.scan(includeRaycast: settings.includeRaycastExtensions)
+        commandsGeneration += 1
+        let generation = commandsGeneration
+        // Read once, here: the worker never sees the mutable settings object.
+        let includeRaycast = settings.includeRaycastExtensions
+        isLoadingCatalog = true
+        commandsTask = Task { [weak self, scanner] in
+            let commands = await scanner.scanCommands(includeRaycast: includeRaycast)
+            await self?.finishCommands(generation: generation, commands: commands)
+        }
+    }
+
+    /// Publication happens on the main actor; a stale generation is dropped without touching state,
+    /// so rescans keep the previous results visible while they run.
+    @MainActor
+    private func finishApps(generation: Int, apps newApps: [AppEntry]) {
+        guard generation == appsGeneration else { return }
+        appsTask = nil
+        hasLoadedApps = true
+        isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands
+        apps = newApps
         refresh()
+    }
+
+    @MainActor
+    private func finishCommands(generation: Int, commands newCommands: [ExtensionCommand]) {
+        guard generation == commandsGeneration else { return }
+        commandsTask = nil
+        hasLoadedCommands = true
+        isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands
+        allCommands = newCommands
+        refresh()
+    }
+
+    /// Joins the command scan in flight, following any newer request that replaces it while the
+    /// caller waits. Suspending leaves the main actor free, and results are published before the
+    /// joined task finishes, so a caller that returns sees the current catalog or nothing pending.
+    @MainActor
+    func waitForCommands() async {
+        while let task = commandsTask {
+            await task.value
+        }
     }
 
     private func refresh() {
@@ -127,8 +201,33 @@ final class LauncherModel: ObservableObject {
     }
 
     func reloadApps() {
-        apps = AppEntry.scan()
-        refresh()
+        appsGeneration += 1
+        let generation = appsGeneration
+        isLoadingCatalog = true
+        appsTask = Task { [weak self, scanner] in
+            let apps = await scanner.scanApps()
+            await self?.finishApps(generation: generation, apps: apps)
+        }
+    }
+
+    /// `FLOE_AUTORUN=extension/command` opens a command at startup, for screenshots and debugging.
+    /// It waits for the command load that is current when it runs and attempts the command once;
+    /// later rescans never rerun it.
+    func autorun(
+        target: String? = ProcessInfo.processInfo.environment["FLOE_AUTORUN"],
+        launch: ((ExtensionCommand) -> Void)? = nil
+    ) {
+        Task { @MainActor [weak self] in
+            await self?.waitForCommands()
+            guard let self, !didAutorun else { return }
+            didAutorun = true
+            guard let target, let command = commands.first(where: { $0.id == target }) else { return }
+            if let launch {
+                launch(command)
+            } else {
+                run(command)
+            }
+        }
     }
 
     func activate(_ item: RootItem) {
@@ -290,13 +389,6 @@ final class LauncherModel: ObservableObject {
         reset()
         // Pressed once the panel is gone, so the menu opens over the app the user came from.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { MenuBarExtras.open(extra) }
-    }
-
-    /// `FLOE_AUTORUN=extension/command` opens a command at startup, for screenshots and debugging.
-    func autorun() {
-        guard let target = ProcessInfo.processInfo.environment["FLOE_AUTORUN"],
-              let command = commands.first(where: { $0.id == target }) else { return }
-        run(command)
     }
 
     /// Runs a command, first asking for missing required preferences and then for its arguments.
