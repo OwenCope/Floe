@@ -248,7 +248,7 @@ jobs:
           bin="$RUNNER_TEMP/syft-bin"
           archive="$RUNNER_TEMP/syft.tar.gz"
           mkdir -p "$bin"
-          curl -sSfL --retry 3 \
+          curl -sSfL --proto '=https' --tlsv1.2 --retry 3 \
             "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_darwin_${syft_arch}.tar.gz" \
             -o "$archive"
           echo "${syft_sha}  ${archive}" | shasum -a 256 -c -
