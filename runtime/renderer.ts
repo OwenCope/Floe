@@ -98,7 +98,10 @@ const reconciler = Reconciler({
     return instance;
   },
   createTextInstance: (text: string): TextInstance => ({ id: nextId++, text }),
-  appendInitialChild: append,
+  // Initial children are freshly created, never moves, so no removal scan is needed before pushing.
+  appendInitialChild(parent, child) {
+    parent.children.push(child);
+  },
   appendChild: append,
   appendChildToContainer: append,
   insertBefore,
