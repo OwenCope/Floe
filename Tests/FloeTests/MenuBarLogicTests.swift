@@ -1,0 +1,128 @@
+//
+//  MenuBarLogicTests.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU GPLv3
+
+import CoreGraphics
+import Foundation
+import Testing
+@testable import Floe
+
+struct MenuBarNamingTests {
+    @Test func theLabelIsTheFirstNonEmptyOfTitleDescriptionAndHelp() {
+        #expect(MenuBarNaming.label(title: "Pandan", description: "Other", help: nil) == "Pandan")
+        #expect(MenuBarNaming.label(title: "", description: "AirDrop", help: nil) == "AirDrop")
+        #expect(MenuBarNaming.label(title: nil, description: "  ", help: "Help text") == "Help text")
+        #expect(MenuBarNaming.label(title: nil, description: nil, help: nil) == nil)
+        #expect(MenuBarNaming.label(title: "", description: "", help: "") == nil)
+    }
+
+    @Test func onlyTheFirstLineOfAStatusReadoutIsUsed() {
+        let readout = "f.lux\nColor temperature: 6500K\nSunset: 2 hours ago"
+        #expect(MenuBarNaming.label(title: "", description: readout, help: nil) == "f.lux")
+        #expect(MenuBarNaming.label(title: "  Padded  \nSecond", description: nil, help: nil) == "Padded")
+    }
+
+    @Test func thawsDividersAndUnnamedHostItemsAreNotListed() {
+        #expect(MenuBarNaming.isListed(identifier: "Thaw.ControlItem.Hidden", label: "Divider", ownerName: "Thaw") == false)
+        #expect(MenuBarNaming.isListed(identifier: nil, label: nil, ownerName: "MenuBarAgent") == false)
+        #expect(MenuBarNaming.isListed(identifier: nil, label: nil, ownerName: "") == false)
+    }
+
+    @Test func namedItemsAndUnnamedItemsFromARealAppAreListed() {
+        #expect(MenuBarNaming.isListed(identifier: "Thaw.Extra.AirDrop", label: "AirDrop", ownerName: "Thaw AirDrop"))
+        #expect(MenuBarNaming.isListed(identifier: nil, label: "Wi-Fi", ownerName: "MenuBarAgent"))
+        #expect(MenuBarNaming.isListed(identifier: nil, label: nil, ownerName: "Tailscale"), "it is shown under the app's name")
+    }
+
+    @Test func identifiersPreferTheBundleAndTheItemsOwnIdentifier() {
+        #expect(MenuBarNaming.identifier(bundleIdentifier: "com.a", ownerName: "A", identifier: "status", label: "Label", index: 2) == "com.a|status")
+        #expect(MenuBarNaming.identifier(bundleIdentifier: "com.a", ownerName: "A", identifier: nil, label: "Label", index: 2) == "com.a|Label")
+        #expect(MenuBarNaming.identifier(bundleIdentifier: nil, ownerName: "A", identifier: nil, label: nil, index: 2) == "A|#2")
+    }
+}
+
+struct MenuBarSearchRecentsTests {
+    private struct Item: Identifiable {
+        let id: String
+    }
+
+    private let suiteName = "floe-tests-\(UUID().uuidString)"
+    private let defaults: UserDefaults
+    private let recents: MenuBarSearchRecents
+
+    init() throws {
+        defaults = try #require(UserDefaults(suiteName: suiteName))
+        recents = MenuBarSearchRecents(defaults: defaults)
+    }
+
+    private func cleanUp() {
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+
+    @Test func startsEmpty() {
+        defer { cleanUp() }
+        #expect(recents.identifiers.isEmpty)
+    }
+
+    @Test func theMostRecentComesFirstAndRepeatsMoveToTheFront() {
+        defer { cleanUp() }
+        ["a", "b", "c", "a"].forEach(recents.record)
+        #expect(recents.identifiers == ["a", "c", "b"])
+    }
+
+    @Test func keepsOnlyTheLastEight() {
+        defer { cleanUp() }
+        (1...12).map(String.init).forEach(recents.record)
+        #expect(recents.identifiers == ["12", "11", "10", "9", "8", "7", "6", "5"])
+        #expect(recents.identifiers.count == MenuBarSearchRecents.limit)
+    }
+
+    @Test func resolvesToLiveItemsInRecencyOrderSkippingOnesThatAreGone() {
+        defer { cleanUp() }
+        ["gone", "tailscale", "flux"].forEach(recents.record)
+        let live = [Item(id: "tailscale"), Item(id: "pandan"), Item(id: "flux")]
+        #expect(recents.resolve(in: live).map(\.id) == ["flux", "tailscale"])
+        #expect(recents.identifiers.contains("gone"), "a missing item stays stored in case it comes back")
+    }
+}
+
+struct ImageCheckTests {
+    private func image(width: Int = 60, height: Int = 24, draw: (CGContext) -> Void) throws -> CGImage {
+        let context = try #require(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                                             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        draw(context)
+        return try #require(context.makeImage())
+    }
+
+    @Test func aFlatCaptureShowsNothing() throws {
+        let flat = try image { context in
+            context.setFillColor(CGColor(red: 0.2, green: 0.25, blue: 0.3, alpha: 1))
+            context.fill(CGRect(x: 0, y: 0, width: 60, height: 24))
+        }
+        #expect(ImageCheck.showsSomething(flat) == false)
+    }
+
+    @Test func aGlyphOnABackdropShowsSomething() throws {
+        let glyph = try image { context in
+            context.setFillColor(CGColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 1))
+            context.fill(CGRect(x: 0, y: 0, width: 60, height: 24))
+            context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+            context.fill(CGRect(x: 18, y: 4, width: 24, height: 16))
+        }
+        #expect(ImageCheck.showsSomething(glyph))
+    }
+
+    @Test func aFaintGradientStillCountsAsFlat() throws {
+        let faint = try image { context in
+            for column in 0..<60 {
+                let tone = 0.30 + Double(column) / 60 * 0.03
+                context.setFillColor(CGColor(red: tone, green: tone, blue: tone, alpha: 1))
+                context.fill(CGRect(x: column, y: 0, width: 1, height: 24))
+            }
+        }
+        #expect(ImageCheck.showsSomething(faint) == false)
+    }
+}

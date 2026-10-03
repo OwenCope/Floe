@@ -9,5 +9,6 @@ let package = Package(
     ],
     targets: [
         .executableTarget(name: "Floe", dependencies: ["ThawUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .testTarget(name: "FloeTests", dependencies: ["Floe"], swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )
