@@ -12,6 +12,21 @@ import ThawUI
 struct LauncherView: View {
     @ObservedObject var model: LauncherModel
 
+    /// Clear space between the glass and the window's edge. The window casts no shadow of its own,
+    /// because AppKit outlines the window's rectangle and that shows as square corners behind the
+    /// rounded glass; the margin leaves the glass room to draw its own depth.
+    static let margin: CGFloat = 40
+
+    static func contentSize(menuBarSearch: Bool) -> NSSize {
+        menuBarSearch ? NSSize(width: 600, height: 400) : NSSize(width: 750, height: 474)
+    }
+
+    /// The window is the content plus the margin on every side.
+    static func windowSize(menuBarSearch: Bool) -> NSSize {
+        let size = contentSize(menuBarSearch: menuBarSearch)
+        return NSSize(width: size.width + margin * 2, height: size.height + margin * 2)
+    }
+
     var body: some View {
         GlassEffectContainer {
             if let setup = model.setup {
@@ -24,8 +39,12 @@ struct LauncherView: View {
                 RootView(model: model)
             }
         }
-        .frame(width: model.isSearchingMenuBar ? 600 : 750, height: model.isSearchingMenuBar ? 400 : 474)
+        .frame(
+            width: Self.contentSize(menuBarSearch: model.isSearchingMenuBar).width,
+            height: Self.contentSize(menuBarSearch: model.isSearchingMenuBar).height
+        )
         .thawGlass(.panel, in: RoundedRectangle(cornerRadius: ThawRadius.panel, style: .continuous))
+        .padding(Self.margin)
     }
 }
 
@@ -85,21 +104,12 @@ struct Footer<Leading: View>: View {
 
 struct KeyCap: View {
     let label: String
-    init(_ label: String) { self.label = label }
+    init(_ label: String) {
+        self.label = label
+    }
+
     var body: some View {
         KeyCapView(text: label, font: ThawType.caption.weight(.medium))
-    }
-}
-
-struct HUDView: View {
-    let text: String
-    var body: some View {
-        Text(text)
-            .font(ThawType.label)
-            .padding(.horizontal, ThawSpacing.gutter)
-            .padding(.vertical, ThawSpacing.row)
-            .thawGlass(.panel, in: Capsule(style: .continuous))
-            .padding(ThawSpacing.inset)
     }
 }
 
@@ -113,9 +123,12 @@ struct RootView: View {
         VStack(spacing: 0) {
             SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken) { EmptyView() }
             if results.isEmpty {
-                ThawEmptyState(systemImage: "magnifyingglass", title: "Nothing matches",
-                               caption: "Try part of an app's or a command's name, or an alias.")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ThawEmptyState(
+                    systemImage: "magnifyingglass",
+                    title: "Nothing matches",
+                    caption: "Try part of an app's or a command's name, or an alias."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -132,7 +145,9 @@ struct RootView: View {
                     }
                     .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
                     .onChange(of: model.selection) {
-                        if results.indices.contains(model.selection) { proxy.scrollTo(results[model.selection].id) }
+                        if results.indices.contains(model.selection) {
+                            proxy.scrollTo(results[model.selection].id)
+                        }
                     }
                 }
             }
@@ -163,7 +178,9 @@ struct RootRow: View {
                     Image(systemName: "star.fill").font(ThawType.caption).foregroundStyle(.yellow)
                         .accessibilityLabel("Favorite")
                 }
-                if let alias = model.alias(for: item) { KeyCap(alias) }
+                if let alias = model.alias(for: item) {
+                    KeyCap(alias)
+                }
             }
         }
     }
@@ -173,9 +190,9 @@ struct RootIcon: View {
     let item: RootItem
     var body: some View {
         switch item {
-        case .app(let app):
+        case let .app(app):
             AppIconView(path: app.url.path, size: 24)
-        case .command(let command):
+        case let .command(command):
             IconView(value: command.icon ?? "icon:Terminal", assetsPath: command.assetsPath, size: 24)
         case .menuBarSearch:
             IconView(value: "icon:MenubarRectangle", assetsPath: "", size: 24)
@@ -196,26 +213,41 @@ struct ExtensionView: View {
         let actions = session.actions
         VStack(spacing: 0) {
             if view?.type == "Form" {
-                PanelHeader(title: view?.string("navigationTitle") ?? session.command.title,
-                            icon: session.command.icon, assetsPath: session.command.assetsPath, isLoading: view?.bool("isLoading") ?? false)
+                PanelHeader(
+                    title: view?.string("navigationTitle") ?? session.command.title,
+                    icon: session.command.icon,
+                    assetsPath: session.command.assetsPath,
+                    isLoading: view?.bool("isLoading") ?? false
+                )
             } else {
-                SearchBar(placeholder: view?.string("searchBarPlaceholder") ?? (session.isList ? "Search…" : session.command.title),
-                          text: $session.searchText, focusToken: model.focusToken, isLoading: view?.bool("isLoading") ?? (view == nil)) {
-                    if let dropdown = view?.slot("searchBarAccessory") { DropdownView(node: dropdown, session: session) }
+                SearchBar(
+                    placeholder: view?.string("searchBarPlaceholder") ?? (session.isList ? "Search…" : session.command.title),
+                    text: $session.searchText,
+                    focusToken: model.focusToken,
+                    isLoading: view?.bool("isLoading") ?? (view == nil)
+                ) {
+                    if let dropdown = view?.slot("searchBarAccessory") {
+                        DropdownView(node: dropdown, session: session)
+                    }
                 }
             }
             Group {
-                switch view?.type {
-                case "List", "Grid": ListBody(session: session, view: view!)
-                case "Detail": DetailBody(node: view!, assetsPath: session.command.assetsPath)
-                case "Form": FormBody(session: session, focusToken: model.focusToken)
-                case nil: Color.clear
-                default: Placeholder(title: "\(view!.type) isn't supported yet", detail: "This prototype renders List, Grid and Detail.", systemImage: "hammer")
+                if let view {
+                    switch view.type {
+                    case "List", "Grid": ListBody(session: session, view: view)
+                    case "Detail": DetailBody(node: view, assetsPath: session.command.assetsPath)
+                    case "Form": FormBody(session: session, focusToken: model.focusToken)
+                    default: Placeholder(title: "\(view.type) isn't supported yet", detail: "Floe renders List, Grid, Detail and Form.", systemImage: "hammer")
+                    }
+                } else {
+                    Color.clear
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .bottomTrailing) {
-                if session.actionMenuOpen { ActionMenu(session: session) }
+                if session.actionMenuOpen {
+                    ActionMenu(session: session)
+                }
             }
             .thawAnimation(ThawMotion.quick, value: session.actionMenuOpen)
             Footer(primary: actions.first?.string("title"), primaryKey: view?.type == "Form" ? "⌘↵" : "↵", hasActions: actions.count > 1) {
@@ -250,7 +282,9 @@ struct ToastView: View {
                 Circle().fill(toast.style == "failure" ? Color.red : Color.green).frame(width: 8, height: 8)
             }
             Text(toast.title).fontWeight(.medium).lineLimit(1)
-            if let message = toast.message { Text(message).foregroundStyle(.secondary).lineLimit(1) }
+            if let message = toast.message {
+                Text(message).foregroundStyle(.secondary).lineLimit(1)
+            }
         }
     }
 }
@@ -324,8 +358,12 @@ struct ActionMenu: View {
                 .foregroundStyle(action.props["style"] as? String == "destructive" ? Color.red : Color.primary)
                 .lineLimit(1)
             Spacer()
-            if let label = Shortcuts.label(action.props["shortcut"]) { KeyCap(label) }
-            if entry.isSubmenu { Image(systemName: "chevron.right").font(ThawType.caption).foregroundStyle(.secondary) }
+            if let label = Shortcuts.label(action.props["shortcut"]) {
+                KeyCap(label)
+            }
+            if entry.isSubmenu {
+                Image(systemName: "chevron.right").font(ThawType.caption).foregroundStyle(.secondary)
+            }
         }
         .modifier(RowBackground(selected: selected))
     }
@@ -361,20 +399,28 @@ struct ListBody: View {
                                         .padding(.top, index == 0 ? 2 : 10)
                                         .padding(.bottom, 4)
                                 }
-                                ListRow(node: row.node, assetsPath: session.command.assetsPath,
-                                        selected: row.id == selected?.id, compact: view.bool("isShowingDetail"))
-                                    .id(row.id)
-                                    .onTapGesture(count: 2) {
-                                        session.selection = index
-                                        if let action = session.actions.first { session.run(action) }
+                                ListRow(
+                                    node: row.node,
+                                    assetsPath: session.command.assetsPath,
+                                    selected: row.id == selected?.id,
+                                    compact: view.bool("isShowingDetail")
+                                )
+                                .id(row.id)
+                                .onTapGesture(count: 2) {
+                                    session.selection = index
+                                    if let action = session.actions.first {
+                                        session.run(action)
                                     }
-                                    .onTapGesture { session.selection = index }
+                                }
+                                .onTapGesture { session.selection = index }
                             }
                         }
                         .padding(8)
                     }
                     .onChange(of: selected?.id) {
-                        if let id = selected?.id { proxy.scrollTo(id) }
+                        if let id = selected?.id {
+                            proxy.scrollTo(id)
+                        }
                     }
                 }
                 if view.bool("isShowingDetail"), let detail = selected?.node.slot("detail") {
@@ -394,7 +440,9 @@ struct ListRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            if let icon = node.props["icon"] ?? node.props["content"] { IconView(value: icon, assetsPath: assetsPath, size: 18) }
+            if let icon = node.props["icon"] ?? node.props["content"] {
+                IconView(value: icon, assetsPath: assetsPath, size: 18)
+            }
             Text(node.string("title") ?? "").lineLimit(1)
             if !compact, let subtitle = node.string("subtitle") {
                 Text(subtitle).foregroundStyle(.secondary).lineLimit(1)
@@ -417,7 +465,9 @@ struct AccessoryView: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            if let icon = accessory["icon"] { IconView(value: icon, assetsPath: assetsPath, size: 13) }
+            if let icon = accessory["icon"] {
+                IconView(value: icon, assetsPath: assetsPath, size: 13)
+            }
             if let text = PropFormat.text(accessory["text"]) {
                 Text(text).foregroundStyle(Palette.color(PropFormat.color(accessory["text"])) ?? .secondary)
             }
@@ -494,7 +544,9 @@ struct MetadataRow: View {
                     }
                 default:
                     HStack(spacing: 5) {
-                        if let icon = node.props["icon"] { IconView(value: icon, assetsPath: assetsPath, size: 13) }
+                        if let icon = node.props["icon"] {
+                            IconView(value: icon, assetsPath: assetsPath, size: 13)
+                        }
                         Text(PropFormat.text(node.props["text"]) ?? "").textSelection(.enabled)
                     }
                 }
@@ -516,22 +568,22 @@ struct MarkdownView: View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(Array(MarkdownParser.blocks(text).enumerated()), id: \.offset) { _, block in
                 switch block {
-                case .heading(let level, let text):
+                case let .heading(level, text):
                     Text(inline(text)).font(.system(size: [22, 18, 15][min(level, 3) - 1], weight: .semibold))
-                case .paragraph(let text):
+                case let .paragraph(text):
                     Text(inline(text))
-                case .bullet(let text):
+                case let .bullet(text):
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text("•").foregroundStyle(.secondary)
                         Text(inline(text))
                     }
-                case .code(let text):
+                case let .code(text):
                     Text(text)
                         .font(.system(size: 12, design: .monospaced))
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.primary.opacity(0.07), in: .rect(cornerRadius: 8))
-                case .image(let url):
+                case let .image(url):
                     AsyncImage(url: url) { image in
                         image.resizable().scaledToFit()
                     } placeholder: {
@@ -612,11 +664,13 @@ struct IconView: View {
             let name = String(string.dropFirst(5))
             // Raycast names are CamelCase (ArrowUpCircle); most map onto SF Symbols as arrow.up.circle.
             let dotted = name.replacing(#/([a-z0-9])([A-Z])/#) { "\($0.1).\($0.2)" }.lowercased()
-            let candidates = [Self.symbols[name], dotted, name.lowercased()].compactMap { $0 }
+            let candidates = [Self.symbols[name], dotted, name.lowercased()].compactMap(\.self)
             let symbol = candidates.first { NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil }
             return .symbol(symbol ?? "square.dashed")
         }
-        if string.hasPrefix("http"), let url = URL(string: string) { return .remote(url) }
+        if string.hasPrefix("http"), let url = URL(string: string) {
+            return .remote(url)
+        }
         if string.hasPrefix("data:"), let comma = string.firstIndex(of: ",") {
             let image = cachedImage(key: string) {
                 let payload = String(string[string.index(after: comma)...])
@@ -640,13 +694,17 @@ struct IconView: View {
         if colorScheme == .dark {
             let url = URL(fileURLWithPath: path)
             let dark = url.deletingPathExtension().path + "@dark." + url.pathExtension
-            if FileManager.default.fileExists(atPath: dark) { return dark }
+            if FileManager.default.fileExists(atPath: dark) {
+                return dark
+            }
         }
         return FileManager.default.fileExists(atPath: path) ? path : nil
     }
 
     private func cachedImage(key: String, load: () -> NSImage?) -> NSImage? {
-        if let cached = Self.cache.object(forKey: key as NSString) { return cached }
+        if let cached = Self.cache.object(forKey: key as NSString) {
+            return cached
+        }
         guard let image = load() else { return nil }
         Self.cache.setObject(image, forKey: key as NSString)
         return image
@@ -663,18 +721,18 @@ struct IconView: View {
         let isCircle = Self.attribute("mask", in: value) as? String == "circle"
         Group {
             switch resolve(value) {
-            case .symbol(let name):
+            case let .symbol(name):
                 Image(systemName: name).font(.system(size: size * 0.8)).foregroundStyle(tint ?? .secondary)
-            case .image(let image):
+            case let .image(image):
                 // A tint makes the image a template, as Raycast does for monochrome assets.
                 if let tint {
                     Image(nsImage: image).renderingMode(.template).resizable().scaledToFit().foregroundStyle(tint)
                 } else {
                     Image(nsImage: image).resizable().scaledToFit()
                 }
-            case .remote(let url):
+            case let .remote(url):
                 AsyncImage(url: url) { $0.resizable().scaledToFit() } placeholder: { Color.clear }
-            case .text(let text):
+            case let .text(text):
                 Text(text).font(.system(size: size * 0.8))
             case .none:
                 Color.clear

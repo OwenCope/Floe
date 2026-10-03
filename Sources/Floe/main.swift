@@ -11,13 +11,16 @@ import CryptoKit
 import SwiftUI
 
 final class LauncherPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
+    override var canBecomeKey: Bool {
+        true
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
-    private let model = LauncherModel()
+    /// Read by the App Intents (see Thaw/FloeIntents.swift), which reach the running model through the delegate.
+    let model = LauncherModel()
+    // swiftlint:disable:next implicitly_unwrapped_optional
     private var panel: LauncherPanel!
-    private var hud: NSPanel?
     private let hotkeys = HotkeyRegistry()
     private let settings = AppSettings.shared
     private lazy var settingsWindow = SettingsWindowController(model: model)
@@ -27,21 +30,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var appWatcher: AppFolderWatcher?
 
     func applicationDidFinishLaunching(_: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        NSApp.setActivationPolicy(settings.showInDock ? .regular : .accessory)
 
-        panel = LauncherPanel(contentRect: NSRect(x: 0, y: 0, width: 750, height: 474),
-                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel = LauncherPanel(
+            contentRect: NSRect(origin: .zero, size: LauncherView.windowSize(menuBarSearch: false)),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
         panel.level = .floating
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        // See LauncherView.margin: the window's own shadow is square.
+        panel.hasShadow = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.delegate = self
         panel.contentView = NSHostingView(rootView: LauncherView(model: model))
 
         model.hidePanel = { [weak self] in self?.hide() }
         model.showPanel = { [weak self] in self?.show() }
-        model.showHUD = { [weak self] in self?.showHUD($0) }
+        model.showHUD = { ThawHUD.show(text: $0) }
         model.openSettings = { [weak self] in self?.settingsWindow.show(extensionName: $0) }
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -55,6 +63,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         showItem = menu.addItem(withTitle: "Show Floe", action: #selector(show), keyEquivalent: "")
         showItem?.target = self
         menu.addItem(withTitle: "About Floe", action: #selector(openAbout), keyEquivalent: "").target = self
+        // Nil until Info.plist carries a Sparkle public key.
+        if let updateItem = UpdatesManager.shared.makeMenuItem() {
+            menu.addItem(updateItem)
+        }
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "q")
@@ -67,16 +79,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             .store(in: &cancellables)
         // Thaw's inspector panel is 600 × 400; the launcher needs room for extension detail panes.
         model.$isSearchingMenuBar.removeDuplicates()
-            .sink { [weak self] inspector in self?.resizePanel(to: inspector ? NSSize(width: 600, height: 400) : NSSize(width: 750, height: 474)) }
+            .sink { [weak self] inspector in self?.resizePanel(to: LauncherView.windowSize(menuBarSearch: inspector)) }
             .store(in: &cancellables)
         settings.$isRecordingHotkey
             .sink { [weak self] in self?.hotkeys.isSuspended = $0 }
             .store(in: &cancellables)
+        settings.$showInDock.dropFirst().removeDuplicates()
+            .sink {
+                NSApp.setActivationPolicy($0 ? .regular : .accessory)
+                // Changing the policy drops the app to the background, which would hide the settings window.
+                NSApp.activate()
+            }
+            .store(in: &cancellables)
         settings.$includeRaycastExtensions.dropFirst()
             .sink { [weak self] _ in DispatchQueue.main.async { self?.model.reloadCommands() } }
             .store(in: &cancellables)
+        // Shortcuts and Spotlight list the commands by name, so they hear about every rescan.
+        model.$allCommands
+            .sink { _ in DispatchQueue.main.async { FloeShortcuts.updateAppShortcutParameters() } }
+            .store(in: &cancellables)
 
-        show()
+        UpdatesManager.shared.performSetup()
+
+        // The first launch opens the welcome window; the launcher follows when it is finished.
+        OnboardingWindowController.shared.openLauncher = { [weak self] in self?.show() }
+        if !OnboardingWindowController.shared.showIfNeeded() {
+            show()
+        }
         model.autorun()
     }
 
@@ -114,6 +143,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settingsWindow.show()
     }
 
+    /// A click on the Dock icon opens the launcher.
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        show()
+        return false
+    }
+
     func applicationWillTerminate(_: Notification) {
         model.session?.forceStop()
     }
@@ -122,20 +157,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func resizePanel(to size: NSSize) {
         let frame = panel.frame
         guard frame.size != size else { return }
-        panel.setFrame(NSRect(x: frame.midX - size.width / 2, y: frame.maxY - size.height, width: size.width, height: size.height),
-                       display: true)
+        panel.setFrame(
+            NSRect(x: frame.midX - size.width / 2, y: frame.maxY - size.height, width: size.width, height: size.height),
+            display: true
+        )
     }
 
     private func toggle() {
-        panel.isVisible ? hide() : show()
+        if panel.isVisible {
+            hide()
+        } else {
+            show()
+        }
     }
 
     @objc private func show() {
         guard !panel.isVisible || !panel.isKeyWindow else { return }
         let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
         if let frame = screen?.visibleFrame {
-            panel.setFrameOrigin(NSPoint(x: frame.midX - panel.frame.width / 2,
-                                         y: frame.minY + frame.height * 0.62 - panel.frame.height / 2))
+            panel.setFrameOrigin(NSPoint(
+                x: frame.midX - panel.frame.width / 2,
+                y: frame.minY + frame.height * 0.62 - panel.frame.height / 2
+            ))
         }
         model.panelWillShow()
         panel.makeKeyAndOrderFront(nil)
@@ -153,31 +196,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         DispatchQueue.main.async { [self] in
             if ProcessInfo.processInfo.environment["FLOE_DEBUG"] != nil {
                 let front = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"
-                FileHandle.standardError.write("resignKey: key=\(String(describing: NSApp.keyWindow)) frontmost=\(front)\n".data(using: .utf8)!)
+                FileHandle.standardError.write(Data("resignKey: key=\(String(describing: NSApp.keyWindow)) frontmost=\(front)\n".utf8))
             }
-            if !ModalGuard.isActive, !panel.isKeyWindow { hide() }
-        }
-    }
-
-    private func showHUD(_ text: String) {
-        hud?.orderOut(nil)
-        let view = NSHostingView(rootView: HUDView(text: text))
-        let size = view.fittingSize
-        let hud = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless, .nonactivatingPanel],
-                          backing: .buffered, defer: false)
-        hud.level = .statusBar
-        hud.isOpaque = false
-        hud.backgroundColor = .clear
-        hud.ignoresMouseEvents = true
-        hud.contentView = view
-        if let frame = NSScreen.main?.visibleFrame {
-            hud.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.minY + 80))
-        }
-        hud.orderFrontRegardless()
-        self.hud = hud
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self, weak hud] in
-            hud?.orderOut(nil)
-            if self?.hud === hud { self?.hud = nil }
+            if !ModalGuard.isActive, !panel.isKeyWindow {
+                hide()
+            }
         }
     }
 }
@@ -189,7 +212,9 @@ func runSelfTest(extensionName: String, commandName: String) -> Never {
         exit(1)
     }
     let missing = PreferenceStore.missingRequired(for: command).map(\.name)
-    if !missing.isEmpty { print("SELFTEST missing required preferences: \(missing)") }
+    if !missing.isEmpty {
+        print("SELFTEST missing required preferences: \(missing)")
+    }
     let session = ExtensionSession(command: command)
     session.onMessage = { print("SELFTEST message:", $0["type"] ?? "?") }
     let observer = session.objectWillChange.sink { _ in
@@ -199,7 +224,9 @@ func runSelfTest(extensionName: String, commandName: String) -> Never {
                 session.forceStop()
                 exit(0)
             }
-            if let toast = session.toast, toast.style == "failure" { print("SELFTEST TOAST: \(toast.title): \(toast.message ?? "")") }
+            if let toast = session.toast, toast.style == "failure" {
+                print("SELFTEST TOAST: \(toast.title): \(toast.message ?? "")")
+            }
             let rows = session.rows
             let markdown = session.view?.type == "Detail" ? session.view?.string("markdown") : nil
             guard rows.first != nil || markdown != nil else { return }
@@ -232,21 +259,21 @@ func runSelfTest(extensionName: String, commandName: String) -> Never {
     exit(1)
 }
 
-LegacyDefaults.migrate()
 Paths.prepareSupportFolders()
 
-let arguments = CommandLine.arguments
-// `Floe --search <query>` prints the ranked root results, for checking aliases and ranking.
-if let flag = arguments.firstIndex(of: "--search"), arguments.count > flag + 1 {
+let options = DebugOptions.parseOrExit()
+
+if let query = options.search {
     let model = LauncherModel()
-    model.query = arguments[flag + 1]
+    model.query = query
     for result in model.results.prefix(8) {
         print("\(result.section.map { "[\($0)] " } ?? "")\(result.item.title) (\(result.item.kind))\(model.alias(for: result.item).map { " (alias \($0))" } ?? "")")
     }
     exit(0)
 }
-// `Floe --bench-settings` times laying out each settings page off screen, to catch slow page switches.
-if arguments.contains("--bench-settings") {
+
+// Catches slow page switches.
+if options.benchSettings {
     _ = NSApplication.shared
     let model = LauncherModel()
     let selection = SettingsSelection()
@@ -262,18 +289,18 @@ if arguments.contains("--bench-settings") {
         window.contentView?.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
         print("BENCH \(name): \(Int(Date().timeIntervalSince(start) * 1000 - 50)) ms")
-        // FLOE_BENCH_DUMP=<folder> saves what each page looks like.
         if let directory = ProcessInfo.processInfo.environment["FLOE_BENCH_DUMP"], let view = window.contentView,
-           let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+           let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+        {
             view.cacheDisplay(in: view.bounds, to: rep)
             try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
         }
     }
     exit(0)
 }
-// `Floe --icon-check` renders each command's icon off screen and prints a fingerprint and how much of it is drawn,
-// so mixed-up or invisible icons show up without opening the window. FLOE_ICON_DUMP=<folder> also writes the PNGs.
-if arguments.contains("--icon-check") {
+
+// Mixed-up or invisible icons show up without opening the window.
+if options.iconCheck {
     _ = NSApplication.shared
     let samples: [(String, Any, String)] = ExtensionCommand.scan().reduce(into: []) { result, command in
         guard !result.contains(where: { $0.0 == command.extensionName }) else { return }
@@ -296,26 +323,23 @@ if arguments.contains("--icon-check") {
     }
     exit(0)
 }
-// `Floe --menubar [query]` lists the menu bar items Floe can open, ranked as the menu bar search would.
-if let flag = arguments.firstIndex(of: "--menubar") {
-    let query = arguments.count > flag + 1 ? arguments[flag + 1] : ""
+
+if options.menuBar {
+    let query = options.rest.first ?? ""
     let extras = MenuBarExtras.scan()
     print("MENUBAR trusted=\(MenuBarExtras.isTrusted) items=\(extras.count)")
     let ranked = query.isEmpty ? extras : extras.filter { Fuzzy.score(query, $0.name) != nil || Fuzzy.score(query, $0.ownerName) != nil }
-    let previews = MenuBarPreviews()
-    previews.capture(extras)
-    RunLoop.main.run(until: Date().addingTimeInterval(3))
     for extra in ranked.prefix(30) {
-        print("  \(extra.name) (\(extra.ownerName)) at \(Int(extra.frame.minX)),\(Int(extra.frame.minY)) preview=\(previews.images[extra.id] != nil)")
+        print("  \(extra.name) (\(extra.ownerName)) at \(Int(extra.frame.minX)),\(Int(extra.frame.minY))")
     }
     exit(0)
 }
-// `Floe --panel-snapshot <folder>` draws the launcher's root and menu bar views off screen and saves them.
-if let flag = arguments.firstIndex(of: "--panel-snapshot"), arguments.count > flag + 1 {
+
+if let path = options.panelSnapshot {
     _ = NSApplication.shared
-    let folder = URL(fileURLWithPath: arguments[flag + 1])
+    let folder = URL(fileURLWithPath: path)
     let model = LauncherModel()
-    let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 750, height: 474), styleMask: [.borderless], backing: .buffered, defer: false)
+    let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -4000, y: -4000), size: LauncherView.windowSize(menuBarSearch: false)), styleMask: [.borderless], backing: .buffered, defer: false)
     window.contentView = NSHostingView(rootView: LauncherView(model: model))
     window.orderFrontRegardless()
     func snapshot(_ name: String, wait: TimeInterval = 1) {
@@ -328,12 +352,13 @@ if let flag = arguments.firstIndex(of: "--panel-snapshot"), arguments.count > fl
     model.query = "co"
     snapshot("root")
     model.openMenuBarSearch()
-    window.setContentSize(NSSize(width: 600, height: 400))
+    window.setContentSize(LauncherView.windowSize(menuBarSearch: true))
     snapshot("menubar", wait: 5)
     exit(0)
 }
-if let flag = arguments.firstIndex(of: "--selftest"), arguments.count > flag + 2 {
-    runSelfTest(extensionName: arguments[flag + 1], commandName: arguments[flag + 2])
+
+if options.selftest.count == 2 {
+    runSelfTest(extensionName: options.selftest[0], commandName: options.selftest[1])
 }
 
 let delegate = AppDelegate()

@@ -46,7 +46,11 @@ final class HotkeyRegistry {
     var isSuspended = false {
         didSet {
             guard isSuspended != oldValue else { return }
-            isSuspended ? releaseAll() : reclaimAll()
+            if isSuspended {
+                releaseAll()
+            } else {
+                reclaimAll()
+            }
         }
     }
 
@@ -127,7 +131,11 @@ final class HotkeyRegistry {
                 guard let self, !isSuspended else {
                     return
                 }
-                isTracking ? releaseAll() : reclaimAll()
+                if isTracking {
+                    releaseAll()
+                } else {
+                    reclaimAll()
+                }
             }
             .store(in: &cancellables)
     }

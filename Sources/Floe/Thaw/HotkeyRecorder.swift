@@ -149,6 +149,7 @@ private final class KeyCapture {
     @ObservationIgnored private var onRecordingChange: (Bool) -> Void = { _ in
         // Set by start.
     }
+
     @ObservationIgnored private var onCapture: (KeyCombination) -> Void = { _ in
         // Set by start.
     }

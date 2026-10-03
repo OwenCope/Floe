@@ -27,7 +27,9 @@ struct PanelHeader: View {
             .frame(height: 54)
             ZStack {
                 Divider()
-                if isLoading { ProgressView().progressViewStyle(.linear).frame(height: 2) }
+                if isLoading {
+                    ProgressView().progressViewStyle(.linear).frame(height: 2)
+                }
             }
             .frame(height: 2)
         }
@@ -72,7 +74,9 @@ struct FieldEditor: View {
             case "checkbox":
                 Toggle(isOn: Binding(get: { value == "true" }, set: { value = $0 ? "true" : "false" })) {
                     label
-                    if let checkboxLabel = field.label { Text(checkboxLabel) }
+                    if let checkboxLabel = field.label {
+                        Text(checkboxLabel)
+                    }
                 }
             case "dropdown":
                 Picker(selection: $value) {
@@ -88,7 +92,9 @@ struct FieldEditor: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Button("Choose…") {
-                            if let path = ModalGuard.choosePaths(directories: field.type == "directory", multiple: false).first { value = path }
+                            if let path = ModalGuard.choosePaths(directories: field.type == "directory", multiple: false).first {
+                                value = path
+                            }
                         }
                     }
                 } label: { label }
@@ -113,8 +119,11 @@ struct SetupView: View {
     var body: some View {
         let command = request.command
         VStack(spacing: 0) {
-            PanelHeader(title: request.kind == .preferences ? "Set Up \(command.extensionTitle)" : command.title,
-                        icon: command.icon, assetsPath: command.assetsPath)
+            PanelHeader(
+                title: request.kind == .preferences ? "Set Up \(command.extensionTitle)" : command.title,
+                icon: command.icon,
+                assetsPath: command.assetsPath
+            )
             Form {
                 Section {
                     ForEach(request.fields) { field in
@@ -179,7 +188,9 @@ struct FormBody: View {
         Binding(get: { session.formValue(node) as? String ?? "" }, set: { session.setFormValue(node, $0) })
     }
 
-    private func title(_ node: Node) -> String { node.string("title") ?? "" }
+    private func title(_ node: Node) -> String {
+        node.string("title") ?? ""
+    }
 
     @ViewBuilder
     private func field(_ node: Node) -> some View {
@@ -200,11 +211,16 @@ struct FormBody: View {
         case "Form.Checkbox":
             Toggle(isOn: Binding(get: { session.formValue(node) as? Bool ?? false }, set: { session.setFormValue(node, $0) })) {
                 Text(title(node))
-                if let label = node.string("label") { Text(label) }
+                if let label = node.string("label") {
+                    Text(label)
+                }
             }
         case "Form.DatePicker":
-            DatePicker(title(node), selection: date(node),
-                       displayedComponents: node.props["type"] as? String == "date" ? [.date] : [.date, .hourAndMinute])
+            DatePicker(
+                title(node),
+                selection: date(node),
+                displayedComponents: node.props["type"] as? String == "date" ? [.date] : [.date, .hourAndMinute]
+            )
         case "Form.Dropdown":
             let items = node.descendants(ofType: "Dropdown.Item")
             Picker(title(node), selection: text(node)) {
@@ -258,9 +274,13 @@ struct FormBody: View {
                     .foregroundStyle(paths.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                 Button("Choose…") {
-                    let chosen = ModalGuard.choosePaths(directories: node.bool("canChooseDirectories") && !node.bool("canChooseFiles"),
-                                                        multiple: node.props["allowMultipleSelection"] as? Bool ?? true)
-                    if !chosen.isEmpty { session.setFormValue(node, chosen) }
+                    let chosen = ModalGuard.choosePaths(
+                        directories: node.bool("canChooseDirectories") && !node.bool("canChooseFiles"),
+                        multiple: node.props["allowMultipleSelection"] as? Bool ?? true
+                    )
+                    if !chosen.isEmpty {
+                        session.setFormValue(node, chosen)
+                    }
                 }
             }
         }

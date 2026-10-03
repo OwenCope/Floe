@@ -10,7 +10,9 @@ import AppKit
 struct MenuBarResult: Identifiable {
     let extra: MenuBarExtra
     let section: String?
-    var id: String { extra.id }
+    var id: String {
+        extra.id
+    }
 }
 
 /// Fields to fill in before a command can run: its required preferences, or its arguments.
@@ -22,7 +24,10 @@ struct SetupRequest {
 }
 
 final class LauncherModel: ObservableObject {
-    @Published var query = "" { didSet { refresh() } }
+    @Published var query = "" {
+        didSet { refresh() }
+    }
+
     @Published private(set) var results: [RootResult] = []
     @Published var selection = 0
     @Published private(set) var session: ExtensionSession?
@@ -37,7 +42,10 @@ final class LauncherModel: ObservableObject {
 
     /// True while the panel shows the menu bar item search instead of the root search.
     @Published private(set) var isSearchingMenuBar = false
-    @Published var menuBarQuery = "" { didSet { refreshMenuBar() } }
+    @Published var menuBarQuery = "" {
+        didSet { refreshMenuBar() }
+    }
+
     @Published private(set) var menuBarResults: [MenuBarResult] = []
     @Published var menuBarSelection = 0
     @Published private(set) var isScanningMenuBar = false
@@ -47,7 +55,6 @@ final class LauncherModel: ObservableObject {
     @Published var menuBarRenameDraft = ""
     private var menuBarExtras: [MenuBarExtra] = []
     private let menuBarRecents = MenuBarSearchRecents()
-    let menuBarPreviews = MenuBarPreviews()
 
     // The app delegate replaces these; the defaults keep the model usable without a window.
     var hidePanel: () -> Void = { /* no panel */ }
@@ -55,10 +62,12 @@ final class LauncherModel: ObservableObject {
     var showHUD: (String) -> Void = { _ in
         // No HUD.
     }
+
     /// Opens the settings window, optionally on one extension's page.
     var openSettings: (String?) -> Void = { _ in
         // No settings window.
     }
+
     /// Pops the Actions menu under its button in the menu bar search's bottom bar.
     var showMenuBarActions: () -> Void = { /* set by the Actions button */ }
 
@@ -125,11 +134,11 @@ final class LauncherModel: ObservableObject {
     func activate(_ item: RootItem) {
         usage.recordUse(of: item.id)
         switch item {
-        case .app(let app):
+        case let .app(app):
             NSWorkspace.shared.open(app.url)
             hidePanel()
             reset()
-        case .command(let command):
+        case let .command(command):
             run(command)
         case .menuBarSearch:
             openMenuBarSearch()
@@ -143,10 +152,14 @@ final class LauncherModel: ObservableObject {
 
     /// Switches the panel to the menu bar item search and rescans the menu bar.
     func openMenuBarSearch() {
-        if let session { end(session) }
+        if let session {
+            end(session)
+        }
         setup = nil
         isSearchingMenuBar = true
-        if !settings.rememberMenuBarQuery { menuBarQuery = "" }
+        if !settings.rememberMenuBarQuery {
+            menuBarQuery = ""
+        }
         showPanel()
         focusToken += 1
         scanMenuBar()
@@ -165,14 +178,13 @@ final class LauncherModel: ObservableObject {
             return
         }
         isScanningMenuBar = menuBarExtras.isEmpty
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let extras = MenuBarExtras.scan()
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 menuBarExtras = extras
                 isScanningMenuBar = false
                 refreshMenuBar()
-                menuBarPreviews.capture(extras)
             }
         }
     }
@@ -289,14 +301,18 @@ final class LauncherModel: ObservableObject {
 
     /// Runs a command, first asking for missing required preferences and then for its arguments.
     func run(_ command: ExtensionCommand, arguments: [String: Any]? = nil) {
-        if let session { end(session) }
+        if let session {
+            end(session)
+        }
         let missing = PreferenceStore.missingRequired(for: command)
         if !missing.isEmpty {
             beginSetup(SetupRequest(command: command, kind: .preferences, fields: command.preferences))
         } else if arguments == nil, !command.arguments.isEmpty {
             beginSetup(SetupRequest(command: command, kind: .arguments, fields: command.arguments))
         } else {
-            if command.mode == "view" { showPanel() }
+            if command.mode == "view" {
+                showPanel()
+            }
             launch(command, arguments: arguments ?? [:])
         }
     }
@@ -357,7 +373,9 @@ final class LauncherModel: ObservableObject {
         case "exit", "popToRoot":
             let wasBackground = session.command.mode != "view"
             end(session)
-            if wasBackground { hidePanel() }
+            if wasBackground {
+                hidePanel()
+            }
         case "crashed" where session.command.mode != "view":
             end(session)
             showHUD("\(session.command.title) failed")
@@ -429,7 +447,9 @@ final class LauncherModel: ObservableObject {
     func reset() {
         pendingReset?.cancel()
         pendingReset = nil
-        if let session { end(session) }
+        if let session {
+            end(session)
+        }
         setup = nil
         isSearchingMenuBar = false
         query = ""
@@ -452,7 +472,9 @@ final class LauncherModel: ObservableObject {
 
     /// Extensions name an app by path, bundle identifier or display name.
     private func applicationURL(for application: String) -> URL? {
-        if (application as NSString).isAbsolutePath { return URL(fileURLWithPath: application) }
+        if (application as NSString).isAbsolutePath {
+            return URL(fileURLWithPath: application)
+        }
         return NSWorkspace.shared.urlForApplication(withBundleIdentifier: application)
             ?? apps.first { $0.name.caseInsensitiveCompare(application) == .orderedSame }?.url
     }
@@ -498,9 +520,15 @@ final class LauncherModel: ObservableObject {
             }
             switch event.keyCode {
             case 36, 76:
-                if menuBarResults.indices.contains(menuBarSelection) { openMenuBarExtra(menuBarResults[menuBarSelection].extra) }
+                if menuBarResults.indices.contains(menuBarSelection) {
+                    openMenuBarExtra(menuBarResults[menuBarSelection].extra)
+                }
             case 53:
-                if menuBarQuery.isEmpty { closeMenuBarSearch() } else { menuBarQuery = "" }
+                if menuBarQuery.isEmpty {
+                    closeMenuBarSearch()
+                } else {
+                    menuBarQuery = ""
+                }
             default: return false
             }
             return true
@@ -522,10 +550,18 @@ final class LauncherModel: ObservableObject {
             return true
         }
         switch event.keyCode {
-        case 36: if results.indices.contains(selection) { activate(results[selection].item) }
-        case 53: if query.isEmpty { hidePanel() } else { query = "" }
+        case 36: if results.indices.contains(selection) {
+                activate(results[selection].item)
+            }
+        case 53: if query.isEmpty {
+                hidePanel()
+            } else {
+                query = ""
+            }
         case 3 where flags == [.command, .shift]:
-            if results.indices.contains(selection) { toggleFavorite(results[selection].item) }
+            if results.indices.contains(selection) {
+                toggleFavorite(results[selection].item)
+            }
         default: return false
         }
         return true
@@ -539,7 +575,9 @@ final class LauncherModel: ObservableObject {
             case 125, 126: return false
             case 36 where flags != .command: return false
             case 36:
-                if let action = actions.first { session.run(action) }
+                if let action = actions.first {
+                    session.run(action)
+                }
                 return true
             default: break
             }
@@ -558,7 +596,9 @@ final class LauncherModel: ObservableObject {
             session.send(["type": "pop"])
         case 36:
             let index = flags == .command ? 1 : 0
-            if actions.indices.contains(index) { session.run(actions[index]) }
+            if actions.indices.contains(index) {
+                session.run(actions[index])
+            }
         case 40 where flags == .command:
             session.actionMenuOpen = true
         default:
@@ -583,11 +623,14 @@ final class LauncherModel: ObservableObject {
                 session.openSubmenu(entries[session.actionSelection].node)
             }
         case 40 where flags == .command: session.actionMenuOpen = false
-        case 51: if !session.actionQuery.isEmpty { session.actionQuery.removeLast() }
+        case 51: if !session.actionQuery.isEmpty {
+                session.actionQuery.removeLast()
+            }
         default:
             // Plain typing (Shift allowed) filters; anything with ⌘, ⌃ or ⌥ falls through to shortcuts.
             guard flags.subtracting(.shift).isEmpty, let characters = event.characters,
-                  !characters.isEmpty, characters.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) else {
+                  !characters.isEmpty, characters.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) })
+            else {
                 return false
             }
             session.actionQuery += characters
