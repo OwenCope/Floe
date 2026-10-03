@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test, type Mock } from "bun:test";
 import React, { useState } from "react";
 import { dispatchEvent, reportError, toError } from "../renderer";
-import { find, findAll, fire, installRuntime, renderCount, resetStage, sent, settle, show, text } from "./support";
+import { find, findAll, fire, installRuntime, renderCount, resetStage, sent, settle, show, text, type TreeNode } from "./support";
 
 const h = React.createElement;
 installRuntime("renderer-tests");
@@ -139,6 +139,74 @@ describe("updates", () => {
     await fire(find(tree, "holder"), "onRemove");
     await fire(member, "onPing");
     expect(pings).toEqual(["ping"]);
+  });
+});
+
+describe("initial children", () => {
+  test("builds a fresh parent with 10,000 keyed children in order", async () => {
+    const names = Array.from({ length: 10_000 }, (_, index) => `item-${index}`);
+    const list = h("list", null, names.map((name) => h("row", { key: name, name })));
+
+    // A first commit at this size can outlast settle's quiet window, so keep asking until it lands.
+    let rows: TreeNode[] = [];
+    for (let attempt = 0; attempt < 20 && rows.length !== names.length; attempt++) {
+      try {
+        rows = findAll(await show(list), "row");
+      } catch {
+        rows = [];
+      }
+    }
+    expect(rows).toHaveLength(names.length);
+    expect(rows.map((row) => row.props.name)).toEqual(names);
+    expect(new Set(rows.map((row) => row.id)).size).toBe(names.length);
+  });
+
+  test("assembles nested host and text children in one initial pass", async () => {
+    const tree = await show(h("panel", null, h("row", null, "first", h("tag", null, "inner"), "last"), "loose"));
+    const row = find(tree, "row");
+    expect(row.children.map((child) => child.type)).toEqual(["#text", "tag", "#text"]);
+    expect(text(row)).toBe("firstinnerlast");
+    expect(find(tree, "panel").children.map((child) => child.type)).toEqual(["row", "#text"]);
+  });
+
+  test("keeps a keyed child's id and handler when its host parent moves it to the end", async () => {
+    const pings: string[] = [];
+    function Rotation() {
+      const [names, setNames] = useState(["a", "b", "c"]);
+      return h(
+        "group",
+        { onRotate: () => setNames(([first, ...rest]) => [...rest, first]) },
+        names.map((name) => h("member", { key: name, name, onPing: () => pings.push(name) })),
+      );
+    }
+    const tree = await show(h(Rotation));
+    const ids = Object.fromEntries(findAll(tree, "member").map((member) => [member.props.name, member.id]));
+
+    const rotated = findAll(await fire(find(tree, "group"), "onRotate"), "member");
+    expect(rotated.map((member) => member.props.name)).toEqual(["b", "c", "a"]);
+    expect(rotated.map((member) => member.id)).toEqual([ids.b, ids.c, ids.a]);
+    expect(rotated).toHaveLength(3);
+
+    await fire(rotated[2], "onPing");
+    expect(pings).toEqual(["a"]);
+  });
+
+  test("keeps ids when a fragment's children move at the container level", async () => {
+    function TopLevel() {
+      const [names, setNames] = useState(["a", "b", "c"]);
+      return h(
+        React.Fragment,
+        null,
+        h("lever", { onRotate: () => setNames(([first, ...rest]) => [...rest, first]) }),
+        names.map((name) => h("entry", { key: name, name })),
+      );
+    }
+    const tree = await show(h(TopLevel));
+    const ids = Object.fromEntries(findAll(tree, "entry").map((entry) => [entry.props.name, entry.id]));
+
+    const rotated = findAll(await fire(find(tree, "lever"), "onRotate"), "entry");
+    expect(rotated.map((entry) => entry.props.name)).toEqual(["b", "c", "a"]);
+    expect(rotated.map((entry) => entry.id)).toEqual([ids.b, ids.c, ids.a]);
   });
 });
 
