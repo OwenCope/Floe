@@ -26,6 +26,8 @@
 		<string>https://bun.sh</string>
 		<key>compactSlider</key>
 		<string>https://github.com/buh/CompactSlider</string>
+		<key>discord</key>
+		<string>https://discord.gg/KDfWjWDnR4</string>
 		<key>raycastExtensions</key>
 		<string>https://github.com/raycast/extensions</string>
 		<key>react</key>

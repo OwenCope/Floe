@@ -238,6 +238,9 @@ struct AboutSettingsPane: View {
             NSWorkspace.shared.activateFileViewerSelecting([Paths.raycastExtensions])
         })
         menu.addItem(.separator())
+        if let url = AppInfo.link("discord") {
+            menu.addItem(item(String(localized: "Join the Discord"), "bubble.left.and.bubble.right") { openURL(url) })
+        }
         menu.addItem(item(String(localized: "Raycast Extension Store"), "storefront") {
             if let url = AppInfo.link("raycastExtensions") { openURL(url) }
         })
