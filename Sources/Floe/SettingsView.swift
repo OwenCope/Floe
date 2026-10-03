@@ -14,6 +14,9 @@ final class SettingsWindowController {
     private let model: LauncherModel
     private let selection = SettingsSelection()
 
+    /// Room for the sidebar, a readable pane and the toolbar's search field.
+    private static let minimumSize = NSSize(width: 720, height: 460)
+
     init(model: LauncherModel) {
         self.model = model
     }
@@ -21,17 +24,28 @@ final class SettingsWindowController {
     func show(extensionName: String? = nil, page: SettingsPage? = nil) {
         selection.page = page ?? extensionName.map(SettingsPage.extensionPage) ?? selection.page
         if window == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
-                                  styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                                  backing: .buffered, defer: false)
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
             window.title = "Floe Settings"
             window.titlebarAppearsTransparent = true
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: .shared, selection: selection))
+            window.contentMinSize = Self.minimumSize
+            // As Thaw's windows: not a workspace, so the green button zooms, and nothing worth restoring.
+            window.collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenNone])
+            window.isRestorable = false
+            let content = NSHostingView(rootView: SettingsView(model: model, settings: .shared, selection: selection))
+            // The panes name the window and fill its toolbar: title, subtitle and the search field.
+            content.sceneBridgingOptions = [.title, .toolbars]
+            window.contentView = content
             window.center()
             self.window = window
         }
+        UpdatesManager.settingsWillShow()
         NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
     }
@@ -52,6 +66,7 @@ struct SettingsView: View {
     @ObservedObject var model: LauncherModel
     @ObservedObject var settings: AppSettings
     @ObservedObject var selection: SettingsSelection
+    @State private var search = SearchModel()
 
     var body: some View {
         NavigationSplitView {
@@ -68,10 +83,22 @@ struct SettingsView: View {
                 // Content fades under the glass toolbar instead of stopping at a hard band.
                 .scrollEdgeEffectStyle(.soft, for: .top)
         }
+        .settingsSearchField(search)
+        .updateConsentSheet()
     }
 
     @ViewBuilder
     private var detail: some View {
+        if search.isSearching {
+            // Results take over the detail column until one is chosen or the query is cleared.
+            SettingsSearchResults(selection: selection, commands: model.allCommands)
+        } else {
+            pane
+        }
+    }
+
+    @ViewBuilder
+    private var pane: some View {
         switch selection.page {
         case .general:
             GeneralSettingsView(model: model, settings: settings)
@@ -79,20 +106,29 @@ struct SettingsView: View {
             ApplicationSettingsView(model: model, settings: settings)
         case .about:
             AboutSettingsPane()
-        case .extensionPage(let name):
-            ExtensionSettingsView(model: model, settings: settings,
-                                  commands: model.allCommands.filter { $0.extensionName == name })
-                .id(name)
+        case let .extensionPage(name):
+            ExtensionSettingsView(
+                model: model,
+                settings: settings,
+                commands: model.allCommands.filter { $0.extensionName == name }
+            )
+            .id(name)
         }
     }
 
-    /// Where an extension comes from, under its name in the toolbar.
+    /// What the pane holds, under its name in the toolbar; for an extension, where it comes from.
     private var subtitle: String {
-        guard case .extensionPage(let name) = selection.page,
-              let command = model.allCommands.first(where: { $0.extensionName == name }) else { return "" }
-        let count = model.allCommands.filter { $0.extensionName == name }.count
-        let commands = count == 1 ? "1 command" : "\(count) commands"
-        return command.source == .raycast ? "From Raycast · \(commands)" : commands
+        guard !search.isSearching else { return "" }
+        switch selection.page {
+        case .general: return "Startup, hotkeys and permissions"
+        case .applications: return "Aliases and hotkeys for apps"
+        case .about: return "Version, updates and credits"
+        case let .extensionPage(name):
+            guard let command = model.allCommands.first(where: { $0.extensionName == name }) else { return "" }
+            let count = model.allCommands.filter { $0.extensionName == name }.count
+            let commands = count == 1 ? "1 command" : "\(count) commands"
+            return command.source == .raycast ? "From Raycast · \(commands)" : commands
+        }
     }
 }
 
@@ -112,6 +148,7 @@ private struct SettingsSidebarPaneList: View {
     private static let iconColumn: CGFloat = 22
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(SearchModel.self) private var search
 
     /// The accent, deepened in dark mode so a light one such as yellow keeps
     /// its contrast against the selected label.
@@ -126,7 +163,9 @@ private struct SettingsSidebarPaneList: View {
         let icon: String?
         let assetsPath: String
         var isDimmed = false
-        var id: SettingsPage { page }
+        var id: SettingsPage {
+            page
+        }
     }
 
     /// General and Applications first, then each extension, About last, as in Thaw.
@@ -136,9 +175,14 @@ private struct SettingsSidebarPaneList: View {
             .filter { seen.insert($0.extensionName).inserted }
             .sorted { $0.extensionTitle.localizedCaseInsensitiveCompare($1.extensionTitle) == .orderedAscending }
             .map { command in
-                Row(page: .extensionPage(command.extensionName), title: command.extensionTitle, symbol: nil,
-                    icon: command.icon ?? "icon:Terminal", assetsPath: command.assetsPath,
-                    isDimmed: settings.disabledExtensions.contains(command.extensionName))
+                Row(
+                    page: .extensionPage(command.extensionName),
+                    title: command.extensionTitle,
+                    symbol: nil,
+                    icon: command.icon ?? "icon:Terminal",
+                    assetsPath: command.assetsPath,
+                    isDimmed: settings.disabledExtensions.contains(command.extensionName)
+                )
             }
         return [
             Row(page: .general, title: "General", symbol: "gearshape", icon: nil, assetsPath: ""),
@@ -151,7 +195,15 @@ private struct SettingsSidebarPaneList: View {
     var body: some View {
         // No Sections: an outline-backed list crashes AppKit on macOS 27.0 and 27.2
         // (freed row view in sizeLastColumnToFit).
-        List(selection: Binding(get: { Optional(selection.page) }, set: { if let page = $0 { selection.page = page } })) {
+        // No row is selected during a search, so a click on any row, the current pane's included, ends it.
+        List(selection: Binding(
+            get: { search.isSearching ? nil : selection.page },
+            set: {
+                if let page = $0 {
+                    SettingsSearchNavigation.selectSidebarPane(page, selection: selection, search: search)
+                }
+            }
+        )) {
             ForEach(rows) { row in
                 Label {
                     Text(row.title)
@@ -173,7 +225,7 @@ private struct SettingsSidebarPaneList: View {
                 }
                 // Only the selection fill carries the accent. Applied per row,
                 // where the sidebar reads it.
-                .listItemTint(row.page == selection.page ? .preferred(accent) : .monochrome)
+                .listItemTint(row.page == selection.page && !search.isSearching ? .preferred(accent) : .monochrome)
                 .tag(row.page)
             }
         }
@@ -196,11 +248,16 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             ThawSection("Floe") {
-                HotkeyRecorder(keyCombination: $settings.toggleHotkey,
-                               onRecordingChange: { settings.isRecordingHotkey = $0 }) {
-                    Text("Open Floe")
-                }
+                HotkeyRecorder(
+                    keyCombination: $settings.toggleHotkey,
+                    onRecordingChange: { settings.isRecordingHotkey = $0 },
+                    label: {
+                        Text("Open Floe")
+                    }
+                )
                 Toggle("Launch at Login", isOn: Binding(get: { settings.launchAtLogin }, set: { settings.launchAtLogin = $0 }))
+                Toggle("Show in Dock", isOn: $settings.showInDock)
+                AutomaticUpdateCheckToggle()
                 Picker(selection: $settings.popToRootDelay) {
                     Text("Immediately").tag(0)
                     Text("After 30 seconds").tag(30)
@@ -213,35 +270,26 @@ struct GeneralSettingsView: View {
             }
             ThawSection("Menu Bar Items") {
                 HotkeyRecorder(
-                    keyCombination: Binding(get: { settings.commandHotkeys[RootItem.menuBarSearchKey] },
-                                            set: { settings.commandHotkeys[RootItem.menuBarSearchKey] = $0 }),
-                    onRecordingChange: { settings.isRecordingHotkey = $0 }
-                ) {
-                    Text("Search Menu Bar Items")
-                    Text("Find an item in the menu bar and open its menu.")
-                }
-                TextField("Alias", text: Binding(
-                    get: { settings.aliases[RootItem.menuBarSearchKey] ?? "" },
-                    set: { settings.aliases[RootItem.menuBarSearchKey] = $0.isEmpty ? nil : $0 }
-                ), prompt: Text("None"))
-                LabeledContent("Accessibility") {
-                    if MenuBarExtras.isTrusted {
-                        Text("Allowed").foregroundStyle(.secondary)
-                    } else {
-                        Button("Grant Access") { model.requestMenuBarAccess() }
+                    keyCombination: Binding(
+                        get: { settings.commandHotkeys[RootItem.menuBarSearchKey] },
+                        set: { settings.commandHotkeys[RootItem.menuBarSearchKey] = $0 }
+                    ),
+                    onRecordingChange: { settings.isRecordingHotkey = $0 },
+                    label: {
+                        Text("Search Menu Bar Items")
+                        Text("Find an item in the menu bar and open its menu.")
                     }
-                }
-                LabeledContent {
-                    if MenuBarPreviews.hasAccess {
-                        Text("Allowed").foregroundStyle(.secondary)
-                    } else {
-                        Button("Grant Access") { MenuBarPreviews.requestAccess() }
-                    }
-                } label: {
-                    Text("Screen Recording")
-                    Text("Only for the item previews in the search.")
-                }
+                )
+                TextField(
+                    "Alias",
+                    text: Binding(
+                        get: { settings.aliases[RootItem.menuBarSearchKey] ?? "" },
+                        set: { settings.aliases[RootItem.menuBarSearchKey] = $0.isEmpty ? nil : $0 }
+                    ),
+                    prompt: Text("None")
+                )
             }
+            PermissionsSettingsSection()
             ThawSection("Extensions") {
                 Toggle(isOn: $settings.includeRaycastExtensions) {
                     Text("Include extensions installed in Raycast")
@@ -279,23 +327,36 @@ struct ApplicationSettingsView: View {
         VStack(spacing: 0) {
             editor
             Divider()
+            // In the pane, not the toolbar: the toolbar's field searches the settings.
+            HStack(spacing: ThawSpacing.compact) {
+                Image(systemName: "line.3.horizontal.decrease")
+                    .foregroundStyle(.secondary)
+                TextField("Filter applications", text: $filter)
+                    .textFieldStyle(.plain)
+            }
+            .padding(.horizontal, ThawSpacing.section)
+            .padding(.vertical, ThawSpacing.compact)
+            Divider()
             List(apps, id: \.url, selection: $selection) { app in
                 let key = Self.key(app)
                 HStack(spacing: ThawSpacing.row) {
                     AppIconView(path: app.url.path, size: 18)
                     Text(app.name).lineLimit(1)
                     Spacer()
-                    if let alias = settings.aliases[key] { KeyCap(alias) }
+                    if let alias = settings.aliases[key] {
+                        KeyCap(alias)
+                    }
                     Text(settings.commandHotkeys[key]?.displayValue ?? "")
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
             }
             .overlay {
-                if apps.isEmpty { ContentUnavailableView.search(text: filter) }
+                if apps.isEmpty {
+                    ContentUnavailableView.search(text: filter)
+                }
             }
         }
-        .searchable(text: $filter, placement: .toolbar, prompt: "Filter applications")
         .navigationTitle("Applications")
     }
 
@@ -314,17 +375,22 @@ struct ApplicationSettingsView: View {
                         Text(app.name)
                     }
                 } content: {
-                    TextField("Alias", text: Binding(
-                        get: { settings.aliases[key] ?? "" },
-                        set: { settings.aliases[key] = $0.isEmpty ? nil : $0 }
-                    ), prompt: Text("None"))
+                    TextField(
+                        "Alias",
+                        text: Binding(
+                            get: { settings.aliases[key] ?? "" },
+                            set: { settings.aliases[key] = $0.isEmpty ? nil : $0 }
+                        ),
+                        prompt: Text("None")
+                    )
                     HotkeyRecorder(
                         keyCombination: Binding(get: { settings.commandHotkeys[key] }, set: { settings.commandHotkeys[key] = $0 }),
-                        onRecordingChange: { settings.isRecordingHotkey = $0 }
-                    ) {
-                        Text("Hotkey")
-                        Text("Opens the app, or hides it if it's already in front.")
-                    }
+                        onRecordingChange: { settings.isRecordingHotkey = $0 },
+                        label: {
+                            Text("Hotkey")
+                            Text("Opens the app, or hides it if it's already in front.")
+                        }
+                    )
                 }
             }
             .formStyle(.grouped)
@@ -378,12 +444,18 @@ struct ExtensionSettingsView: View {
                     Toggle(isOn: Binding(
                         get: { !settings.disabledExtensions.contains(first.extensionName) },
                         set: { enabled in
-                            if enabled { settings.disabledExtensions.remove(first.extensionName) } else { settings.disabledExtensions.insert(first.extensionName) }
+                            if enabled {
+                                settings.disabledExtensions.remove(first.extensionName)
+                            } else {
+                                settings.disabledExtensions.insert(first.extensionName)
+                            }
                         }
                     )) {
                         HStack(spacing: ThawSpacing.compact) {
                             Text("Enabled")
-                            if first.source == .raycast { ThawBadge("Raycast") }
+                            if first.source == .raycast {
+                                ThawBadge("Raycast")
+                            }
                         }
                         Text((first.extensionDir.path as NSString).abbreviatingWithTildeInPath)
                     }
@@ -398,14 +470,20 @@ struct ExtensionSettingsView: View {
                         HStack(spacing: ThawSpacing.compact) {
                             IconView(value: command.icon ?? "icon:Terminal", assetsPath: command.assetsPath, size: 14)
                             Text(command.title)
-                            if command.mode == "no-view" { ThawBadge("No View") }
+                            if command.mode == "no-view" {
+                                ThawBadge("No View")
+                            }
                         }
+                        // Where a search result for this command scrolls to. On the header,
+                        // because a Form does not scroll to a section's id.
+                        .id(command.id)
                     } content: {
                         CommandSettingsRows(settings: settings, command: command)
                     }
                 }
             }
             .formStyle(.grouped)
+            .settingsSearchAnchorScroll()
             .navigationTitle(first.extensionTitle)
         }
     }
@@ -416,16 +494,21 @@ struct CommandSettingsRows: View {
     let command: ExtensionCommand
 
     var body: some View {
-        TextField("Alias", text: Binding(
-            get: { settings.aliases[command.id] ?? "" },
-            set: { settings.aliases[command.id] = $0.isEmpty ? nil : $0 }
-        ), prompt: Text("None"))
+        TextField(
+            "Alias",
+            text: Binding(
+                get: { settings.aliases[command.id] ?? "" },
+                set: { settings.aliases[command.id] = $0.isEmpty ? nil : $0 }
+            ),
+            prompt: Text("None")
+        )
         HotkeyRecorder(
             keyCombination: Binding(get: { settings.commandHotkeys[command.id] }, set: { settings.commandHotkeys[command.id] = $0 }),
-            onRecordingChange: { settings.isRecordingHotkey = $0 }
-        ) {
-            Text("Hotkey")
-        }
+            onRecordingChange: { settings.isRecordingHotkey = $0 },
+            label: {
+                Text("Hotkey")
+            }
+        )
         if !command.commandPreferences.isEmpty {
             PreferencesEditor(fields: command.commandPreferences, extensionName: command.extensionName, command: command)
         }

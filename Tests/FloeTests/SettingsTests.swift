@@ -5,9 +5,9 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU GPLv3
 
+@testable import Floe
 import Foundation
 import Testing
-@testable import Floe
 
 /// A throwaway defaults suite per test, removed when the test's suite value goes away.
 final class ScratchDefaults {
@@ -40,6 +40,8 @@ struct AppSettingsTests {
         #expect(settings.includeRaycastExtensions)
         #expect(settings.popToRootDelay == 90)
         #expect(settings.rememberMenuBarQuery == false)
+        #expect(settings.showInDock == false)
+        #expect(settings.hasSeenOnboarding == false)
         #expect(settings.menuBarItemNames.isEmpty)
         #expect(settings.isRecordingHotkey == false)
     }
@@ -54,6 +56,8 @@ struct AppSettingsTests {
         settings.includeRaycastExtensions = false
         settings.popToRootDelay = 30
         settings.rememberMenuBarQuery = true
+        settings.showInDock = true
+        settings.hasSeenOnboarding = true
         settings.menuBarItemNames = ["com.a|status": "Renamed"]
         settings.isRecordingHotkey = true
         settings.save()
@@ -67,11 +71,13 @@ struct AppSettingsTests {
         #expect(reloaded.includeRaycastExtensions == false)
         #expect(reloaded.popToRootDelay == 30)
         #expect(reloaded.rememberMenuBarQuery)
+        #expect(reloaded.showInDock)
+        #expect(reloaded.hasSeenOnboarding)
         #expect(reloaded.menuBarItemNames == ["com.a|status": "Renamed"])
         #expect(reloaded.isRecordingHotkey == false, "recording state is not persisted")
     }
 
-    @Test func settingsSavedBeforeNewerFieldsExistedStillLoad() throws {
+    @Test func settingsSavedBeforeNewerFieldsExistedStillLoad() {
         let older = #"{"commandHotkeys":{},"aliases":{"a/b":"x"},"disabledExtensions":[],"includeRaycastExtensions":true}"#
         scratch.defaults.set(Data(older.utf8), forKey: "settings")
         let settings = AppSettings(defaults: scratch.defaults)
@@ -80,6 +86,8 @@ struct AppSettingsTests {
         #expect(settings.popToRootDelay == 90)
         #expect(settings.favorites.isEmpty)
         #expect(settings.rememberMenuBarQuery == false)
+        #expect(settings.showInDock == false)
+        #expect(settings.hasSeenOnboarding == false)
         #expect(settings.menuBarItemNames.isEmpty)
     }
 
@@ -95,39 +103,6 @@ struct AppSettingsTests {
         settings.popToRootDelay = 300
         try await Task.sleep(for: .milliseconds(600))
         #expect(AppSettings(defaults: scratch.defaults).popToRootDelay == 300)
-    }
-}
-
-struct LegacyDefaultsTests {
-    private let old: ScratchDefaults
-    private let new: ScratchDefaults
-
-    init() throws {
-        old = try ScratchDefaults()
-        new = try ScratchDefaults()
-    }
-
-    @Test func copiesSettingsAndUsageIntoEmptyDefaults() {
-        old.defaults.set(Data("settings".utf8), forKey: "settings")
-        old.defaults.set(Data("usage".utf8), forKey: "usage")
-        LegacyDefaults.migrate(from: old.defaults, to: new.defaults)
-        #expect(new.defaults.data(forKey: "settings") == Data("settings".utf8))
-        #expect(new.defaults.data(forKey: "usage") == Data("usage".utf8))
-    }
-
-    @Test func leavesExistingSettingsAlone() {
-        old.defaults.set(Data("old".utf8), forKey: "settings")
-        old.defaults.set(Data("old usage".utf8), forKey: "usage")
-        new.defaults.set(Data("current".utf8), forKey: "settings")
-        LegacyDefaults.migrate(from: old.defaults, to: new.defaults)
-        #expect(new.defaults.data(forKey: "settings") == Data("current".utf8))
-        #expect(new.defaults.data(forKey: "usage") == nil)
-    }
-
-    @Test func doesNothingWithoutOldDefaults() {
-        LegacyDefaults.migrate(from: nil, to: new.defaults)
-        LegacyDefaults.migrate(from: old.defaults, to: new.defaults)
-        #expect(new.defaults.data(forKey: "settings") == nil)
     }
 }
 
@@ -165,9 +140,9 @@ struct UsageStoreTests {
         store.recordUse(of: "settings")
         clock.now += 2 * 3600
         #expect(store.frecency(of: "settings") == 2)
-        clock.now += 3 * 86_400
+        clock.now += 3 * 86400
         #expect(store.frecency(of: "settings") == 1)
-        clock.now += 60 * 86_400
+        clock.now += 60 * 86400
         #expect(store.frecency(of: "settings") == 0.25)
     }
 

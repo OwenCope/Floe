@@ -8,19 +8,6 @@
 import Combine
 import Foundation
 
-/// Settings and usage saved before the rename lived under the old bundle identifier's defaults.
-enum LegacyDefaults {
-    static let oldDomain = "com.diazdesandi.launcher-proto"
-
-    /// Copies settings and usage across once: only while the new defaults have no settings yet.
-    static func migrate(from old: UserDefaults? = UserDefaults(suiteName: oldDomain), to defaults: UserDefaults = .standard) {
-        guard defaults.data(forKey: "settings") == nil, let old else { return }
-        for key in ["settings", "usage"] {
-            if let data = old.data(forKey: key) { defaults.set(data, forKey: key) }
-        }
-    }
-}
-
 /// Launcher-wide settings, persisted as one JSON blob in UserDefaults.
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -39,6 +26,10 @@ final class AppSettings: ObservableObject {
     @Published var includeRaycastExtensions = true
     /// Seconds a closed panel keeps the open command before going back to the root search; 0 resets at once.
     @Published var popToRootDelay = 90
+    /// Show Floe's icon in the Dock; off, it lives only in the menu bar.
+    @Published var showInDock = false
+    /// The welcome window was finished or skipped once, so it does not open on later launches.
+    @Published var hasSeenOnboarding = false
     /// Keep the menu bar search's query between showings, like Thaw's "Remember last search".
     @Published var rememberMenuBarQuery = false
     /// Names given to menu bar items with Edit Name, keyed by `MenuBarExtra.id`.
@@ -56,6 +47,8 @@ final class AppSettings: ObservableObject {
         var favorites: [String]?
         var rememberMenuBarQuery: Bool?
         var menuBarItemNames: [String: String]?
+        var showInDock: Bool?
+        var hasSeenOnboarding: Bool?
     }
 
     private static let defaultsKey = "settings"
@@ -65,7 +58,8 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         if let data = defaults.data(forKey: Self.defaultsKey),
-           let stored = try? JSONDecoder().decode(Stored.self, from: data) {
+           let stored = try? JSONDecoder().decode(Stored.self, from: data)
+        {
             toggleHotkey = stored.toggleHotkey
             commandHotkeys = stored.commandHotkeys
             aliases = stored.aliases
@@ -75,6 +69,8 @@ final class AppSettings: ObservableObject {
             favorites = stored.favorites ?? []
             rememberMenuBarQuery = stored.rememberMenuBarQuery ?? false
             menuBarItemNames = stored.menuBarItemNames ?? [:]
+            showInDock = stored.showInDock ?? false
+            hasSeenOnboarding = stored.hasSeenOnboarding ?? false
         }
         cancellable = objectWillChange
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
@@ -83,10 +79,19 @@ final class AppSettings: ObservableObject {
 
     /// Runs on its own shortly after any change; callable directly when the change must be on disk now.
     func save() {
-        let stored = Stored(toggleHotkey: toggleHotkey, commandHotkeys: commandHotkeys, aliases: aliases,
-                            disabledExtensions: disabledExtensions, includeRaycastExtensions: includeRaycastExtensions,
-                            popToRootDelay: popToRootDelay, favorites: favorites,
-                            rememberMenuBarQuery: rememberMenuBarQuery, menuBarItemNames: menuBarItemNames)
+        let stored = Stored(
+            toggleHotkey: toggleHotkey,
+            commandHotkeys: commandHotkeys,
+            aliases: aliases,
+            disabledExtensions: disabledExtensions,
+            includeRaycastExtensions: includeRaycastExtensions,
+            popToRootDelay: popToRootDelay,
+            favorites: favorites,
+            rememberMenuBarQuery: rememberMenuBarQuery,
+            menuBarItemNames: menuBarItemNames,
+            showInDock: showInDock,
+            hasSeenOnboarding: hasSeenOnboarding
+        )
         if let data = try? JSONEncoder().encode(stored) {
             defaults.set(data, forKey: Self.defaultsKey)
         }
