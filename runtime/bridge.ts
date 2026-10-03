@@ -26,8 +26,18 @@ export const ctx = {
   manifest: { name: "" } as Manifest,
 };
 
+type Sink = (line: string) => void;
+const stdoutSink: Sink = (line) => {
+  process.stdout.write(line);
+};
+let sink = stdoutSink;
+// Tests replace the sink to capture messages; passing nothing restores stdout.
+export function setSink(replacement: Sink = stdoutSink) {
+  sink = replacement;
+}
+
 export function send(message: Record<string, unknown>) {
-  process.stdout.write(JSON.stringify(message) + "\n");
+  sink(JSON.stringify(message) + "\n");
 }
 
 let popHandler: () => void = () => send({ type: "exit" });
