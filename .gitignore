@@ -5,3 +5,5 @@ xcuserdata/
 *.xcworkspace/xcuserdata/
 .vscode/
 extensions/hacker-news/
+coverage/
+*.profraw

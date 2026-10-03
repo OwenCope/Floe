@@ -47,7 +47,7 @@ jobs:
             exit 0
           fi
 
-          patterns='(\.swift$|(^|/)Package\.resolved$|^Floe\.xcodeproj/|^project\.yml$|^Resources/|^Vendor/|^runtime/|^extensions/|^scripts/|^\.github/workflows/ci\.yml$)'
+          patterns='(\.swift$|(^|/)Package\.resolved$|^Floe\.xcodeproj/|^project\.yml$|^Resources/|^Vendor/|^runtime/|^extensions/|^scripts/|^sonar-project\.properties$|^\.github/workflows/ci\.yml$)'
           if git diff --name-only "$range" | grep -E "$patterns" >/dev/null; then
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "Code-related paths changed."
@@ -133,8 +133,23 @@ jobs:
           echo "$output"
           grep -q '^SELFTEST OK' <<<"$output"
 
+      # Swift Testing and bun test, with the coverage reports the Sonar job reads.
+      - name: Tests with coverage
+        if: needs.changes.outputs.code == 'true'
+        run: ./scripts/coverage.sh --summary
+
+      - name: Upload coverage
+        if: needs.changes.outputs.code == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-data
+          path: |
+            coverage/swift.xml
+            coverage/runtime/lcov.info
+          retention-days: 3
+
   sonarqube:
-    needs: build
+    needs: [changes, build]
     if: github.repository == 'thaw-app/Floe'
     runs-on: ubuntu-latest
     env:
@@ -153,9 +168,58 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # No test target yet, so there is no coverage report to pass.
+      - name: Download coverage
+        if: env.SONAR_ENABLED == 'true' && needs.changes.outputs.code == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-data
+          path: coverage
+
+      # Docs and chore scans skip the build, so reuse the last cached reports rather than
+      # let Sonar publish 0%.
+      - name: Restore cached coverage
+        if: env.SONAR_ENABLED == 'true' && needs.changes.outputs.code != 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: coverage
+          key: sonar-coverage-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            sonar-coverage-${{ github.ref_name }}-
+            sonar-coverage-${{ github.base_ref || 'main' }}-
+            sonar-coverage-main-
+          fail-on-cache-miss: false
+
+      - name: Cache coverage for later scans
+        if: env.SONAR_ENABLED == 'true' && needs.changes.outputs.code == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: coverage
+          key: sonar-coverage-${{ github.ref_name }}-${{ github.sha }}
+
+      # The reports exist only if this run built or restored them, so their paths stay
+      # out of sonar-project.properties.
+      - name: Resolve Sonar coverage args
+        if: env.SONAR_ENABLED == 'true'
+        id: coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -f coverage/swift.xml ]]; then
+            args+=("-Dsonar.coverageReportPaths=coverage/swift.xml")
+          fi
+          if [[ -f coverage/runtime/lcov.info ]]; then
+            args+=("-Dsonar.javascript.lcov.reportPaths=coverage/runtime/lcov.info")
+          fi
+          if [[ ${#args[@]} -eq 0 ]]; then
+            echo "::warning::No coverage reports available; Sonar will publish zero coverage for this analysis."
+          fi
+          echo "args=${args[*]}" >> "$GITHUB_OUTPUT"
+
       - name: SonarQube Scan
         if: env.SONAR_ENABLED == 'true'
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: ${{ steps.coverage.outputs.args }}
