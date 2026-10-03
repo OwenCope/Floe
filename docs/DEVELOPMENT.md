@@ -38,8 +38,12 @@ Commands with required preferences or arguments ask for them in the panel before
 - `runtime/api/index.ts`: the `@raycast/api` stand-in.
 - `extensions/`: one folder per extension (`hello` is a sample, `diagnostics` fails on purpose to exercise the error screen).
 
-- `Sources/Floe/Thaw`: hotkey code ported from Thaw (key codes, Carbon registry, recorder).
+- `Sources/Floe/Thaw`: code ported from Thaw: hotkeys (key codes, Carbon registry, recorder), the HUD, the About page,
+  onboarding and permissions, settings search, the Sparkle updater with its consent sheet, and the App Intents that
+  Shortcuts and Spotlight use (`FloeIntents.swift`).
+- `CREDITS.md` and `Sources/Floe/Credits.swift` are written by `scripts/generate-credits.py`; run it after changing a dependency.
 - `Vendor/ThawUI`: design system copied from thaw-app/Thaw (commit in `Vendor/ThawUI/UPSTREAM`).
+- `Vendor/ThawConcurrency`: Thaw's timeout and one-shot continuation helpers, copied the same way.
 
 ## License
 
@@ -78,9 +82,63 @@ samples instead, including `diagnostics`, which fails on purpose to exercise the
 
 The Swift tests import the app's module directly and never launch it. Logic lives in files that can run
 in a test (`Ranking`, `Manifest`, `ViewState`, `MarkdownParser`, `Shortcuts`, `PropFormat`, `Preferences`,
-`MenuBarLogic`, `Settings`, `Session`); views, the process, the Keychain and Accessibility code are excluded
+`MenuBarLogic`, `Settings`, `Session`, `CommandLookup`, `ThawHUDPlacement`, `UpdateLogic`, the onboarding sequencer,
+permission state and the settings search index); views, the process, the Keychain and Accessibility code are excluded
 from coverage in `sonar-project.properties`, which also states the rule. New decision logic belongs in a
 measured file with a suite beside it.
+
+## Code style
+
+Floe uses [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
+with Thaw's rules, in `.swiftlint.yml` and `.swiftformat`. CI runs SwiftLint in strict mode. Before a commit:
+
+    swiftformat .
+    swiftlint lint --strict
+
+Tests and `Vendor/` are not linted. The size and complexity limits apply to new code only; what predates them is
+listed in `.swiftlint.baseline`.
+
+## Releases and updates
+
+Floe updates itself with [Sparkle](https://sparkle-project.org), the same way Thaw does. The pieces:
+
+- `SUFeedURL` and `SUPublicEDKey` in `project.yml` (the Info.plist source). The feed is
+  `https://thaw-app.github.io/Floe/appcast.xml`, served from this repository's `gh-pages` branch.
+- `Sources/Floe/Thaw/Updates.swift` wraps Sparkle. While `SUPublicEDKey` is empty the app builds no
+  updater: "Check for Updates…" is absent from the status menu, the About page has no updates card, and
+  General has no "Automatically check for updates" switch. The rules are in `UpdateLogic.swift`.
+- With a key, the first time Settings opens a sheet asks whether to check automatically. Sparkle does
+  nothing before that answer except a check the user starts.
+- `.github/workflows/release.yml` builds an existing tag, notarizes it, zips the app, signs an appcast
+  item for it with the `SPARKLE_ED25519_PRIVATE_KEY` secret (`prod` environment), attaches the ZIP to the
+  GitHub Release beside the DMG, and pushes `appcast.xml` to `gh-pages` after the release is published.
+  A tag whose Info.plist has no key skips the Sparkle steps and ships the DMG alone.
+
+Switching updates on, once:
+
+1. `swift build`, then `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account floe`. The private key
+   stays in your login Keychain; the command prints the public key.
+2. Put the public key in `SUPublicEDKey` in `project.yml` and run `xcodegen generate`.
+3. `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account floe -x ~/floe-sparkle.key`, then
+   `./scripts/set-secrets.sh` and answer `@~/floe-sparkle.key` for `SPARKLE_ED25519_PRIVATE_KEY`. Delete the file.
+4. After the first release has pushed `appcast.xml`, turn on GitHub Pages for thaw-app/Floe: Settings,
+   Pages, deploy from the `gh-pages` branch, folder `/`.
+
+Each release:
+
+1. Raise `CFBundleShortVersionString` and `CFBundleVersion` in `project.yml` (and `sonar.projectVersion`),
+   run `xcodegen generate`, commit. Sparkle orders builds by `CFBundleVersion`, a whole number that must go
+   up every time; the workflow stops if it does not.
+2. Tag the commit with the version (`0.2.0`, or `0.2.0-beta.1` for the beta channel) and push the tag.
+3. `./scripts/release.sh` picks the tag and dispatches the workflow. Try a dry run first: it builds and
+   reports the appcast diff and publishes nothing.
+
+Pushing the appcast needs "Publish release" checked, because the appcast links to the release's ZIP. The
+Sparkle tools version in `release.yml` (`sparkle-version` and its checksum) must match `Package.resolved`.
+
+To rehearse an update with a Debug build, serve an appcast locally and point the build at it:
+`defaults write com.thaw.floe FloeDebugFeedURL http://localhost:8000/appcast.xml`. Release builds
+ignore that key, and without it a Debug build refuses to check.
 
 ## Checks
 
@@ -99,5 +157,5 @@ measured file with a suite beside it.
 "Search Menu Bar Items" (root search, or its hotkey in Settings › General) uses the look of Thaw 3's
 inspector search panel, the one Thaw opens from its menu bar icon. Thaw finds and opens items through MenuBarModel and its own runtime; Floe reads
 each app's extras menu bar through the Accessibility API and opens an item by pressing it, so it needs
-only the Accessibility permission. Previews are captured with ScreenCaptureKit when Screen Recording
-is allowed; items Thaw keeps hidden have no preview and may not open from here.
+only the Accessibility permission. It shows no previews of the items, so it never asks for Screen
+Recording; items Thaw keeps hidden may not open from here.

@@ -29,7 +29,7 @@
 
 - One hotkey opens apps and commands, ranked by how often and how recently you use them.
 - Runs Raycast extensions unmodified, including the ones Raycast has already installed, on a Bun runtime that ships inside the app.
-- Searches the menu bar's items and opens their menus from the keyboard. Recently opened items come first, items in view get a preview, and you can give any item your own name.
+- Searches the menu bar's items and opens their menus from the keyboard. Recently opened items come first, and you can give any item your own name.
 - Extension forms, preferences and arguments work. Passwords go in the Keychain.
 - Apps, commands and the menu bar search can each have an alias and a hotkey. Favorites stay at the top.
 - When a command throws, crashes or hangs, Floe shows the log and lets you run it again.
