@@ -63,7 +63,8 @@ command -v bun >/dev/null 2>&1 || {
 }
 
 say "Installing runtime dependencies…"
-(cd runtime && bun install --frozen-lockfile >/dev/null 2>&1 || bun install >/dev/null)
+# No package here needs an install script, so none are allowed to run.
+(cd runtime && bun install --ignore-scripts --frozen-lockfile >/dev/null 2>&1 || bun install --ignore-scripts >/dev/null)
 
 if command -v xcodegen >/dev/null 2>&1; then
     say "Regenerating $PROJECT from project.yml…"
