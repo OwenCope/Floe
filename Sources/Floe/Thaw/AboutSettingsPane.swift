@@ -211,6 +211,12 @@ struct AboutSettingsPane: View {
                 } label: {
                     Text("Credits").underline()
                 }
+                if let url = AppInfo.link("sponsor") {
+                    footerSeparator
+                    Link(destination: url) {
+                        Text("Sponsor").underline()
+                    }
+                }
                 if let url = AppInfo.link("thaw") {
                     footerSeparator
                     Link(destination: url) {

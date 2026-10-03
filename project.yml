@@ -94,6 +94,7 @@ targets:
         FloeLinks:
           repository: https://github.com/thaw-app/Floe
           thaw: https://github.com/thaw-app/Thaw
+          sponsor: https://github.com/sponsors/diazdesandi
           discord: https://discord.gg/KDfWjWDnR4
           raycastExtensions: https://github.com/raycast/extensions
           compactSlider: https://github.com/buh/CompactSlider
@@ -115,9 +116,9 @@ targets:
         # Sparkle updates. The appcast is published to this repository's gh-pages branch by
         # .github/workflows/release.yml.
         SUFeedURL: https://thaw-app.github.io/Floe/appcast.xml
-        # PLACEHOLDER: updates stay off while this is empty. Paste the public key printed by
-        # Sparkle's generate_keys here (see "Releases and updates" in docs/DEVELOPMENT.md).
-        SUPublicEDKey: ""
+        # PLACEHOLDER removed: the EdDSA pair is generated (private half in the login keychain,
+        # account "floe"; see "Releases and updates" in docs/DEVELOPMENT.md).
+        SUPublicEDKey: "hEUA26fN0uTXfnilG4w6FP1zhtaEHVbS7TsUqGW8VsU="
     settings:
       base:
         PRODUCT_NAME: Floe
