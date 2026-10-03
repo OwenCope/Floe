@@ -89,7 +89,12 @@ targets:
       path: Resources/Info.plist
       properties:
         CFBundleDisplayName: Floe
-        NSHumanReadableCopyright: Copyright © 2026 René Jiménez. Licensed under the GNU GPLv3.
+        # Stacked as Thaw's About page stacks copyright lines: Floe's own line,
+        # then the Thaw lines Floe is built on, matching Thaw's About exactly.
+        NSHumanReadableCopyright: |
+          Copyright © 2026 René Jiménez et al.
+          Copyright © 2026 Toni Förster et al.
+          © 2026 Thaw-app
         # Every web link the app opens, so none is hard-coded in source.
         FloeLinks:
           repository: https://github.com/thaw-app/Floe

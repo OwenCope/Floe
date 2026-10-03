@@ -60,7 +60,10 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2026 René Jiménez. Licensed under the GNU GPLv3.</string>
+	<string>Copyright © 2026 René Jiménez et al.
+Copyright © 2026 Toni Förster et al.
+© 2026 Thaw-app
+</string>
 	<key>SUFeedURL</key>
 	<string>https://thaw-app.github.io/Floe/appcast.xml</string>
 	<key>SUPublicEDKey</key>
