@@ -52,33 +52,38 @@ enum LauncherTintKind: String, Codable, CaseIterable, Identifiable {
 }
 
 /// A two-stop linear gradient by angle in degrees; 0 runs top to bottom.
+///
+/// The default stops are Floe's own: the blue gradient of the app icon
+/// (bright blue into deep navy), so the starting palette is the brand's, not
+/// a generic blue-to-purple.
 struct LauncherGradient: Codable, Hashable {
-    var top = StoredColor(Color(red: 0.2, green: 0.4, blue: 0.95))
-    var bottom = StoredColor(Color(red: 0.55, green: 0.25, blue: 0.9))
+    var start = StoredColor(Color(red: 0.07, green: 0.40, blue: 0.90))
+    var end = StoredColor(Color(red: 0.02, green: 0.10, blue: 0.40))
     var angle = 180.0
 
     var style: AnyShapeStyle {
         let radians = angle * .pi / 180
         let start = UnitPoint(x: 0.5 - sin(radians) / 2, y: 0.5 - cos(radians) / 2)
         return AnyShapeStyle(LinearGradient(
-            colors: [top.color, bottom.color],
+            colors: [self.start.color, end.color],
             startPoint: start,
             endPoint: UnitPoint(x: 1 - start.x, y: 1 - start.y)
         ))
     }
 }
 
-/// The tint drawn over the launcher's glass: the kind, its colours, and how
-/// strongly it reads. Thaw's tints sit far below full opacity, so the glass
-/// keeps its depth under the colour.
+/// The tint drawn behind the launcher's content, over the glass: the kind,
+/// its colours, and how strongly it reads. The defaults are the app icon's
+/// own gradient palette, so a chosen tint starts on the brand.
 struct LauncherTint: Codable, Hashable {
     var kind = LauncherTintKind.none
-    var solid = StoredColor(Color(red: 0.2, green: 0.35, blue: 0.9))
+    var solid = StoredColor(Color(red: 0.07, green: 0.40, blue: 0.90))
     var gradient = LauncherGradient()
     var opacity = 0.35
 
-    /// The overlay style for the panel's shape, or nil when no tint is set.
-    var overlayStyle: AnyShapeStyle? {
+    /// The fill for the panel's shape, drawn between the glass and the
+    /// content; nil when no tint is set.
+    var backgroundStyle: AnyShapeStyle? {
         switch kind {
         case .none: nil
         case .solid: AnyShapeStyle(solid.color.opacity(opacity))

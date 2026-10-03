@@ -38,11 +38,21 @@ final class AppSettings: ObservableObject {
     /// True while a hotkey recorder is listening, so the registry can stand down.
     @Published var isRecordingHotkey = false
     /// Thaw-style appearance for the launcher panel: a tint over the glass, an
-    /// optional border, and a shaped drop shadow.
-    @Published var launcherTint = LauncherTint()
+    /// optional border, and a shaped drop shadow. Like Thaw's isDynamic switch,
+    /// the tint can follow the system appearance with separate light and dark
+    /// values, or stay the same in both.
+    @Published var launcherTintIsDynamic = false
+    @Published var launcherTintLight = LauncherTint()
+    @Published var launcherTintDark = LauncherTint()
     @Published var launcherBorder = LauncherBorder()
     @Published var launcherShowsBorder = false
     @Published var launcherShowsShadow = false
+
+    /// The tint a view should draw for the given system appearance.
+    func launcherTint(for colorScheme: ColorScheme) -> LauncherTint {
+        guard launcherTintIsDynamic else { return launcherTintLight }
+        return colorScheme == .dark ? launcherTintDark : launcherTintLight
+    }
 
     private struct Stored: Codable {
         var toggleHotkey: KeyCombination?
@@ -57,6 +67,9 @@ final class AppSettings: ObservableObject {
         var showInDock: Bool?
         var hasSeenOnboarding: Bool?
         var launcherTint: LauncherTint?
+        var launcherTintIsDynamic: Bool?
+        var launcherTintLight: LauncherTint?
+        var launcherTintDark: LauncherTint?
         var launcherBorder: LauncherBorder?
         var launcherShowsBorder: Bool?
         var launcherShowsShadow: Bool?
@@ -82,7 +95,10 @@ final class AppSettings: ObservableObject {
             menuBarItemNames = stored.menuBarItemNames ?? [:]
             showInDock = stored.showInDock ?? false
             hasSeenOnboarding = stored.hasSeenOnboarding ?? false
-            launcherTint = stored.launcherTint ?? launcherTint
+            // A tint saved before light and dark variants existed becomes the light one.
+            launcherTintLight = stored.launcherTintLight ?? stored.launcherTint ?? launcherTintLight
+            launcherTintDark = stored.launcherTintDark ?? launcherTintDark
+            launcherTintIsDynamic = stored.launcherTintIsDynamic ?? launcherTintIsDynamic
             launcherBorder = stored.launcherBorder ?? launcherBorder
             launcherShowsBorder = stored.launcherShowsBorder ?? launcherShowsBorder
             launcherShowsShadow = stored.launcherShowsShadow ?? launcherShowsShadow
@@ -106,7 +122,9 @@ final class AppSettings: ObservableObject {
             menuBarItemNames: menuBarItemNames,
             showInDock: showInDock,
             hasSeenOnboarding: hasSeenOnboarding,
-            launcherTint: launcherTint,
+            launcherTintIsDynamic: launcherTintIsDynamic,
+            launcherTintLight: launcherTintLight,
+            launcherTintDark: launcherTintDark,
             launcherBorder: launcherBorder,
             launcherShowsBorder: launcherShowsBorder,
             launcherShowsShadow: launcherShowsShadow

@@ -69,12 +69,17 @@ struct AppSettingsTests {
         settings.rememberMenuBarQuery = true
         settings.showInDock = true
         settings.hasSeenOnboarding = true
-        settings.launcherTint = LauncherTint(
-            kind: .gradient,
+        settings.launcherTintIsDynamic = true
+        settings.launcherTintLight = LauncherTint(
+            kind: .solid,
             solid: StoredColor(Color(red: 0.2, green: 0.35, blue: 0.9)),
+            opacity: 0.4
+        )
+        settings.launcherTintDark = LauncherTint(
+            kind: .gradient,
             gradient: LauncherGradient(
-                top: StoredColor(Color(red: 0.1, green: 0.2, blue: 0.8)),
-                bottom: StoredColor(Color(red: 0.6, green: 0.2, blue: 0.85)),
+                start: StoredColor(Color(red: 0.1, green: 0.2, blue: 0.8)),
+                end: StoredColor(Color(red: 0.6, green: 0.2, blue: 0.85)),
                 angle: 120
             ),
             opacity: 0.5
@@ -100,10 +105,16 @@ struct AppSettingsTests {
         #expect(reloaded.menuBarItemNames == ["com.a|status": "Renamed"])
         #expect(reloaded.isRecordingHotkey == false, "recording state is not persisted")
 
-        #expect(reloaded.launcherTint.kind == .gradient)
-        #expect(reloaded.launcherTint.opacity == 0.5)
-        #expect(reloaded.launcherTint.gradient.angle == 120)
-        #expect(sameColor(reloaded.launcherTint.gradient.top.color, Color(red: 0.1, green: 0.2, blue: 0.8)))
+        #expect(reloaded.launcherTintIsDynamic)
+        #expect(reloaded.launcherTintLight.kind == .solid)
+        #expect(reloaded.launcherTintLight.opacity == 0.4)
+        #expect(reloaded.launcherTintDark.kind == .gradient)
+        #expect(reloaded.launcherTintDark.opacity == 0.5)
+        #expect(reloaded.launcherTintDark.gradient.angle == 120)
+        #expect(sameColor(reloaded.launcherTintDark.gradient.start.color, Color(red: 0.1, green: 0.2, blue: 0.8)))
+        // The resolution follows the system appearance; this suite runs in light.
+        #expect(reloaded.launcherTint(for: .light).kind == .solid)
+        #expect(reloaded.launcherTint(for: .dark).kind == .gradient)
         #expect(reloaded.launcherBorder.width == 2)
         #expect(reloaded.launcherShowsBorder)
         #expect(reloaded.launcherShowsShadow)
@@ -111,7 +122,8 @@ struct AppSettingsTests {
 
     @Test func appearanceDefaultsPreserveTheCurrentLauncherLook() {
         let settings = AppSettings(defaults: scratch.defaults)
-        #expect(settings.launcherTint.kind == .none, "no tint unless it is chosen")
+        #expect(settings.launcherTint(for: .light).kind == .none, "no tint unless it is chosen")
+        #expect(settings.launcherTint(for: .dark).kind == .none, "both modes start without a tint")
         #expect(settings.launcherShowsBorder == false)
         #expect(settings.launcherShowsShadow == false, "the launcher shipped without a shadow")
     }
