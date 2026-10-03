@@ -316,7 +316,7 @@ struct ActionMenu: View {
         .padding(ThawSpacing.row)
     }
 
-    private func row(_ entry: ExtensionSession.MenuEntry, selected: Bool) -> some View {
+    private func row(_ entry: MenuEntry, selected: Bool) -> some View {
         let action = entry.node
         return HStack(spacing: 9) {
             IconView(value: action.props["icon"], assetsPath: session.command.assetsPath, size: 15)
@@ -324,17 +324,10 @@ struct ActionMenu: View {
                 .foregroundStyle(action.props["style"] as? String == "destructive" ? Color.red : Color.primary)
                 .lineLimit(1)
             Spacer()
-            if let label = Self.shortcutLabel(action.props["shortcut"]) { KeyCap(label) }
+            if let label = Shortcuts.label(action.props["shortcut"]) { KeyCap(label) }
             if entry.isSubmenu { Image(systemName: "chevron.right").font(ThawType.caption).foregroundStyle(.secondary) }
         }
         .modifier(RowBackground(selected: selected))
-    }
-
-    static func shortcutLabel(_ shortcut: Any?) -> String? {
-        guard let shortcut = shortcut as? [String: Any], let key = shortcut["key"] as? String else { return nil }
-        let symbols = ["cmd": "⌘", "shift": "⇧", "opt": "⌥", "alt": "⌥", "ctrl": "⌃"]
-        let modifiers = (shortcut["modifiers"] as? [String] ?? []).compactMap { symbols[$0] }.joined()
-        return modifiers + key.uppercased()
     }
 }
 
@@ -425,33 +418,23 @@ struct AccessoryView: View {
     var body: some View {
         HStack(spacing: 4) {
             if let icon = accessory["icon"] { IconView(value: icon, assetsPath: assetsPath, size: 13) }
-            if let text = Self.text(accessory["text"]) {
-                Text(text).foregroundStyle(Palette.color(Self.color(accessory["text"])) ?? .secondary)
+            if let text = PropFormat.text(accessory["text"]) {
+                Text(text).foregroundStyle(Palette.color(PropFormat.color(accessory["text"])) ?? .secondary)
             }
-            if let tag = Self.text(accessory["tag"]) {
-                let color = Palette.color(Self.color(accessory["tag"])) ?? .secondary
+            if let tag = PropFormat.text(accessory["tag"]) {
+                let color = Palette.color(PropFormat.color(accessory["tag"])) ?? .secondary
                 Text(tag)
                     .foregroundStyle(color)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(color.opacity(0.15), in: .rect(cornerRadius: 5))
             }
-            if let date = Self.date(accessory["date"]) {
+            if let date = PropFormat.date(accessory["date"]) {
                 Text(date, format: .relative(presentation: .numeric, unitsStyle: .narrow)).foregroundStyle(.secondary)
             }
         }
         .font(.system(size: 12))
         .lineLimit(1)
-    }
-
-    static func text(_ value: Any?) -> String? {
-        if let number = value as? NSNumber, !(value is String) { return number.stringValue }
-        return value as? String ?? ((value as? [String: Any])?["value"]).flatMap(text)
-    }
-    static func color(_ value: Any?) -> Any? { (value as? [String: Any])?["color"] }
-    static func date(_ value: Any?) -> Date? {
-        guard let string = value as? String ?? (value as? [String: Any])?["value"] as? String else { return nil }
-        return try? Date(string, strategy: Date.ISO8601FormatStyle(includingFractionalSeconds: true))
     }
 }
 
@@ -512,7 +495,7 @@ struct MetadataRow: View {
                 default:
                     HStack(spacing: 5) {
                         if let icon = node.props["icon"] { IconView(value: icon, assetsPath: assetsPath, size: 13) }
-                        Text(AccessoryView.text(node.props["text"]) ?? "").textSelection(.enabled)
+                        Text(PropFormat.text(node.props["text"]) ?? "").textSelection(.enabled)
                     }
                 }
             }
@@ -521,56 +504,9 @@ struct MetadataRow: View {
     }
 }
 
-/// Block-level Markdown: headings, bullets, fenced code, rules, images and paragraphs with inline styling.
+/// Draws the blocks MarkdownParser finds, with inline styling from AttributedString.
 struct MarkdownView: View {
     let text: String
-
-    private enum Block {
-        case heading(Int, String), paragraph(String), bullet(String), code(String), image(URL), rule
-    }
-
-    private var blocks: [Block] {
-        var blocks: [Block] = []
-        var paragraph: [String] = []
-        var code: [String]?
-        func flush() {
-            if !paragraph.isEmpty { blocks.append(.paragraph(paragraph.joined(separator: " "))) }
-            paragraph = []
-        }
-        for line in text.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("```") {
-                if let lines = code {
-                    blocks.append(.code(lines.joined(separator: "\n")))
-                    code = nil
-                } else {
-                    flush()
-                    code = []
-                }
-            } else if code != nil {
-                code?.append(line)
-            } else if trimmed.isEmpty {
-                flush()
-            } else if let match = trimmed.wholeMatch(of: #/(\#{1,6})\s+(.*)/#) {
-                flush()
-                blocks.append(.heading(match.1.count, String(match.2)))
-            } else if let match = trimmed.wholeMatch(of: #/(?:[-*+]|\d+\.)\s+(.*)/#) {
-                flush()
-                blocks.append(.bullet(String(match.1)))
-            } else if trimmed.wholeMatch(of: #/(-{3,}|\*{3,}|_{3,})/#) != nil {
-                flush()
-                blocks.append(.rule)
-            } else if let match = trimmed.wholeMatch(of: #/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/#), let url = URL(string: String(match.1)) {
-                flush()
-                blocks.append(.image(url))
-            } else {
-                paragraph.append(trimmed)
-            }
-        }
-        if let lines = code { blocks.append(.code(lines.joined(separator: "\n"))) }
-        flush()
-        return blocks
-    }
 
     private func inline(_ string: String) -> AttributedString {
         (try? AttributedString(markdown: string, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(string)
@@ -578,7 +514,7 @@ struct MarkdownView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+            ForEach(Array(MarkdownParser.blocks(text).enumerated()), id: \.offset) { _, block in
                 switch block {
                 case .heading(let level, let text):
                     Text(inline(text)).font(.system(size: [22, 18, 15][min(level, 3) - 1], weight: .semibold))

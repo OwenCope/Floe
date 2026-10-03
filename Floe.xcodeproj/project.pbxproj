@@ -10,51 +10,74 @@
 		032EB45470A494A9B1129BB1 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DCB3DFC16635F2E970DEF1 /* Session.swift */; };
 		0A296B921416DFE1A91C9108 /* KeyCombination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42251D9E5402360C16FC6AAC /* KeyCombination.swift */; };
 		0BC64F0460816DA11AB2F393 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E70D96CFBBB4B6A322E7BDB /* main.swift */; };
+		13DFE4EEA652D6437043D081 /* Ranking.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8233E45D6302FD179B5EDA3 /* Ranking.swift */; };
 		1EE414B8D4D91989A2F64ED1 /* MenuBarItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6517001EBFA66B4BD7F1DA69 /* MenuBarItems.swift */; };
+		3BFD70A5864BDC8FEA732B2A /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8487FD4DDFB449E52573EB31 /* MarkdownParser.swift */; };
 		48306D1D79917D03EAA4F57A /* SearchPanelStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 442606CB5ED8AC44669CA4D4 /* SearchPanelStyle.swift */; };
+		5D4CE2F66CECA7B125BE0738 /* Manifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9282FBD75C06A6410E879C91 /* Manifest.swift */; };
 		65A41DB863188626B29BDE82 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F1EF334F357FB298D0DD9F /* Settings.swift */; };
 		6D78BD03B2BA3DDF1F14B9D8 /* Node.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE235E95146CA7BA1F7ADC3F /* Node.swift */; };
 		7151EAD1E7A84F8F938C5B0B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50ADD0E066254B7397123694 /* SettingsView.swift */; };
+		793CE9F8C14ADDBA6777D252 /* PropFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD3746F8BA517FB6A621DEA /* PropFormat.swift */; };
 		824417A33AE3D6A87DF9AEEA /* AboutSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A91D9CFF52277A3BF983DF /* AboutSettingsPane.swift */; };
 		8A42F8C972048D88BD49C1D3 /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B945A754222839702B06CD /* Views.swift */; };
 		8C3FC9BB1B1CFAC8425C478E /* ThawUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0539F14C5ECF7F15A371B8BA /* ThawUI */; };
+		901D6AEF45D23EF756B25B45 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DE3F78F84572EECD92D5E9D /* Preferences.swift */; };
+		9796DAC2ABB57B5A1B7A66CF /* SystemStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF247D3BD42852E40E2A6E41 /* SystemStores.swift */; };
 		9E04C7EBCECD435BB2D88A7E /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25EC183CDF6B0E67A8C1CFAA /* Catalog.swift */; };
+		AA132FFF87A1D37C08487BAF /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE02887C615B7B2720B554E /* Shortcuts.swift */; };
 		AA9DAAEB1B341B2F73A75834 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D0E68444359C8482786364 /* Model.swift */; };
+		AACD4055F9520803109B4C32 /* ViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4619AC014FF0558378C8FF66 /* ViewState.swift */; };
 		AB822604951E3AAE92E59D05 /* MenuBarSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68564AF5DA9F1E27CBB726B9 /* MenuBarSearchView.swift */; };
 		AC56A0840099872CA023DBFA /* FormViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAFF08383C7623D0B69A028 /* FormViews.swift */; };
+		AE3EFAE36F20360746861997 /* Session+Process.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311C4991F827633E76B2C5E5 /* Session+Process.swift */; };
 		BA801F87D598934046F77403 /* KeyCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC8924ABF92EC374FAB32FB /* KeyCode.swift */; };
 		C6498EE31AE4D16010D5A257 /* HotkeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C88D79A84B3FAC5F8E4332D /* HotkeyRegistry.swift */; };
 		DC2E662CC58403BDAE09B454 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A955598F6D439FDD893F9174 /* ErrorView.swift */; };
 		DE519FFD07518B87C28314BA /* Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219F645E1E608A4BB123BFB4 /* Modifiers.swift */; };
+		EDB220A71026548DB214E898 /* MenuBarLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2207765089964A4BDDF2F7B4 /* MenuBarLogic.swift */; };
 		FA8EA9B40FA7FF26B6D03FB3 /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B83CE1B17D83A1AC6396FF /* HotkeyRecorder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01F1EF334F357FB298D0DD9F /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		05230EAF05CC25AF3298E02F /* project.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = project.yml; sourceTree = "<group>"; };
+		09F9F2D1B0F121548F16E784 /* lcov-to-sonar.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = "lcov-to-sonar.py"; sourceTree = "<group>"; };
 		0C65960D5E02D3842BE4BFEF /* devrun.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = devrun.sh; sourceTree = "<group>"; };
+		0DE3F78F84572EECD92D5E9D /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		158798394491ED46A5DB1CD3 /* make-icon.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = "make-icon.py"; sourceTree = "<group>"; };
 		1E248280C8BC41591C09710E /* set-secrets.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "set-secrets.sh"; sourceTree = "<group>"; };
 		1EAFF08383C7623D0B69A028 /* FormViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormViews.swift; sourceTree = "<group>"; };
 		219F645E1E608A4BB123BFB4 /* Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modifiers.swift; sourceTree = "<group>"; };
+		2207765089964A4BDDF2F7B4 /* MenuBarLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLogic.swift; sourceTree = "<group>"; };
 		25EC183CDF6B0E67A8C1CFAA /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
+		311C4991F827633E76B2C5E5 /* Session+Process.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Session+Process.swift"; sourceTree = "<group>"; };
 		3A4690CBF6FD48F469CE38F1 /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; path = runtime; sourceTree = SOURCE_ROOT; };
 		3C88D79A84B3FAC5F8E4332D /* HotkeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRegistry.swift; sourceTree = "<group>"; };
 		42251D9E5402360C16FC6AAC /* KeyCombination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCombination.swift; sourceTree = "<group>"; };
 		442606CB5ED8AC44669CA4D4 /* SearchPanelStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPanelStyle.swift; sourceTree = "<group>"; };
+		4619AC014FF0558378C8FF66 /* ViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewState.swift; sourceTree = "<group>"; };
 		4E70D96CFBBB4B6A322E7BDB /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		50ADD0E066254B7397123694 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		6517001EBFA66B4BD7F1DA69 /* MenuBarItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItems.swift; sourceTree = "<group>"; };
 		68564AF5DA9F1E27CBB726B9 /* MenuBarSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSearchView.swift; sourceTree = "<group>"; };
 		6AC8924ABF92EC374FAB32FB /* KeyCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCode.swift; sourceTree = "<group>"; };
+		6FD3746F8BA517FB6A621DEA /* PropFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropFormat.swift; sourceTree = "<group>"; };
 		75D0E68444359C8482786364 /* Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
 		78D37EBDD2D6EF547319287E /* ThawUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ThawUI; path = Vendor/ThawUI; sourceTree = SOURCE_ROOT; };
+		8487FD4DDFB449E52573EB31 /* MarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
+		9282FBD75C06A6410E879C91 /* Manifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Manifest.swift; sourceTree = "<group>"; };
+		9BE02887C615B7B2720B554E /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
 		A2B945A754222839702B06CD /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 		A8A91D9CFF52277A3BF983DF /* AboutSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsPane.swift; sourceTree = "<group>"; };
 		A955598F6D439FDD893F9174 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		AE77F4EE054A6C520DC7476B /* Floe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Floe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF247D3BD42852E40E2A6E41 /* SystemStores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStores.swift; sourceTree = "<group>"; };
 		C1B83CE1B17D83A1AC6396FF /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
 		CE235E95146CA7BA1F7ADC3F /* Node.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Node.swift; sourceTree = "<group>"; };
 		D4DCB3DFC16635F2E970DEF1 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		E6F2A419B59FCCDC76E1C76C /* coverage.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = coverage.sh; sourceTree = "<group>"; };
+		E8233E45D6302FD179B5EDA3 /* Ranking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranking.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,14 +126,24 @@
 				A955598F6D439FDD893F9174 /* ErrorView.swift */,
 				1EAFF08383C7623D0B69A028 /* FormViews.swift */,
 				4E70D96CFBBB4B6A322E7BDB /* main.swift */,
+				9282FBD75C06A6410E879C91 /* Manifest.swift */,
+				8487FD4DDFB449E52573EB31 /* MarkdownParser.swift */,
 				6517001EBFA66B4BD7F1DA69 /* MenuBarItems.swift */,
+				2207765089964A4BDDF2F7B4 /* MenuBarLogic.swift */,
 				68564AF5DA9F1E27CBB726B9 /* MenuBarSearchView.swift */,
 				75D0E68444359C8482786364 /* Model.swift */,
 				CE235E95146CA7BA1F7ADC3F /* Node.swift */,
+				0DE3F78F84572EECD92D5E9D /* Preferences.swift */,
+				6FD3746F8BA517FB6A621DEA /* PropFormat.swift */,
+				E8233E45D6302FD179B5EDA3 /* Ranking.swift */,
 				D4DCB3DFC16635F2E970DEF1 /* Session.swift */,
+				311C4991F827633E76B2C5E5 /* Session+Process.swift */,
 				01F1EF334F357FB298D0DD9F /* Settings.swift */,
 				50ADD0E066254B7397123694 /* SettingsView.swift */,
+				9BE02887C615B7B2720B554E /* Shortcuts.swift */,
+				BF247D3BD42852E40E2A6E41 /* SystemStores.swift */,
 				A2B945A754222839702B06CD /* Views.swift */,
+				4619AC014FF0558378C8FF66 /* ViewState.swift */,
 			);
 			path = Floe;
 			sourceTree = "<group>";
@@ -118,7 +151,10 @@
 		1B5786F7E20B373B8DB766B1 /* scripts */ = {
 			isa = PBXGroup;
 			children = (
+				E6F2A419B59FCCDC76E1C76C /* coverage.sh */,
 				0C65960D5E02D3842BE4BFEF /* devrun.sh */,
+				09F9F2D1B0F121548F16E784 /* lcov-to-sonar.py */,
+				158798394491ED46A5DB1CD3 /* make-icon.py */,
 				1E248280C8BC41591C09710E /* set-secrets.sh */,
 			);
 			path = scripts;
@@ -226,7 +262,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\n# Copies the extension host and its React dependencies into the app, plus Bun itself,\n# so the installed app runs without this checkout or a system Bun.\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/runtime\"\nif [ ! -d \"$SRCROOT/runtime/node_modules/react-reconciler\" ]; then\n  echo \"error: runtime dependencies are missing; run 'bun install' in runtime/\"\n  exit 1\nfi\nmkdir -p \"$DEST/bin\"\nrsync -a --delete --exclude smoke.ts --exclude survey.ts --exclude testing.ts --exclude bin \"$SRCROOT/runtime/\" \"$DEST/\"\nBUN=\"\"\nfor candidate in \"${BUN_PATH:-}\" /opt/homebrew/bin/bun \"$HOME/.bun/bin/bun\" /usr/local/bin/bun; do\n  if [ -n \"$candidate\" ] && [ -x \"$candidate\" ]; then BUN=$(realpath \"$candidate\"); break; fi\ndone\nif [ -n \"$BUN\" ]; then\n  cmp -s \"$BUN\" \"$DEST/bin/bun\" || cp -f \"$BUN\" \"$DEST/bin/bun\"\nelse\n  echo \"warning: Bun not found; the app will look for a system copy at runtime\"\nfi\n# Stamp the commit into the built Info.plist for the About page; signing happens after this step.\nCOMMIT=$(git -C \"$SRCROOT\" rev-parse --short HEAD 2>/dev/null || echo \"uncommitted\")\nif [ -n \"$(git -C \"$SRCROOT\" status --porcelain 2>/dev/null | head -1)\" ]; then COMMIT=\"$COMMIT-dirty\"; fi\n/usr/libexec/PlistBuddy -c \"Set :GitCommitSHA $COMMIT\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
+			shellScript = "set -euo pipefail\n# Copies the extension host and its React dependencies into the app, plus Bun itself,\n# so the installed app runs without this checkout or a system Bun.\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/runtime\"\nif [ ! -d \"$SRCROOT/runtime/node_modules/react-reconciler\" ]; then\n  echo \"error: runtime dependencies are missing; run 'bun install' in runtime/\"\n  exit 1\nfi\nmkdir -p \"$DEST/bin\"\nrsync -a --delete --exclude smoke.ts --exclude survey.ts --exclude testing.ts --exclude tests --exclude bunfig.toml --exclude bin \"$SRCROOT/runtime/\" \"$DEST/\"\n# rsync leaves excluded names alone, so drop test files an earlier build copied.\nrm -rf \"$DEST/tests\" \"$DEST/bunfig.toml\" \"$DEST/testing.ts\"\nBUN=\"\"\nfor candidate in \"${BUN_PATH:-}\" /opt/homebrew/bin/bun \"$HOME/.bun/bin/bun\" /usr/local/bin/bun; do\n  if [ -n \"$candidate\" ] && [ -x \"$candidate\" ]; then BUN=$(realpath \"$candidate\"); break; fi\ndone\nif [ -n \"$BUN\" ]; then\n  cmp -s \"$BUN\" \"$DEST/bin/bun\" || cp -f \"$BUN\" \"$DEST/bin/bun\"\nelse\n  echo \"warning: Bun not found; the app will look for a system copy at runtime\"\nfi\n# Stamp the commit into the built Info.plist for the About page; signing happens after this step.\nCOMMIT=$(git -C \"$SRCROOT\" rev-parse --short HEAD 2>/dev/null || echo \"uncommitted\")\nif [ -n \"$(git -C \"$SRCROOT\" status --porcelain 2>/dev/null | head -1)\" ]; then COMMIT=\"$COMMIT-dirty\"; fi\n/usr/libexec/PlistBuddy -c \"Set :GitCommitSHA $COMMIT\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -243,15 +279,25 @@
 				C6498EE31AE4D16010D5A257 /* HotkeyRegistry.swift in Sources */,
 				BA801F87D598934046F77403 /* KeyCode.swift in Sources */,
 				0A296B921416DFE1A91C9108 /* KeyCombination.swift in Sources */,
+				5D4CE2F66CECA7B125BE0738 /* Manifest.swift in Sources */,
+				3BFD70A5864BDC8FEA732B2A /* MarkdownParser.swift in Sources */,
 				1EE414B8D4D91989A2F64ED1 /* MenuBarItems.swift in Sources */,
+				EDB220A71026548DB214E898 /* MenuBarLogic.swift in Sources */,
 				AB822604951E3AAE92E59D05 /* MenuBarSearchView.swift in Sources */,
 				AA9DAAEB1B341B2F73A75834 /* Model.swift in Sources */,
 				DE519FFD07518B87C28314BA /* Modifiers.swift in Sources */,
 				6D78BD03B2BA3DDF1F14B9D8 /* Node.swift in Sources */,
+				901D6AEF45D23EF756B25B45 /* Preferences.swift in Sources */,
+				793CE9F8C14ADDBA6777D252 /* PropFormat.swift in Sources */,
+				13DFE4EEA652D6437043D081 /* Ranking.swift in Sources */,
 				48306D1D79917D03EAA4F57A /* SearchPanelStyle.swift in Sources */,
+				AE3EFAE36F20360746861997 /* Session+Process.swift in Sources */,
 				032EB45470A494A9B1129BB1 /* Session.swift in Sources */,
 				65A41DB863188626B29BDE82 /* Settings.swift in Sources */,
 				7151EAD1E7A84F8F938C5B0B /* SettingsView.swift in Sources */,
+				AA132FFF87A1D37C08487BAF /* Shortcuts.swift in Sources */,
+				9796DAC2ABB57B5A1B7A66CF /* SystemStores.swift in Sources */,
+				AACD4055F9520803109B4C32 /* ViewState.swift in Sources */,
 				8A42F8C972048D88BD49C1D3 /* Views.swift in Sources */,
 				0BC64F0460816DA11AB2F393 /* main.swift in Sources */,
 			);

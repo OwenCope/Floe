@@ -207,7 +207,7 @@ func runSelfTest(extensionName: String, commandName: String) -> Never {
             let summary = markdown.map { "markdown=\($0.prefix(60).debugDescription)" }
                 ?? "rows=\(rows.count) first=\"\(rows[0].node.string("title") ?? "")\""
             print("SELFTEST OK: view=\(session.view?.type ?? "?") \(summary) actions=[\(actions)]")
-            let describe = { (entries: [ExtensionSession.MenuEntry]) in
+            let describe = { (entries: [MenuEntry]) in
                 entries.map { "\($0.section.map { "[\($0)] " } ?? "")\($0.node.string("title") ?? "?")\($0.isSubmenu ? " ›" : "")" }.joined(separator: ", ")
             }
             print("SELFTEST MENU: \(describe(session.menuEntries))")

@@ -453,18 +453,14 @@ struct PreferencesEditor: View {
 
     private func load() {
         values = Dictionary(uniqueKeysWithValues: fields.map { field in
-            let stored = PreferenceStore.value(field, extensionName: extensionName, command: command) ?? field.defaultValue
-            return (field.name, stored.map(LauncherModel.text(from:)) ?? (field.type == "dropdown" ? field.options.first?.value ?? "" : ""))
+            let stored = PreferenceStore.value(field, extensionName: extensionName, command: command)
+            return (field.name, FieldValues.initialText(for: field, stored: stored))
         })
         loaded = true
     }
 
     private func save() {
         guard loaded else { return }
-        let typed = fields.reduce(into: [String: Any]()) { result, field in
-            let text = values[field.name] ?? ""
-            result[field.name] = field.type == "checkbox" ? (text == "true") : text
-        }
-        PreferenceStore.save(typed, fields: fields, extensionName: extensionName, command: command)
+        PreferenceStore.save(FieldValues.typed(values, fields: fields), fields: fields, extensionName: extensionName, command: command)
     }
 }

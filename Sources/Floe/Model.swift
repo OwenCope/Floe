@@ -82,45 +82,10 @@ final class LauncherModel: ObservableObject {
     private func refresh() {
         selection = 0
         let all = commands.map(RootItem.command) + apps.map(RootItem.app) + [RootItem.menuBarSearch, RootItem.settings]
-        results = query.isEmpty ? browseResults(all) : searchResults(all)
-    }
-
-    /// No query: favourites, then recently used, then commands and applications.
-    private func browseResults(_ all: [RootItem]) -> [RootResult] {
-        let byID = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let favorites = settings.favorites.compactMap { byID[$0] }
-        let favoriteIDs = Set(favorites.map(\.id))
-        let suggestions = all
-            .filter { !favoriteIDs.contains($0.id) && usage.frecency(of: $0.id) > 0 }
-            .sorted { usage.frecency(of: $0.id) > usage.frecency(of: $1.id) }
-            .prefix(5)
-        let shown = favoriteIDs.union(suggestions.map(\.id))
-        let rest = all.filter { !shown.contains($0.id) }
-        return favorites.map { RootResult(item: $0, section: "Favorites") }
-            + suggestions.map { RootResult(item: $0, section: "Suggestions") }
-            + rest.filter { if case .app = $0 { false } else { true } }.map { RootResult(item: $0, section: "Commands") }
-            + rest.filter { if case .app = $0 { true } else { false } }.map { RootResult(item: $0, section: "Applications") }
-    }
-
-    /// With a query: match quality first, nudged by how often and how recently each item is used.
-    private func searchResults(_ all: [RootItem]) -> [RootResult] {
-        all.compactMap { item -> (RootItem, Double)? in
-            guard let match = score(item) else { return nil }
-            let boost = min(20, usage.frecency(of: item.id) * 2) + (settings.favorites.contains(item.id) ? 5 : 0)
-            return (item, Double(match) + boost)
-        }
-        .sorted { $0.1 > $1.1 }
-        .prefix(40)
-        .map { RootResult(item: $0.0, section: nil) }
-    }
-
-    /// An exact alias wins outright; an alias prefix ranks with a title prefix.
-    private func score(_ item: RootItem) -> Int? {
-        let titleScore = Fuzzy.score(query, item.title)
-        guard let alias = alias(for: item)?.lowercased() else { return titleScore }
-        if alias == query.lowercased() { return 1000 }
-        if alias.hasPrefix(query.lowercased()) { return max(titleScore ?? 0, 95) }
-        return titleScore
+        let frecency = { [usage] (id: String) in usage.frecency(of: id) }
+        results = query.isEmpty
+            ? Ranking.browse(all, favorites: settings.favorites, frecency: frecency)
+            : Ranking.search(all, query: query, favorites: settings.favorites, alias: alias(for:), frecency: frecency)
     }
 
     func alias(for item: RootItem) -> String? {
@@ -232,10 +197,7 @@ final class LauncherModel: ObservableObject {
         }
         menuBarResults = menuBarExtras
             .compactMap { extra -> (MenuBarExtra, Int)? in
-                let byName = Fuzzy.score(query, displayName(for: extra))
-                let byOwner = Fuzzy.score(query, extra.ownerName).map { $0 - 10 }
-                guard let score = [byName, byOwner].compactMap({ $0 }).max() else { return nil }
-                return (extra, score)
+                Ranking.menuBarScore(query: query, name: displayName(for: extra), owner: extra.ownerName).map { (extra, $0) }
             }
             .sorted { $0.1 > $1.1 }
             .map { MenuBarResult(extra: $0.0, section: nil) }
@@ -311,7 +273,7 @@ final class LauncherModel: ObservableObject {
     }
 
     func openMenuBarExtra(_ extra: MenuBarExtra) {
-        menuBarRecents.record(extra)
+        menuBarRecents.record(extra.id)
         hidePanel()
         reset()
         // Pressed once the panel is gone, so the menu opens over the app the user came from.
@@ -344,9 +306,9 @@ final class LauncherModel: ObservableObject {
         for field in request.fields {
             let scope = request.command.commandPreferences.contains { $0.name == field.name } ? request.command : nil
             let stored = request.kind == .preferences
-                ? PreferenceStore.value(field, extensionName: request.command.extensionName, command: scope) ?? field.defaultValue
-                : field.defaultValue
-            values[field.name] = stored.map(Self.text(from:)) ?? (field.type == "dropdown" ? field.options.first?.value : nil) ?? ""
+                ? PreferenceStore.value(field, extensionName: request.command.extensionName, command: scope)
+                : nil
+            values[field.name] = FieldValues.initialText(for: field, stored: stored)
         }
         setupValues = values
         setupError = nil
@@ -357,15 +319,12 @@ final class LauncherModel: ObservableObject {
 
     func submitSetup() {
         guard let request = setup else { return }
-        let missing = request.fields.filter { $0.required && $0.type != "checkbox" && (setupValues[$0.name] ?? "").isEmpty }
+        let missing = FieldValues.missing(request.fields, texts: setupValues)
         guard missing.isEmpty else {
             setupError = "Fill in \(missing.map(\.title).joined(separator: ", "))."
             return
         }
-        let values = request.fields.reduce(into: [String: Any]()) { result, field in
-            let text = setupValues[field.name] ?? ""
-            result[field.name] = field.type == "checkbox" ? (text == "true") : text
-        }
+        let values = FieldValues.typed(setupValues, fields: request.fields)
         setup = nil
         switch request.kind {
         case .preferences:
@@ -381,11 +340,6 @@ final class LauncherModel: ObservableObject {
     func cancelSetup() {
         setup = nil
         focusToken += 1
-    }
-
-    static func text(from value: Any) -> String {
-        if let bool = value as? Bool { return bool ? "true" : "false" }
-        return value as? String ?? "\(value)"
     }
 
     private func launch(_ command: ExtensionCommand, arguments: [String: Any]) {
@@ -538,7 +492,7 @@ final class LauncherModel: ObservableObject {
             return true
         }
         if isSearchingMenuBar {
-            if let delta = Self.navigationDelta(event.keyCode) {
+            if let delta = Shortcuts.navigationDelta(event.keyCode) {
                 menuBarSelection = max(0, min(menuBarSelection + delta, menuBarResults.count - 1))
                 return true
             }
@@ -563,7 +517,7 @@ final class LauncherModel: ObservableObject {
         if let session, session.command.mode == "view" {
             return handleSessionKey(event, flags, session)
         }
-        if let delta = Self.navigationDelta(event.keyCode) {
+        if let delta = Shortcuts.navigationDelta(event.keyCode) {
             selection = max(0, min(selection + delta, results.count - 1))
             return true
         }
@@ -575,19 +529,6 @@ final class LauncherModel: ObservableObject {
         default: return false
         }
         return true
-    }
-
-    /// ↑↓ move by one, Page Up/Down by a screenful, Home/End to the ends.
-    static func navigationDelta(_ keyCode: UInt16) -> Int? {
-        switch keyCode {
-        case 125: 1
-        case 126: -1
-        case 121: 9
-        case 116: -9
-        case 119: Int.max / 2
-        case 115: -(Int.max / 2)
-        default: nil
-        }
     }
 
     private func handleSessionKey(_ event: NSEvent, _ flags: NSEvent.ModifierFlags, _ session: ExtensionSession) -> Bool {
@@ -606,7 +547,7 @@ final class LauncherModel: ObservableObject {
         if session.actionMenuOpen, handleActionMenuKey(event, flags, session) {
             return true
         }
-        if let delta = Self.navigationDelta(event.keyCode) {
+        if let delta = Shortcuts.navigationDelta(event.keyCode) {
             session.moveSelection(by: delta)
             return true
         }
@@ -621,7 +562,7 @@ final class LauncherModel: ObservableObject {
         case 40 where flags == .command:
             session.actionMenuOpen = true
         default:
-            guard !flags.isEmpty, let action = actions.first(where: { Self.matches($0.props["shortcut"], event, flags) }) else { return false }
+            guard !flags.isEmpty, let action = actions.first(where: { Shortcuts.matches($0.props["shortcut"], key: event.charactersIgnoringModifiers, flags: flags) }) else { return false }
             session.run(action)
         }
         return true
@@ -629,7 +570,7 @@ final class LauncherModel: ObservableObject {
 
     /// While the action menu is open, typing searches it, ↵ runs or opens a submenu, ← and Esc step back.
     private func handleActionMenuKey(_ event: NSEvent, _ flags: NSEvent.ModifierFlags, _ session: ExtensionSession) -> Bool {
-        if let delta = Self.navigationDelta(event.keyCode) {
+        if let delta = Shortcuts.navigationDelta(event.keyCode) {
             session.moveSelection(by: delta)
             return true
         }
@@ -652,20 +593,5 @@ final class LauncherModel: ObservableObject {
             session.actionQuery += characters
         }
         return true
-    }
-
-    private static func matches(_ shortcut: Any?, _ event: NSEvent, _ flags: NSEvent.ModifierFlags) -> Bool {
-        guard let shortcut = shortcut as? [String: Any], let key = shortcut["key"] as? String else { return false }
-        var expected: NSEvent.ModifierFlags = []
-        for modifier in shortcut["modifiers"] as? [String] ?? [] {
-            switch modifier {
-            case "cmd": expected.insert(.command)
-            case "shift": expected.insert(.shift)
-            case "opt", "alt": expected.insert(.option)
-            case "ctrl": expected.insert(.control)
-            default: break
-            }
-        }
-        return expected == flags && event.charactersIgnoringModifiers?.lowercased() == key.lowercased()
     }
 }
