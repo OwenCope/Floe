@@ -19,12 +19,10 @@ SECRETS=(
     "APPLE_TEAM_ID|prod|signing|Your 10-character Apple Developer team ID, from developer.apple.com/account under Membership details."
     "APPLE_ID|prod|notarization|The Apple ID email of the developer account that notarizes the app."
     "APPLE_ID_PASSWORD|prod|notarization|An app-specific password for that Apple ID, created at account.apple.com under Sign-In and Security, App-Specific Passwords. Not your account password."
+    "SPARKLE_ED25519_PRIVATE_KEY|prod|updates|The private half of the Sparkle EdDSA key that signs update ZIPs and the appcast. Generate the pair once: after swift build, run .build/artifacts/sparkle/Sparkle/bin/generate_keys --account floe. It stores the private key in your login Keychain and prints the public key, which goes in SUPublicEDKey in project.yml. Then export the private key with generate_keys --account floe -x ~/floe-sparkle.key, answer here with @~/floe-sparkle.key, and delete that file. Keep the Keychain item: a lost key means installed copies can no longer update."
     "SONAR_TOKEN||analysis|Token for the SonarQube Cloud scan in CI. Create it at sonarcloud.io under My Account, Security. It stays a repository secret because the scan runs on every push and pull request."
     "SCORECARD_READ_TOKEN||optional|Fine-grained personal access token for the Scorecard workflow, so its Branch-Protection check can read the repository's settings. Create it at github.com/settings/personal-access-tokens with access to thaw-app/Floe and read-only Administration. Without it the workflow falls back to its own token and that one check is less complete."
 )
-
-# Not used by any workflow yet. Add a line above when the work lands:
-#   SPARKLE_ED25519_PRIVATE_KEY  if Floe ships Sparkle updates
 
 command -v gh >/dev/null 2>&1 || {
     echo "gh is not installed (brew install gh)" >&2

@@ -7,9 +7,9 @@
 //
 //  Floe changes © 2026 René Jiménez, under the same license.
 //
-//  Ported to Floe from Thaw 3: Floe has no updater or changelog yet, so the updates card and
-//  What's New are left out, and the "more" menu keeps the destinations Floe has. Credits open
-//  Floe's own acknowledgements.
+//  Ported to Floe from Thaw 3: Floe has no changelog yet, so What's New is left out, and the
+//  "more" menu keeps the destinations Floe has. Credits open Floe's own acknowledgements. The
+//  updates card shows only in a build that can update (see UpdatesManager.isAvailable).
 
 import AppKit
 import SwiftUI
@@ -29,8 +29,13 @@ enum AppInfo {
         links[name].flatMap(URL.init(string:))
     }
 
-    static var repositoryURL: URL? { link("repository") }
-    static var issuesURL: URL? { repositoryURL?.appendingPathComponent("issues") }
+    static var repositoryURL: URL? {
+        link("repository")
+    }
+
+    static var issuesURL: URL? {
+        repositoryURL?.appendingPathComponent("issues")
+    }
 
     static var buildDescription: String {
         """
@@ -48,6 +53,8 @@ struct AboutSettingsPane: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
+    @Bindable private var updatesManager = UpdatesManager.shared
+
     private static let iconSize: CGFloat = 96
 
     /// Half the icon, so the name beside it does not outweigh it.
@@ -63,6 +70,9 @@ struct AboutSettingsPane: View {
         ScrollView {
             VStack(spacing: 24) {
                 identity
+                if updatesManager.isAvailable {
+                    updates
+                }
                 actions
                 footer
             }
@@ -163,7 +173,9 @@ struct AboutSettingsPane: View {
     private var actions: some View {
         HStack(spacing: 8) {
             Button("Report a Bug") {
-                if let url = AppInfo.issuesURL { openURL(url) }
+                if let url = AppInfo.issuesURL {
+                    openURL(url)
+                }
             }
             Button("Extensions Folder") {
                 NSWorkspace.shared.activateFileViewerSelecting([Paths.extensions])
@@ -242,7 +254,9 @@ struct AboutSettingsPane: View {
             menu.addItem(item(String(localized: "Join the Discord"), "bubble.left.and.bubble.right") { openURL(url) })
         }
         menu.addItem(item(String(localized: "Raycast Extension Store"), "storefront") {
-            if let url = AppInfo.link("raycastExtensions") { openURL(url) }
+            if let url = AppInfo.link("raycastExtensions") {
+                openURL(url)
+            }
         })
         menu.addItem(.separator())
         menu.addItem(item(String(localized: "Acknowledgements"), "text.book.closed") { isShowingCredits = true })
@@ -250,6 +264,78 @@ struct AboutSettingsPane: View {
         // The anchor's own coordinate system is not flipped, so minY is its
         // bottom edge and the menu opens just below the button.
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.minY), in: anchor)
+    }
+
+    // MARK: Updates
+
+    /// Pickers are made borderless explicitly, since outside a Form they
+    /// default to bordered. The two Sparkle switches are one picker:
+    /// downloading implies checking.
+    private var updates: some View {
+        VStack(spacing: 0) {
+            updateRow("Update channel") {
+                Picker("Update channel", selection: $updatesManager.updateChannel) {
+                    ForEach(UpdateChannel.allCases) { channel in
+                        Text(channel.title).tag(channel)
+                    }
+                }
+                .pickerStyle(.menu)
+                .buttonStyle(.borderless)
+            }
+            Divider()
+            updateRow("Automatic updates") {
+                Picker("Automatic updates", selection: automaticUpdatesMode) {
+                    ForEach(AutomaticUpdates.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.menu)
+                .buttonStyle(.borderless)
+            }
+            Divider()
+            updateRow(UpdateText.lastChecked(updatesManager.lastUpdateCheckDate), isSecondary: true) {
+                Button("Check for Updates…") {
+                    updatesManager.checkForUpdates()
+                }
+                .buttonStyle(.settingsGlass)
+                .disabled(!updatesManager.canCheckNow)
+            }
+        }
+        .font(.callout)
+        .background(.quinary, in: RoundedRectangle(cornerRadius: ThawRadius.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: ThawRadius.card, style: .continuous)
+                .strokeBorder(.separator.opacity(0.5), lineWidth: 0.5)
+        }
+    }
+
+    private func updateRow(
+        _ label: String,
+        isSecondary: Bool = false,
+        @ViewBuilder control: () -> some View
+    ) -> some View {
+        HStack {
+            Text(label)
+                .foregroundStyle(isSecondary ? AnyShapeStyle(ThawInk.supporting) : AnyShapeStyle(.primary))
+            Spacer(minLength: 12)
+            control()
+                .labelsHidden()
+                .fixedSize()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    private var automaticUpdatesMode: Binding<AutomaticUpdates> {
+        Binding {
+            AutomaticUpdates(
+                checks: updatesManager.automaticallyChecksForUpdates,
+                downloads: updatesManager.automaticallyDownloadsUpdates
+            )
+        } set: { mode in
+            updatesManager.automaticallyChecksForUpdates = mode.checks
+            updatesManager.automaticallyDownloadsUpdates = mode.downloads
+        }
     }
 
     // MARK: Helpers
@@ -278,23 +364,15 @@ struct AboutSettingsPane: View {
     }
 }
 
-/// What Floe is built from.
+/// What Floe is built from. The list is Credits.all, which scripts/generate-credits.py writes
+/// from the dependencies, so this sheet and CREDITS.md stay the same.
 private struct CreditsView: View {
     @Environment(\.dismiss) private var dismiss
-
-    /// `link` names an entry in Info.plist's FloeLinks.
-    private let credits: [(name: String, detail: String, link: String)] = [
-        ("Thaw", "ThawUI, the hotkey code and the search panel design. GPL-3.0.", "thaw"),
-        ("CompactSlider", "Used by ThawUI. MIT.", "compactSlider"),
-        ("Bun", "Runs extensions. MIT.", "bun"),
-        ("React", "Extension rendering, with react-reconciler. MIT.", "react"),
-        ("Raycast extensions", "The API Floe implements; each extension keeps its own license.", "raycastExtensions"),
-    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: ThawSpacing.inset) {
             Text("Acknowledgements").font(ThawType.heading)
-            ForEach(credits, id: \.name) { credit in
+            ForEach(Credits.all) { credit in
                 VStack(alignment: .leading, spacing: 2) {
                     if let url = AppInfo.link(credit.link) {
                         Link(credit.name, destination: url)
@@ -304,7 +382,7 @@ private struct CreditsView: View {
                     Text(credit.detail).font(.callout).foregroundStyle(ThawInk.supporting)
                 }
             }
-            Text("Raycast is a trademark of Raycast Technologies Inc. Floe is not affiliated with Raycast.")
+            Text(Credits.trademark)
                 .font(.footnote)
                 .foregroundStyle(ThawInk.supporting)
             HStack {
