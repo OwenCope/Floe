@@ -11,7 +11,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import React from "react";
-import { ctx, handlePop, handlePopToRoot, send, type Manifest } from "./bridge";
+import { ctx, handlePop, handlePopToRoot, handleReply, handleReplyChunk, send, type Manifest } from "./bridge";
 import { dispatchEvent, render, toError } from "./renderer";
 import { NavigationRoot } from "./api/index";
 import { bundle, findEntry } from "./build";
@@ -61,6 +61,8 @@ process.stdin.on("data", (chunk: Buffer) => {
     if (message.type === "event") dispatchEvent(message.id, message.prop, message.args ?? []);
     else if (message.type === "pop") handlePop();
     else if (message.type === "popToRoot") handlePopToRoot();
+    else if (message.type === "replyChunk") handleReplyChunk(message);
+    else if (message.type === "reply") handleReply(message);
     // The app's watchdog: a host stuck in synchronous code cannot answer.
     else if (message.type === "ping") send({ type: "pong" });
   }

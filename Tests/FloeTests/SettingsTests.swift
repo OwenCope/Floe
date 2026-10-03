@@ -120,6 +120,21 @@ struct AppSettingsTests {
         #expect(reloaded.launcherShowsShadow)
     }
 
+    @Test func theAIChoiceStartsWithTheToolsAndComesBackAfterASave() {
+        let settings = AppSettings(defaults: scratch.defaults)
+        #expect(settings.aiSource == .tools)
+        #expect(settings.aiBaseURL == AIEndpoint.defaultBaseURL)
+        #expect(settings.aiModel.isEmpty)
+        settings.aiSource = .api
+        settings.aiBaseURL = "http://localhost:11434/v1"
+        settings.aiModel = "small"
+        settings.save()
+        let reloaded = AppSettings(defaults: scratch.defaults)
+        #expect(reloaded.aiSource == .api)
+        #expect(reloaded.aiBaseURL == "http://localhost:11434/v1")
+        #expect(reloaded.aiModel == "small")
+    }
+
     @Test func appearanceDefaultsPreserveTheCurrentLauncherLook() {
         let settings = AppSettings(defaults: scratch.defaults)
         #expect(settings.launcherTint(for: .light).kind == .none, "no tint unless it is chosen")

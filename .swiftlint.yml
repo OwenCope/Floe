@@ -60,15 +60,16 @@ custom_rules:
     message: "Indentation should use 4 spaces per indentation level instead of tabs"
     regex: ^\t
 
-# Floe's own files carry Floe's copyright line. Files ported from Thaw keep
-# Thaw's line, followed by one for Floe's changes.
+# Floe's own files carry Floe's copyright line. Files ported from Thaw or Droppy Code
+# keep the original's line, followed by one for Floe's changes; Droppy Code's license
+# also asks for its attribution line in each file.
 file_header:
   required_pattern: |-
     //
     //  SWIFTLINT_CURRENT_FILENAME
-    //  Project: (Floe|Thaw)
+    //  Project: (Floe|Thaw|Droppy Code)
     //
-    //  Copyright \((Floe\) © 2026 René Jiménez|Thaw\) © 2026 Toni Förster)
+    //  Copyright \((Floe\) © 2026 René Jiménez|Thaw\) © 2026 Toni Förster|Droppy Code\) © 2026 Jordy Spruit\n//  Droppy Code by Jordy Spruit \(Droppy\), https://getdroppycode\.app)
 
 modifier_order:
   preferred_modifier_order:

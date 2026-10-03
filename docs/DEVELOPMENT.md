@@ -41,13 +41,20 @@ Commands with required preferences or arguments ask for them in the panel before
 - `Sources/Floe/Thaw`: code ported from Thaw: hotkeys (key codes, Carbon registry, recorder), the HUD, the About page,
   onboarding and permissions, settings search, the Sparkle updater with its consent sheet, and the App Intents that
   Shortcuts and Spotlight use (`FloeIntents.swift`).
+- `Sources/Floe/DroppyCode`: code ported from Droppy Code. Each file keeps Droppy Code's copyright and credit line
+  and says what Floe changed; `docs/licenses` holds its license and third-party notices.
+  - `LoginEnvironment.swift` reads the login shell's environment, which extensions start with, and `Shell.swift` runs
+    a tool with a timeout.
+  - `AI.ask` is answered by one-shot `claude` or `codex` runs (`TextGeneration.swift`) or by a streamed request to an
+    OpenAI-compatible API (`ChatCompletionStream.swift`). Settings › General › AI picks between them; the choice and
+    the request an extension makes are in `HostRequest.swift`.
 - `CREDITS.md` and `Sources/Floe/Credits.swift` are written by `scripts/generate-credits.py`; run it after changing a dependency.
 - `Vendor/ThawUI`: design system copied from thaw-app/Thaw (commit in `Vendor/ThawUI/UPSTREAM`).
 - `Vendor/ThawConcurrency`: Thaw's timeout and one-shot continuation helpers, copied the same way.
 
 ## License
 
-AGPL-3.0. ThawUI and the other code from Thaw stay under GPL-3.0, which the AGPL allows combining with. Extensions under `extensions/` keep their own licenses.
+AGPL-3.0. ThawUI and the other code from Thaw stay under GPL-3.0, which the AGPL allows combining with. The code from Droppy Code is AGPL-3.0 with the attribution terms in `docs/licenses/DroppyCode-LICENSE`. Extensions under `extensions/` keep their own licenses.
 
 ## Adding an extension
 

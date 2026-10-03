@@ -79,6 +79,10 @@ final class ExtensionSession: ObservableObject {
     private(set) var log = ""
     var isStopping = false
     var watchdog: Timer?
+    /// Answers what the extension asks the app for; tests replace it.
+    var answer: @Sendable (HostRequest, @Sendable (String) async -> Void) async throws -> String = HostRequest.answer
+    /// Requests still being answered, by the id the host gave them (see Session+Requests.swift).
+    var pendingRequests: [Int: Task<Void, Never>] = [:]
     private(set) var pingSentAt: Date?
     private var suppressSearchEvent = false
 
@@ -160,7 +164,10 @@ final class ExtensionSession: ObservableObject {
         case "clearSearchBar":
             searchText = ""
         default:
-            onMessage(fields)
+            // Requests are in Session+Requests.swift; the rest is the model's.
+            if !handleRequest(fields) {
+                onMessage(fields)
+            }
         }
     }
 
@@ -174,6 +181,7 @@ final class ExtensionSession: ObservableObject {
     /// Exit status 0 is a normal finish; anything else, or a signal, is a crash unless we asked it to stop.
     func processEnded(status: Int32, wasSignalled: Bool) {
         watchdog?.invalidate()
+        cancelRequests()
         guard !isStopping else { return }
         if status == 0, !wasSignalled {
             onMessage(["type": "exit"])

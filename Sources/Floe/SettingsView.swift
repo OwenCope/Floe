@@ -305,6 +305,7 @@ struct GeneralSettingsView: View {
                 )
             }
             PermissionsSettingsSection()
+            AISettingsSection(settings: settings)
             ThawSection("Extensions") {
                 Toggle(isOn: $settings.includeRaycastExtensions) {
                     Text("Include extensions installed in Raycast")

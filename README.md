@@ -48,7 +48,8 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [ ] Pasting into the frontmost app
 - [ ] Confirmation dialogs inside the panel
 - [ ] `launchCommand` and deeplinks
-- [ ] AI and AI tools
+- [x] `AI.ask`, answered by the `claude` or `codex` tool you are signed in to, or streamed from an OpenAI-compatible API with your key
+- [ ] AI tools
 - [ ] Grid layout and full detail metadata
 - [ ] App picker for preferences
 - [ ] Toast actions
@@ -85,6 +86,7 @@ Read the shared [Thaw/Floe contribution policy](https://github.com/thaw-app/.git
 ## Acknowledgments
 
 - [Thaw](https://github.com/thaw-app/Thaw): the ThawUI design system, the hotkey code, and the designs for the search panel, the settings sidebar and the About page. GPL-3.0.
+- Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, and the tools and the streamed API request that answer `AI.ask`, each modified for Floe ([source](https://gitlab.com/droppyformac1/droppy-code)). AGPL-3.0 with attribution terms; its license and third-party notices are in [docs/licenses](docs/licenses).
 - [CompactSlider](https://github.com/buh/CompactSlider), used by ThawUI. MIT.
 - [Bun](https://bun.sh), which runs extensions. MIT.
 - [React](https://react.dev) and react-reconciler, which render them. MIT.

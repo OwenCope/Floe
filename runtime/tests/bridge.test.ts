@@ -6,7 +6,7 @@
 //  Licensed under the GNU AGPLv3
 
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import { handlePop, handlePopToRoot, send, setPopHandler, setPopToRootHandler, setSink } from "../bridge";
+import { handlePop, handlePopToRoot, handleReply, request, send, setPopHandler, setPopToRootHandler, setSink } from "../bridge";
 
 afterEach(() => {
   setSink();
@@ -46,5 +46,25 @@ describe("pop handlers", () => {
     handlePop();
     handlePopToRoot();
     expect(calls).toEqual(["pop", "popToRoot"]);
+  });
+});
+
+describe("requests", () => {
+  test("each request gets its own id, and a reply settles only the request it names", async () => {
+    const messages: Record<string, any>[] = [];
+    setSink((line) => messages.push(JSON.parse(line)));
+    const first = request<string>("ai.ask", { prompt: "one" });
+    const second = request<string>("ai.ask");
+    expect(messages.map((message) => message.type)).toEqual(["request", "request"]);
+    expect(messages[0].id).not.toBe(messages[1].id);
+    expect(messages[1].params).toEqual({});
+    handleReply({ id: messages[1].id, result: "second" });
+    handleReply({ id: messages[0].id, error: "first failed" });
+    expect(await second).toBe("second");
+    await expect(first).rejects.toThrow("first failed");
+  });
+
+  test("a reply nobody is waiting for is ignored", () => {
+    expect(() => handleReply({ id: -1, result: "stray" })).not.toThrow();
   });
 });

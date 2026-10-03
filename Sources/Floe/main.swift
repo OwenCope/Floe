@@ -298,6 +298,24 @@ if options.benchSettings {
             try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
         }
     }
+    // General's AI section sits below the fold, so each of its states is drawn on its own, on scratch settings.
+    if let directory = ProcessInfo.processInfo.environment["FLOE_BENCH_DUMP"], let scratch = UserDefaults(suiteName: "floe.bench.\(UUID().uuidString)") {
+        let states: [(String, AISource, String, String?)] = [("ai-tools", .tools, "", nil), ("ai-api", .api, "small", "key-123"), ("ai-api-incomplete", .api, "", nil)]
+        for (name, source, aiModel, key) in states {
+            let settings = AppSettings(defaults: scratch)
+            settings.aiSource = source
+            settings.aiModel = aiModel
+            let section = Form { AISettingsSection(settings: settings, storedKey: key ?? "") }.formStyle(.grouped).frame(width: 600, height: 320)
+            window.contentView = NSHostingView(rootView: section)
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            window.contentView?.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            if let view = window.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
+            }
+        }
+    }
     exit(0)
 }
 
@@ -362,6 +380,9 @@ if let path = options.panelSnapshot {
 if options.selftest.count == 2 {
     runSelfTest(extensionName: options.selftest[0], commandName: options.selftest[1])
 }
+
+// Read once, in the background: extensions and AI.ask run tools found on the login shell's PATH.
+Task { await LoginEnvironment.load() }
 
 let delegate = AppDelegate()
 NSApplication.shared.delegate = delegate

@@ -47,6 +47,11 @@ final class AppSettings: ObservableObject {
     @Published var launcherBorder = LauncherBorder()
     @Published var launcherShowsBorder = false
     @Published var launcherShowsShadow = false
+    /// What answers an extension's `AI.ask`, and where the API is when that is the choice.
+    /// The API's key is in the Keychain (`AIEndpoint.keychainAccount`).
+    @Published var aiSource = AISource.tools
+    @Published var aiBaseURL = AIEndpoint.defaultBaseURL
+    @Published var aiModel = ""
 
     /// The tint a view should draw for the given system appearance.
     func launcherTint(for colorScheme: ColorScheme) -> LauncherTint {
@@ -73,6 +78,9 @@ final class AppSettings: ObservableObject {
         var launcherBorder: LauncherBorder?
         var launcherShowsBorder: Bool?
         var launcherShowsShadow: Bool?
+        var aiSource: AISource?
+        var aiBaseURL: String?
+        var aiModel: String?
     }
 
     private static let defaultsKey = "settings"
@@ -102,6 +110,9 @@ final class AppSettings: ObservableObject {
             launcherBorder = stored.launcherBorder ?? launcherBorder
             launcherShowsBorder = stored.launcherShowsBorder ?? launcherShowsBorder
             launcherShowsShadow = stored.launcherShowsShadow ?? launcherShowsShadow
+            aiSource = stored.aiSource ?? aiSource
+            aiBaseURL = stored.aiBaseURL ?? aiBaseURL
+            aiModel = stored.aiModel ?? aiModel
         }
         cancellable = objectWillChange
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
@@ -127,7 +138,10 @@ final class AppSettings: ObservableObject {
             launcherTintDark: launcherTintDark,
             launcherBorder: launcherBorder,
             launcherShowsBorder: launcherShowsBorder,
-            launcherShowsShadow: launcherShowsShadow
+            launcherShowsShadow: launcherShowsShadow,
+            aiSource: aiSource,
+            aiBaseURL: aiBaseURL,
+            aiModel: aiModel
         )
         if let data = try? JSONEncoder().encode(stored) {
             defaults.set(data, forKey: Self.defaultsKey)

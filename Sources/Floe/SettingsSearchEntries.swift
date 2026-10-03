@@ -190,6 +190,31 @@ extension SearchIndex {
             section: "Extensions",
             keywords: ["bun", "javascript", "node", "engine"]
         ),
+        .general(
+            "aiSource",
+            "Answer AI requests with",
+            description: "Extensions that ask AI a question get their answer from here.",
+            section: "AI",
+            keywords: ["ai", "ask", "claude", "codex", "openai", "model", "llm", "assistant", "provider"]
+        ),
+        .general(
+            "aiAddress",
+            "Address",
+            section: "AI",
+            keywords: ["ai", "api", "base url", "endpoint", "openai", "server", "host"]
+        ),
+        .general(
+            "aiModel",
+            "Model",
+            section: "AI",
+            keywords: ["ai", "api", "model", "gpt", "openai"]
+        ),
+        .general(
+            "aiKey",
+            "API key",
+            section: "AI",
+            keywords: ["ai", "api", "key", "token", "secret", "keychain", "openai"]
+        ),
     ]
 
     /// One group per extension: the extension, its preferences, then each command and the

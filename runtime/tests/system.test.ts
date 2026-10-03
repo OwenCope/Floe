@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:
 import fs from "node:fs";
 import path from "node:path";
 import * as api from "../api/index";
-import { ctx } from "../bridge";
+import { ctx, handleReply, handleReplyChunk } from "../bridge";
 import { installRuntime, sent } from "./support";
 
 const runtime = installRuntime("system-tests");
@@ -171,7 +171,6 @@ describe("window and system", () => {
     await expect(api.getSelectedText()).rejects.toThrow("selected text isn't supported yet");
     await expect(api.getSelectedFinderItems()).rejects.toThrow("Finder selection isn't supported yet");
     await expect(api.launchCommand({ name: "other" })).rejects.toThrow("launchCommand isn't supported yet");
-    expect(() => api.AI.ask()).toThrow("AI isn't supported yet");
     expect(await api.updateCommandMetadata({ subtitle: "3 unread" })).toBeUndefined();
   });
 
@@ -351,6 +350,77 @@ describe("getPreferenceValues", () => {
   });
 });
 
+describe("AI", () => {
+  let savedAI: string | undefined;
+  beforeEach(() => {
+    savedAI = process.env.FLOE_AI;
+  });
+  afterEach(() => {
+    if (savedAI === undefined) delete process.env.FLOE_AI;
+    else process.env.FLOE_AI = savedAI;
+  });
+
+  test("ask sends the prompt to the app and resolves with its reply", async () => {
+    const answer = api.AI.ask("why?", { model: api.AI.Model.Anthropic_Claude_Sonnet });
+    const chunks: string[] = [];
+    answer.on("data", (text) => chunks.push(text));
+    answer.on("end", () => chunks.push("never"));
+    const [request] = sent("request");
+    expect(request).toMatchObject({ method: "ai.ask", params: { prompt: "why?", model: "Anthropic_Claude_Sonnet" } });
+    handleReply({ id: request.id, result: "because" });
+    expect(await answer).toBe("because");
+    expect(chunks).toEqual(["because"]);
+  });
+
+  test("an answer that streams fires data per piece, and not again when it is whole", async () => {
+    const answer = api.AI.ask("why?");
+    const chunks: string[] = [];
+    answer.on("data", (text) => chunks.push(text));
+    const { id } = sent("request")[0];
+    handleReplyChunk({ id, chunk: "be" });
+    handleReplyChunk({ id, chunk: "cause" });
+    handleReplyChunk({ id: -1, chunk: "stray" });
+    handleReply({ id, result: "because" });
+    expect(await answer).toBe("because");
+    expect(chunks).toEqual(["be", "cause"]);
+  });
+
+  test("ask rejects with what the app said went wrong", async () => {
+    const answer = api.AI.ask("why?");
+    handleReply({ id: sent("request")[0].id, error: "not signed in" });
+    await expect(answer).rejects.toThrow("not signed in");
+  });
+
+  test("aborting an ask tells the app to stop and rejects", async () => {
+    const controller = new AbortController();
+    const answer = api.AI.ask("why?", { signal: controller.signal });
+    const { id } = sent("request")[0];
+    controller.abort();
+    await expect(answer).rejects.toThrow("aborted");
+    expect(sent("cancelRequest")).toEqual([{ type: "cancelRequest", id }]);
+    // A reply that was already on its way finds nobody waiting.
+    handleReply({ id, result: "too late" });
+  });
+
+  test("an ask whose signal is already aborted is never sent", async () => {
+    await expect(api.AI.ask("why?", { signal: AbortSignal.abort() })).rejects.toThrow("aborted");
+    expect(sent("request")).toEqual([]);
+  });
+
+  test("model names are their own keys", () => {
+    expect(api.AI.Model.OpenAI_GPT4o).toBe("OpenAI_GPT4o");
+    expect((api.AI.Model as Record<symbol, unknown>)[Symbol.iterator]).toBeUndefined();
+  });
+
+  test("extensions can use AI when the app found a tool for it", () => {
+    delete process.env.FLOE_AI;
+    expect(api.environment.canAccess(api.AI)).toBe(false);
+    process.env.FLOE_AI = "1";
+    expect(api.environment.canAccess(api.AI)).toBe(true);
+    expect(api.environment.canAccess(api.OAuth)).toBe(false);
+  });
+});
+
 describe("environment", () => {
   test("reflects the running extension and command", () => {
     ctx.manifest = { name: "weather", author: "ada", owner: "team" };
@@ -360,7 +430,6 @@ describe("environment", () => {
     expect(api.environment.supportPath).toBe(runtime.supportPath);
     expect(api.environment.assetsPath).toBe(path.join(ctx.extDir, "assets"));
     expect(api.environment.ownerOrAuthorName).toBe("team");
-    expect(api.environment.canAccess(api.AI)).toBe(false);
     expect(api.environment.launchType).toBe(api.LaunchType.UserInitiated);
   });
 

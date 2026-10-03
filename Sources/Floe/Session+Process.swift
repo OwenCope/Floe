@@ -18,11 +18,14 @@ extension ExtensionSession {
             return
         }
         let argumentsJSON = (try? JSONSerialization.data(withJSONObject: arguments)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        // Preferences go through the environment so the host has them before the command's first line runs.
-        var environment = Environment.inherit
-        if let data = try? JSONSerialization.data(withJSONObject: PreferenceStore.resolvedValues(for: command)) {
-            environment = environment.updating(["FLOE_PREFERENCES": String(bytes: data, encoding: .utf8)])
-        }
+        // The login shell's environment, not the app's own: launched from Finder, the app has a PATH
+        // without brew, git or node, and extensions run those.
+        let variables = Self.hostVariables(
+            LoginEnvironment.current,
+            preferences: try? JSONSerialization.data(withJSONObject: PreferenceStore.resolvedValues(for: command)),
+            hasAI: AIAnswer.isAvailable
+        )
+        let environment = Environment.custom(Dictionary(uniqueKeysWithValues: variables.map { (Environment.Key(stringLiteral: $0.key), $0.value) }))
         // Cancelling the task sends SIGTERM, then SIGKILL: a host stuck in synchronous code ignores SIGTERM.
         var options = PlatformOptions()
         options.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(1))]
@@ -120,6 +123,7 @@ extension ExtensionSession {
         let hadStarted = processID != nil
         processID = nil
         watchdog?.invalidate()
+        cancelRequests()
         guard !isStopping, failure == nil else { return }
         let message = hadStarted ? "The extension stopped unexpectedly." : "The extension couldn't start."
         failure = SessionFailure(kind: hadStarted ? .crashed : .error, message: message, details: error.localizedDescription)
@@ -129,6 +133,7 @@ extension ExtensionSession {
     func stop(after delay: TimeInterval = 0) {
         isStopping = true
         watchdog?.invalidate()
+        cancelRequests()
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [self] in
             hostTask?.cancel()
         }
@@ -138,6 +143,7 @@ extension ExtensionSession {
     func forceStop() {
         isStopping = true
         watchdog?.invalidate()
+        cancelRequests()
         if let processID {
             kill(processID, SIGKILL)
         }

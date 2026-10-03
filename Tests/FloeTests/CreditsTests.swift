@@ -12,7 +12,7 @@ import Testing
 struct CreditsTests {
     @Test func theListNamesWhatFloeIsBuiltFrom() {
         let names = Credits.all.map(\.name)
-        for expected in ["Thaw", "CompactSlider", "Bun", "React", "react-reconciler", "Raycast extensions"] {
+        for expected in ["Thaw", "Droppy Code", "CompactSlider", "Bun", "React", "react-reconciler", "Raycast extensions"] {
             #expect(names.contains(expected), "\(expected)")
         }
     }
@@ -26,6 +26,11 @@ struct CreditsTests {
             #expect(!credit.link.isEmpty, "\(credit.name)")
             #expect(credit.detail.hasSuffix("."), "\(credit.name)")
         }
+    }
+
+    @Test func droppyCodeIsCreditedInTheWordsItsLicenseAsksFor() {
+        let credit = Credits.all.first { $0.name == "Droppy Code" }
+        #expect(credit?.detail.contains("Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app") == true)
     }
 
     @Test func theTrademarkNoteNamesRaycast() {

@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ctx, send, setPopHandler, setPopToRootHandler } from "../bridge";
+import { ctx, request, send, setPopHandler, setPopToRootHandler } from "../bridge";
 
 const h = React.createElement;
 // The API is promise-based throughout; most calls here finish synchronously.
@@ -440,7 +440,8 @@ export const environment = {
   theme: "dark",
   textSize: "medium",
   launchType: "userInitiated",
-  canAccess: (_api: unknown) => false,
+  // The app sets FLOE_AI when AI.ask has something to answer it: an installed tool or a filled-in API.
+  canAccess: (api: unknown) => api === AI && process.env.FLOE_AI === "1",
 };
 
 export function launchCommand(_options: Props): Promise<void> {
@@ -454,11 +455,33 @@ export function captureException(error: unknown) {
   console.error(error);
 }
 
+type AskOptions = { model?: string; creativity?: unknown; signal?: AbortSignal };
 export const AI = {
+  // Creativity is a plain string or number in Raycast, and the tools Floe runs take none.
   Creativity: {},
-  Model: {},
-  ask() {
-    throw new Error("AI isn't supported yet");
+  // AI.Model.Anthropic_Claude_Sonnet → "Anthropic_Claude_Sonnet"; the app picks the closest model the installed tool has.
+  Model: new Proxy({} as Record<string, string>, {
+    get: (_target, key) => (typeof key === "string" ? key : undefined),
+  }),
+  // Answered by the app, with what Settings › General › AI says: an installed tool or an API.
+  ask(prompt: string, options: AskOptions = {}) {
+    const listeners: ((text: string) => void)[] = [];
+    const emit = (text: string) => listeners.forEach((listener) => listener(text));
+    let streamed = false;
+    const onChunk = (chunk: string) => {
+      streamed = true;
+      emit(chunk);
+    };
+    const answer = request<string>("ai.ask", { prompt, model: options.model }, { signal: options.signal, onChunk }).then((text) => {
+      // An answer that arrived whole still fires "data", once, with all of it.
+      if (!streamed) emit(text);
+      return text;
+    });
+    return Object.assign(answer, {
+      on(event: string, listener: (text: string) => void) {
+        if (event === "data") listeners.push(listener);
+      },
+    });
   },
 };
 export const OAuth = {

@@ -261,6 +261,93 @@ struct ExtensionSessionTests {
         #expect(recorder.forwarded.first?["title"] as? String == "payload")
     }
 
+    // MARK: Requests
+
+    /// The reply the session sent to the host, once the answer is in.
+    private func reply() async -> [String: Any]? {
+        for _ in 0 ..< 400 {
+            if let reply = recorder.sent.first(where: { $0["type"] as? String == "reply" }) {
+                return reply
+            }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        return nil
+    }
+
+    @Test func aRequestIsAnsweredWithAReplyCarryingItsIdentifier() async {
+        session.answer = { request, _ in
+            guard case let .askAI(prompt, model) = request else { return "" }
+            return "\(prompt) on \(model ?? "default")"
+        }
+        apply(["type": "request", "id": 7, "method": "ai.ask", "params": ["prompt": "why?", "model": "Sonnet"]])
+        let reply = await reply()
+        #expect(reply?["id"] as? Int == 7)
+        #expect(reply?["result"] as? String == "why? on Sonnet")
+        #expect(reply?["error"] == nil)
+        #expect(recorder.forwarded.isEmpty)
+    }
+
+    @Test func textThatArrivesEarlyIsSentInOrderBeforeTheReply() async {
+        session.answer = { _, emit in
+            await emit("be")
+            await emit("cause")
+            return "because"
+        }
+        apply(["type": "request", "id": 12, "method": "ai.ask", "params": ["prompt": "why?"]])
+        _ = await reply()
+        #expect(recorder.sent.map { $0["type"] as? String } == ["replyChunk", "replyChunk", "reply"])
+        #expect(recorder.sent.compactMap { $0["chunk"] as? String } == ["be", "cause"])
+        #expect(recorder.sent.allSatisfy { $0["id"] as? Int == 12 })
+    }
+
+    @Test func aRequestThatFailsRepliesWithTheError() async {
+        session.answer = { _, _ in throw ShellError("not signed in") }
+        apply(["type": "request", "id": 8, "method": "ai.ask", "params": ["prompt": "why?"]])
+        let reply = await reply()
+        #expect(reply?["id"] as? Int == 8)
+        #expect(reply?["error"] as? String == "not signed in")
+        #expect(reply?["result"] == nil)
+    }
+
+    @Test func aRequestTheAppDoesNotKnowIsRefusedAtOnce() {
+        session.answer = { _, _ in "unused" }
+        apply(["type": "request", "id": 9, "method": "teleport", "params": [:]])
+        #expect(recorder.sent.first?["id"] as? Int == 9)
+        #expect(recorder.sent.first?["error"] as? String == "Floe can't answer \"teleport\" yet, or the request is missing something it needs.")
+        apply(["type": "request", "method": "ai.ask", "params": ["prompt": "no id"]])
+        #expect(recorder.sent.count == 1)
+    }
+
+    @Test func aCancelledRequestGetsNoReply() async {
+        session.answer = { _, _ in
+            try await Task.sleep(for: .seconds(30))
+            return "too late"
+        }
+        apply(["type": "request", "id": 10, "method": "ai.ask", "params": ["prompt": "why?"]])
+        apply(["type": "cancelRequest", "id": 10])
+        apply(["type": "cancelRequest", "id": 99])
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(recorder.sent.isEmpty)
+    }
+
+    @Test func aHostThatEndsLeavesItsRequestsUnanswered() async {
+        session.answer = { _, _ in
+            try await Task.sleep(for: .seconds(30))
+            return "too late"
+        }
+        apply(["type": "request", "id": 11, "method": "ai.ask", "params": ["prompt": "why?"]])
+        session.processEnded(status: 0, wasSignalled: false)
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(recorder.sent.isEmpty)
+    }
+
+    @Test func theHostStartsWithTheShellsVariablesItsPreferencesAndWhetherAIIsThere() {
+        let base = ["PATH": "/opt/homebrew/bin", "FLOE_AI": "stale"]
+        let with = ExtensionSession.hostVariables(base, preferences: Data(#"{"unit":"metric"}"#.utf8), hasAI: true)
+        #expect(with == ["PATH": "/opt/homebrew/bin", "FLOE_PREFERENCES": #"{"unit":"metric"}"#, "FLOE_AI": "1"])
+        #expect(ExtensionSession.hostVariables(base, preferences: nil, hasAI: false) == ["PATH": "/opt/homebrew/bin"])
+    }
+
     // MARK: Actions
 
     @Test func runningAnActionSendsItsHandlerAndClosesTheMenu() {
