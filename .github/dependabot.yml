@@ -1,38 +1,10 @@
-# SwiftPM, Bun and GitHub Actions dependency updates (OpenSSF dependency_monitoring).
+# GitHub Actions dependency updates (OpenSSF dependency_monitoring).
+#
+# Swift and Bun are not listed yet: Dependabot's Swift (6.3) cannot read Vendor/ThawUI's
+# tools-version 6.4 manifest, and its Bun cannot read bun.lock's lockfileVersion 2.
+# dependency-sca.yml scans both lockfiles with OSV in the meantime.
 version: 2
 updates:
-  - package-ecosystem: "swift"
-    directories:
-      - "/"
-      - "/Vendor/ThawUI"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-    assignees:
-      - "diazdesandi"
-    groups:
-      swift:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "bun"
-    directory: "/runtime"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-    assignees:
-      - "diazdesandi"
-    groups:
-      bun:
-        patterns:
-          - "*"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
