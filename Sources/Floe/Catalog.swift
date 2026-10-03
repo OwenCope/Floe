@@ -56,10 +56,11 @@ enum Paths {
     /// Extensions the Raycast app has installed. Read-only: builds and storage go to our own support folder.
     static let raycastExtensions = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/raycast/extensions")
 
-    /// The Bun shipped inside the app, else a system copy.
+    /// The Bun shipped inside the app, else `FLOE_BUN`, else the first one on PATH (for `swift run`).
     static let bun: String? = {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return [runtime.appendingPathComponent("bin/bun").path, "/opt/homebrew/bin/bun", "\(home)/.bun/bin/bun", "/usr/local/bin/bun"]
+        let environment = ProcessInfo.processInfo.environment
+        let onPath = (environment["PATH"] ?? "").split(separator: ":").map { URL(fileURLWithPath: String($0)).appendingPathComponent("bun").path }
+        return ([runtime.appendingPathComponent("bin/bun").path, environment["FLOE_BUN"]].compactMap { $0 } + onPath)
             .first { FileManager.default.isExecutableFile(atPath: $0) }
     }()
 
@@ -70,8 +71,10 @@ struct AppEntry {
     let name: String
     let url: URL
 
-    static let folders = ["/Applications", "/System/Applications", "/System/Applications/Utilities", "/Applications/Utilities",
-                          FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications").path]
+    /// The system, local and user Applications folders, each with its Utilities subfolder.
+    static let folders: [String] = FileManager.default
+        .urls(for: .applicationDirectory, in: [.localDomainMask, .systemDomainMask, .userDomainMask])
+        .flatMap { [$0.path, $0.appendingPathComponent("Utilities").path] }
 
     static func scan() -> [AppEntry] {
         var seen = Set<String>()
@@ -81,7 +84,8 @@ struct AppEntry {
             for entry in entries where entry.hasSuffix(".app") {
                 let url = URL(fileURLWithPath: folder).appendingPathComponent(entry)
                 let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
-                if seen.insert(url.path).inserted { apps.append(AppEntry(name: name, url: url)) }
+                // Safari lives in the cryptex and shows up again in /Applications; one entry per app name.
+                if seen.insert(name).inserted { apps.append(AppEntry(name: name, url: url)) }
             }
         }
         return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -267,7 +271,8 @@ enum RootItem: Identifiable {
 enum Fuzzy {
     /// Higher is better; nil means no match.
     static func score(_ query: String, _ candidate: String) -> Int? {
-        let query = query.lowercased(), candidate = candidate.lowercased()
+        let query = query.lowercased()
+        let candidate = candidate.lowercased()
         if candidate.hasPrefix(query) { return 100 - min(candidate.count - query.count, 20) }
         let words = candidate.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
         if words.contains(where: { $0.hasPrefix(query) }) { return 75 }

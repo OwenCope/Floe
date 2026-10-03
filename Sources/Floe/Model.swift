@@ -49,13 +49,14 @@ final class LauncherModel: ObservableObject {
     private let menuBarRecents = MenuBarSearchRecents()
     let menuBarPreviews = MenuBarPreviews()
 
-    var hidePanel: () -> Void = {}
-    var showPanel: () -> Void = {}
-    var showHUD: (String) -> Void = { _ in }
+    // The app delegate replaces these; the defaults keep the model usable without a window.
+    var hidePanel: () -> Void = { /* no panel */ }
+    var showPanel: () -> Void = { /* no panel */ }
+    var showHUD: (String) -> Void = { _ in /* no HUD */ }
     /// Opens the settings window, optionally on one extension's page.
-    var openSettings: (String?) -> Void = { _ in }
+    var openSettings: (String?) -> Void = { _ in /* no settings window */ }
     /// Pops the Actions menu under its button in the menu bar search's bottom bar.
-    var showMenuBarActions: () -> Void = {}
+    var showMenuBarActions: () -> Void = { /* set by the Actions button */ }
 
     private let settings = AppSettings.shared
     private let usage = UsageStore.shared
@@ -454,7 +455,8 @@ final class LauncherModel: ObservableObject {
     /// Runs the command that failed again, with the same arguments.
     func retry() {
         guard let session else { return }
-        let command = session.command, arguments = session.arguments
+        let command = session.command
+        let arguments = session.arguments
         end(session)
         run(command, arguments: arguments)
     }
@@ -481,16 +483,20 @@ final class LauncherModel: ObservableObject {
     }
 
     private func open(_ target: String, application: String?) {
-        if let application {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            process.arguments = ["-a", application, target]
-            try? process.run()
-        } else if let url = URL(string: target), url.scheme != nil {
-            NSWorkspace.shared.open(url)
+        let url = URL(string: target).flatMap { $0.scheme == nil ? nil : $0 }
+            ?? URL(fileURLWithPath: (target as NSString).expandingTildeInPath)
+        if let application, let app = applicationURL(for: application) {
+            NSWorkspace.shared.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
         } else {
-            NSWorkspace.shared.open(URL(fileURLWithPath: (target as NSString).expandingTildeInPath))
+            NSWorkspace.shared.open(url)
         }
+    }
+
+    /// Extensions name an app by path, bundle identifier or display name.
+    private func applicationURL(for application: String) -> URL? {
+        if (application as NSString).isAbsolutePath { return URL(fileURLWithPath: application) }
+        return NSWorkspace.shared.urlForApplication(withBundleIdentifier: application)
+            ?? apps.first { $0.name.caseInsensitiveCompare(application) == .orderedSame }?.url
     }
 
     // MARK: Keyboard

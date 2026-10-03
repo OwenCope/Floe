@@ -63,7 +63,14 @@ targets:
       properties:
         CFBundleDisplayName: Floe
         NSHumanReadableCopyright: Copyright © 2026 René Jiménez. Licensed under the GNU GPLv3.
-        FloeRepositoryURL: https://github.com/thaw-app/Floe
+        # Every web link the app opens, so none is hard-coded in source.
+        FloeLinks:
+          repository: https://github.com/thaw-app/Floe
+          thaw: https://github.com/thaw-app/Thaw
+          raycastExtensions: https://github.com/raycast/extensions
+          compactSlider: https://github.com/buh/CompactSlider
+          bun: https://bun.sh
+          react: https://react.dev
         # Filled in from git by the Embed Runtime step.
         GitCommitSHA: unknown
         CFBundleShortVersionString: "0.1.0"

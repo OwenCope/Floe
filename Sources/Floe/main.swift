@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var showItem: NSMenuItem?
     private var appWatcher: AppFolderWatcher?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
         panel = LauncherPanel(contentRect: NSRect(x: 0, y: 0, width: 750, height: 474),
@@ -114,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settingsWindow.show()
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    func applicationWillTerminate(_: Notification) {
         model.session?.forceStop()
     }
 
@@ -148,7 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.panelDidHide()
     }
 
-    func windowDidResignKey(_ notification: Notification) {
+    func windowDidResignKey(_: Notification) {
         // Checked a turn later, once focus has settled; an open file panel keeps the launcher up.
         DispatchQueue.main.async { [self] in
             if ProcessInfo.processInfo.environment["FLOE_DEBUG"] != nil {
@@ -253,7 +253,7 @@ if arguments.contains("--bench-settings") {
     let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 820, height: 560), styleMask: [.titled], backing: .buffered, defer: false)
     window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: .shared, selection: selection))
     window.orderFrontRegardless()
-    let pages: [(String, SettingsPage)] = [("general", .general), ("applications", .applications), ("about", .about), ("extension", .extension("kill-process"))]
+    let pages: [(String, SettingsPage)] = [("general", .general), ("applications", .applications), ("about", .about), ("extension", .extensionPage("kill-process"))]
     for (name, page) in pages {
         let start = Date()
         selection.page = page

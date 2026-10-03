@@ -58,7 +58,7 @@ final class ExtensionSession: ObservableObject {
     }
 
     /// Messages the session does not handle itself: close, exit, popToRoot, hud, open, copy, paste.
-    var onMessage: ([String: Any]) -> Void = { _ in }
+    var onMessage: ([String: Any]) -> Void = { _ in /* set by the model */ }
 
     private let process = Process()
     private let input = Pipe()
@@ -202,8 +202,8 @@ final class ExtensionSession: ObservableObject {
             if let open = actionPath.last, actionPanel?.descendants(ofType: "ActionPanel.Submenu").contains(where: { $0.id == open.id }) != true {
                 actionPath = []
             }
-            if screen?.id != previousScreen { formValues = [:] }
             if screen?.id != previousScreen {
+                formValues = [:]
                 suppressSearchEvent = true
                 searchText = ""
                 suppressSearchEvent = false

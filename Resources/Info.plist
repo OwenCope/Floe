@@ -20,8 +20,21 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>FloeRepositoryURL</key>
-	<string>https://github.com/thaw-app/Floe</string>
+	<key>FloeLinks</key>
+	<dict>
+		<key>bun</key>
+		<string>https://bun.sh</string>
+		<key>compactSlider</key>
+		<string>https://github.com/buh/CompactSlider</string>
+		<key>raycastExtensions</key>
+		<string>https://github.com/raycast/extensions</string>
+		<key>react</key>
+		<string>https://react.dev</string>
+		<key>repository</key>
+		<string>https://github.com/thaw-app/Floe</string>
+		<key>thaw</key>
+		<string>https://github.com/thaw-app/Thaw</string>
+	</dict>
 	<key>GitCommitSHA</key>
 	<string>unknown</string>
 	<key>LSMinimumSystemVersion</key>

@@ -19,7 +19,7 @@ final class SettingsWindowController {
     }
 
     func show(extensionName: String? = nil, page: SettingsPage? = nil) {
-        selection.page = page ?? extensionName.map(SettingsPage.extension) ?? selection.page
+        selection.page = page ?? extensionName.map(SettingsPage.extensionPage) ?? selection.page
         if window == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -41,7 +41,7 @@ enum SettingsPage: Hashable {
     case general
     case applications
     case about
-    case `extension`(String)
+    case extensionPage(String)
 }
 
 final class SettingsSelection: ObservableObject {
@@ -79,7 +79,7 @@ struct SettingsView: View {
             ApplicationSettingsView(model: model, settings: settings)
         case .about:
             AboutSettingsPane()
-        case .extension(let name):
+        case .extensionPage(let name):
             ExtensionSettingsView(model: model, settings: settings,
                                   commands: model.allCommands.filter { $0.extensionName == name })
                 .id(name)
@@ -88,7 +88,7 @@ struct SettingsView: View {
 
     /// Where an extension comes from, under its name in the toolbar.
     private var subtitle: String {
-        guard case .extension(let name) = selection.page,
+        guard case .extensionPage(let name) = selection.page,
               let command = model.allCommands.first(where: { $0.extensionName == name }) else { return "" }
         let count = model.allCommands.filter { $0.extensionName == name }.count
         let commands = count == 1 ? "1 command" : "\(count) commands"
@@ -136,7 +136,7 @@ private struct SettingsSidebarPaneList: View {
             .filter { seen.insert($0.extensionName).inserted }
             .sorted { $0.extensionTitle.localizedCaseInsensitiveCompare($1.extensionTitle) == .orderedAscending }
             .map { command in
-                Row(page: .extension(command.extensionName), title: command.extensionTitle, symbol: nil,
+                Row(page: .extensionPage(command.extensionName), title: command.extensionTitle, symbol: nil,
                     icon: command.icon ?? "icon:Terminal", assetsPath: command.assetsPath,
                     isDimmed: settings.disabledExtensions.contains(command.extensionName))
             }

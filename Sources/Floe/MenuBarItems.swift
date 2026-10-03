@@ -61,7 +61,8 @@ enum MenuBarExtras {
     }
 
     private static func frame(of element: AXUIElement) -> CGRect {
-        var origin = CGPoint.zero, size = CGSize.zero
+        var origin = CGPoint.zero
+        var size = CGSize.zero
         if let position: AXValue = value(element, kAXPositionAttribute) { AXValueGetValue(position, .cgPoint, &origin) }
         if let extent: AXValue = value(element, kAXSizeAttribute) { AXValueGetValue(extent, .cgSize, &size) }
         return CGRect(origin: origin, size: size)
@@ -128,7 +129,8 @@ final class MenuBarPreviews: ObservableObject {
     /// A hidden item leaves only the menu bar's backdrop where it would be; a capture that is one flat
     /// tone shows nothing worth previewing.
     private static func showsSomething(_ image: CGImage) -> Bool {
-        let width = 48, height = 12
+        let width = 48
+        let height = 12
         var pixels = [UInt8](repeating: 0, count: width * height)
         guard let context = CGContext(data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width,
                                       space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return true }

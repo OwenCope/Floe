@@ -700,7 +700,7 @@ struct IconView: View {
 
     /// An absolute path, or a file in the extension's assets; prefers Raycast's `name@dark.ext` variant in dark mode.
     private func assetPath(_ name: String) -> String? {
-        let path = name.hasPrefix("/") ? name : "\(assetsPath)/\(name)"
+        let path = (name as NSString).isAbsolutePath ? name : URL(fileURLWithPath: assetsPath).appendingPathComponent(name).path
         if colorScheme == .dark {
             let url = URL(fileURLWithPath: path)
             let dark = url.deletingPathExtension().path + "@dark." + url.pathExtension

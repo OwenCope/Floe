@@ -22,10 +22,15 @@ enum AppInfo {
     static let buildString = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
     static let commitString = Bundle.main.object(forInfoDictionaryKey: "GitCommitSHA") as? String ?? "unknown"
     static let copyrightString = Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String ?? ""
-    static let repositoryURL = (Bundle.main.object(forInfoDictionaryKey: "FloeRepositoryURL") as? String)
-        .flatMap(URL.init(string:)) ?? URL(string: "https://github.com/thaw-app/Floe")!
-    static let issuesURL = repositoryURL.appendingPathComponent("issues")
-    static let thawURL = URL(string: "https://github.com/thaw-app/Thaw")!
+    private static let links = Bundle.main.object(forInfoDictionaryKey: "FloeLinks") as? [String: String] ?? [:]
+
+    /// A web link from Info.plist's FloeLinks; nil when run outside the app bundle (`swift run`).
+    static func link(_ name: String) -> URL? {
+        links[name].flatMap(URL.init(string:))
+    }
+
+    static var repositoryURL: URL? { link("repository") }
+    static var issuesURL: URL? { repositoryURL?.appendingPathComponent("issues") }
 
     static var buildDescription: String {
         """
@@ -158,7 +163,7 @@ struct AboutSettingsPane: View {
     private var actions: some View {
         HStack(spacing: 8) {
             Button("Report a Bug") {
-                openURL(AppInfo.issuesURL)
+                if let url = AppInfo.issuesURL { openURL(url) }
             }
             Button("Extensions Folder") {
                 NSWorkspace.shared.activateFileViewerSelecting([Paths.extensions])
@@ -183,18 +188,22 @@ struct AboutSettingsPane: View {
     private var footer: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                Link(destination: AppInfo.repositoryURL) {
-                    Text("Source Code").underline()
+                if let url = AppInfo.repositoryURL {
+                    Link(destination: url) {
+                        Text("Source Code").underline()
+                    }
+                    footerSeparator
                 }
-                footerSeparator
                 Button {
                     isShowingCredits = true
                 } label: {
                     Text("Credits").underline()
                 }
-                footerSeparator
-                Link(destination: AppInfo.thawURL) {
-                    Text("Thaw").underline()
+                if let url = AppInfo.link("thaw") {
+                    footerSeparator
+                    Link(destination: url) {
+                        Text("Thaw").underline()
+                    }
                 }
             }
             .buttonStyle(.plain)
@@ -230,7 +239,7 @@ struct AboutSettingsPane: View {
         })
         menu.addItem(.separator())
         menu.addItem(item(String(localized: "Raycast Extension Store"), "storefront") {
-            openURL(URL(string: "https://github.com/raycast/extensions")!)
+            if let url = AppInfo.link("raycastExtensions") { openURL(url) }
         })
         menu.addItem(.separator())
         menu.addItem(item(String(localized: "Acknowledgements"), "text.book.closed") { isShowingCredits = true })
@@ -270,12 +279,13 @@ struct AboutSettingsPane: View {
 private struct CreditsView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private let credits: [(name: String, detail: String, url: String)] = [
-        ("Thaw", "ThawUI and the hotkey code. GPL-3.0.", "https://github.com/thaw-app/Thaw"),
-        ("CompactSlider", "Used by ThawUI. MIT.", "https://github.com/buh/CompactSlider"),
-        ("Bun", "Runs extensions. MIT.", "https://bun.sh"),
-        ("React", "Extension rendering, with react-reconciler. MIT.", "https://react.dev"),
-        ("Raycast extensions", "The API Floe implements; each extension keeps its own license.", "https://github.com/raycast/extensions"),
+    /// `link` names an entry in Info.plist's FloeLinks.
+    private let credits: [(name: String, detail: String, link: String)] = [
+        ("Thaw", "ThawUI, the hotkey code and the search panel design. GPL-3.0.", "thaw"),
+        ("CompactSlider", "Used by ThawUI. MIT.", "compactSlider"),
+        ("Bun", "Runs extensions. MIT.", "bun"),
+        ("React", "Extension rendering, with react-reconciler. MIT.", "react"),
+        ("Raycast extensions", "The API Floe implements; each extension keeps its own license.", "raycastExtensions"),
     ]
 
     var body: some View {
@@ -283,7 +293,11 @@ private struct CreditsView: View {
             Text("Acknowledgements").font(ThawType.heading)
             ForEach(credits, id: \.name) { credit in
                 VStack(alignment: .leading, spacing: 2) {
-                    Link(credit.name, destination: URL(string: credit.url)!)
+                    if let url = AppInfo.link(credit.link) {
+                        Link(credit.name, destination: url)
+                    } else {
+                        Text(credit.name)
+                    }
                     Text(credit.detail).font(.callout).foregroundStyle(ThawInk.supporting)
                 }
             }
