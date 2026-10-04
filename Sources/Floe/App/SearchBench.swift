@@ -82,7 +82,9 @@ func runSearchBench(queries: [String]) -> Never {
         var times: [String] = []
         for character in query {
             typed.append(character)
-            times.append("\(typed.suffix(1))=\(milliseconds { model.query = typed; render() })")
+            // The search and the drawing apart: "s=3+9" is 3 ms finding rows and 9 ms drawing them.
+            let search = milliseconds { model.query = typed }
+            times.append("\(typed.suffix(1))=\(search)+\(milliseconds { render() })")
             settle()
         }
         model.query = ""
