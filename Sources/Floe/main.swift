@@ -287,6 +287,10 @@ Paths.prepareSupportFolders()
 
 let options = DebugOptions.parseOrExit()
 
+if options.pick {
+    PickerMode.run(options)
+}
+
 if let query = options.search {
     let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
     model.query = query

@@ -11,6 +11,7 @@
 		032EB45470A494A9B1129BB1 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DCB3DFC16635F2E970DEF1 /* Session.swift */; };
 		034CBC0B680B9B58D3C3D6A7 /* FileSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3236DEE9A622DD0D03E3A752 /* FileSearch.swift */; };
 		05DE26C5F339D6E008D554CE /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F1F04CB5B238D464961288 /* OnboardingView.swift */; };
+		06485CE14979C54BB08FBB97 /* Picker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F6FFBF130F8BFBF87E469C /* Picker.swift */; };
 		06A18613618261F58CF871CC /* MenuBarCommandsSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C744D183B546A111B479D243 /* MenuBarCommandsSettingsSection.swift */; };
 		08EBD958FD49AE0D1BA860A9 /* CatalogLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8834D1F068570DEC8D2B961F /* CatalogLoader.swift */; };
 		094BF08A42283922909FA733 /* OAuthBroker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F77DCB4303CFDC52739E75 /* OAuthBroker.swift */; };
@@ -98,6 +99,7 @@
 		C6498EE31AE4D16010D5A257 /* HotkeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C88D79A84B3FAC5F8E4332D /* HotkeyRegistry.swift */; };
 		C7D286BF26518797C4B542A3 /* OnboardingTourView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866B13B630D11859A77DA3CE /* OnboardingTourView.swift */; };
 		CA6DF82FEB1271E0CEFBB616 /* Calculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9EABD76BAB335DE5A5FC78E /* Calculator.swift */; };
+		CD7A1E84B395084989F004AF /* PickerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5DAF775A9A06A6000DD21F8 /* PickerPanel.swift */; };
 		D49E83F22A2642B38824C849 /* AppearanceSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BD35BDC416FFE62A018661 /* AppearanceSettingsPane.swift */; };
 		DC2E662CC58403BDAE09B454 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A955598F6D439FDD893F9174 /* ErrorView.swift */; };
 		DE519FFD07518B87C28314BA /* Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219F645E1E608A4BB123BFB4 /* Modifiers.swift */; };
@@ -208,6 +210,7 @@
 		A3F1F04CB5B238D464961288 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A48EE7BCE3DB6DB75403FC86 /* GlassSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSupport.swift; sourceTree = "<group>"; };
 		A4A4E7591F69E972182C8543 /* LauncherGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherGlass.swift; sourceTree = "<group>"; };
+		A7F6FFBF130F8BFBF87E469C /* Picker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Picker.swift; sourceTree = "<group>"; };
 		A8A91D9CFF52277A3BF983DF /* AboutSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsPane.swift; sourceTree = "<group>"; };
 		A955598F6D439FDD893F9174 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		A973D1BA8F8EDEB12D15D62F /* UpdateLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLogic.swift; sourceTree = "<group>"; };
@@ -225,6 +228,7 @@
 		D2349D78CC267E82F6B8211A /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		D4DCB3DFC16635F2E970DEF1 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		D54900730524DDEA357356AE /* LoginEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginEnvironment.swift; sourceTree = "<group>"; };
+		D5DAF775A9A06A6000DD21F8 /* PickerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerPanel.swift; sourceTree = "<group>"; };
 		D7998806F2EEFDB2C0D99FC0 /* HotReload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotReload.swift; sourceTree = "<group>"; };
 		D9EABD76BAB335DE5A5FC78E /* Calculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calculator.swift; sourceTree = "<group>"; };
 		E6F2A419B59FCCDC76E1C76C /* coverage.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = coverage.sh; sourceTree = "<group>"; };
@@ -340,6 +344,8 @@
 				46F77DCB4303CFDC52739E75 /* OAuthBroker.swift */,
 				866B13B630D11859A77DA3CE /* OnboardingTourView.swift */,
 				ED5AE6CC56910A19D88E7BA9 /* PermissionsSettingsSection.swift */,
+				A7F6FFBF130F8BFBF87E469C /* Picker.swift */,
+				D5DAF775A9A06A6000DD21F8 /* PickerPanel.swift */,
 				0DE3F78F84572EECD92D5E9D /* Preferences.swift */,
 				6FD3746F8BA517FB6A621DEA /* PropFormat.swift */,
 				CB65908F87D1376EBC7FA28D /* Quicklinks.swift */,
@@ -641,6 +647,8 @@
 				C4C12A00B310C94204401BBB /* PermissionViews.swift in Sources */,
 				097D5FBD5255D9F68DBB9AA9 /* PermissionsSettingsSection.swift in Sources */,
 				942C09E90795801F80547CBB /* PermissionsWindow.swift in Sources */,
+				06485CE14979C54BB08FBB97 /* Picker.swift in Sources */,
+				CD7A1E84B395084989F004AF /* PickerPanel.swift in Sources */,
 				901D6AEF45D23EF756B25B45 /* Preferences.swift in Sources */,
 				793CE9F8C14ADDBA6777D252 /* PropFormat.swift in Sources */,
 				F03B98E4A5FA6F7B8C4893D5 /* Quicklinks.swift in Sources */,

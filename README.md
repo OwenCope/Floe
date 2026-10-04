@@ -72,6 +72,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [ ] Searching the notes in that app
 - [ ] Search an app's menus
 - [x] Script commands
+- [x] A picker for your own scripts: `ls | Floe --pick` shows the lines in the search panel and prints the one you choose
 - [ ] AI chat
 
 ### App

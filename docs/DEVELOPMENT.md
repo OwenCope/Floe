@@ -162,7 +162,29 @@ ignore that key, and without it a Debug build refuses to check.
     .build/debug/Floe --panel-snapshot /tmp/p           # root and menu bar views, drawn off screen
     FLOE_BENCH_DUMP=/tmp/s .build/debug/Floe --bench-settings  # settings page timings and snapshots
     bun runtime/survey.ts ~/.config/raycast/extensions      # compatibility across many extensions
+    printf 'a\nb\n' | FLOE_PICK_AUTO=1 .build/debug/Floe --pick --query b  # the picker, without its panel
     FLOE_AUTORUN=hacker-news/frontpage swift run        # open straight into a command
+
+## Picker
+
+`Floe --pick` lends the search panel to a script, the way dmenu does. It reads one item per line on standard
+input (blank lines are dropped), shows them under the search field, and prints the line you choose:
+
+    ls ~/Projects | Floe --pick --prompt "Open project" | xargs -I{} code ~/Projects/{}
+
+`Floe` here is the binary inside the app, `Floe.app/Contents/MacOS/Floe`. `--prompt <text>` sets the search
+field's placeholder, `--query <text>` is the text it starts with, and `--index` prints the chosen line's position
+in the input, counting from 0 and counting blank lines, instead of its text.
+
+| Exit status | Meaning |
+| --- | --- |
+| 0 | A line was chosen with Return or a double click, and printed. |
+| 1 | Nothing was chosen: Escape, the panel lost focus, or the input had no items. |
+| 64 | Standard input is a terminal, or an option is wrong. |
+
+It is its own short process (`PickerPanel.swift`, with the logic in `Picker.swift`): it reads the Appearance
+settings and starts nothing else of the app. `FLOE_PICK_AUTO=1` prints the first match for `--query` without
+showing the panel, and `FLOE_PICK_SNAPSHOT=<file>` saves a picture of the panel drawn off screen.
 
 ## Menu bar item search
 
