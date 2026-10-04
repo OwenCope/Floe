@@ -28,6 +28,8 @@ const short = (value: unknown, length: number) => JSON.stringify(value)?.slice(0
 const titles = (actions: TreeNode[]) => actions.map((action) => action.props.title).join(" | ");
 const runAction = (action: TreeNode) => sendToHost(proc, { type: "event", id: action.id, prop: "onAction", args: [] });
 
+// The host sends only the screen on show, so a push or a pop is seen as that screen's id changing.
+let rootScreen: number | undefined;
 let step = 0;
 for await (const message of hostMessages(proc.stdout)) {
   if (message.type !== "render" || !message.tree) {
@@ -35,11 +37,12 @@ for await (const message of hostMessages(proc.stdout)) {
     if (message.type === "exit") finish(0);
     continue;
   }
-  const { screens, top, view } = topView(message.tree);
+  const { top, view } = topView(message.tree);
   if (!top) continue;
+  rootScreen ??= top.id;
   const items = findNodes(top, isItem);
   console.log(
-    `RENDER screens=${screens.length} view=${view?.type} loading=${view?.props.isLoading ?? false} items=${items.length} ` +
+    `RENDER pushed=${top.id !== rootScreen} view=${view?.type} loading=${view?.props.isLoading ?? false} items=${items.length} ` +
       `first=${short(items[0]?.props.title, 80)} icon=${short(items[0]?.props.icon, 60)} md=${short(view?.props.markdown, 50)}`,
   );
   const actions = findNodes(items[0] ?? top, (node) => node.type === "Action");
@@ -57,10 +60,10 @@ for await (const message of hostMessages(proc.stdout)) {
   } else if (step === 1) {
     step = 2;
     runAction(actions[0]);
-  } else if (step === 2 && screens.length === 2) {
+  } else if (step === 2 && top.id !== rootScreen) {
     step = 3;
     sendToHost(proc, { type: "pop" });
-  } else if (step === 3 && screens.length === 1) {
+  } else if (step === 3 && top.id === rootScreen) {
     step = 4;
     sendToHost(proc, { type: "pop" });
   }

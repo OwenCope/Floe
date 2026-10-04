@@ -46,11 +46,10 @@ export function findNodes(node: TreeNode, matches: (node: TreeNode) => boolean, 
   return found;
 }
 
-// The top screen and the view on it (the first child that isn't a slot).
-export function topView(tree: TreeNode): { screens: TreeNode[]; top?: TreeNode; view?: TreeNode } {
-  const screens = tree.children ?? [];
-  const top = screens.at(-1);
-  return { screens, top, view: top?.children?.find((child) => child.type !== "_slot") };
+// The screen on show and the view on it (the first child that isn't a slot).
+export function topView(tree: TreeNode): { top?: TreeNode; view?: TreeNode } {
+  const top = tree.children?.findLast((child) => child.type === "_screen");
+  return { top, view: top?.children?.find((child) => child.type !== "_slot") };
 }
 
 export const isItem = (node: TreeNode) => node.type === "List.Item" || node.type === "Grid.Item";
