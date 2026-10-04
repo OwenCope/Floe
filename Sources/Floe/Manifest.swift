@@ -191,6 +191,7 @@ enum RootItem: Identifiable {
     case command(ExtensionCommand)
     case menuBarSearch
     case settings
+    case calculator(CalculatorResult)
 
     static let menuBarSearchKey = "builtin:menubar-search"
 
@@ -200,6 +201,7 @@ enum RootItem: Identifiable {
         case let .command(command): "command:\(command.id)"
         case .menuBarSearch: Self.menuBarSearchKey
         case .settings: "settings"
+        case .calculator: "calculator"
         }
     }
 
@@ -209,14 +211,19 @@ enum RootItem: Identifiable {
         case let .command(command): command.title
         case .menuBarSearch: "Search Menu Bar Items"
         case .settings: "Floe Settings"
+        case let .calculator(result): result.value
         }
     }
 
     var subtitle: String? {
-        if case let .command(command) = self {
+        switch self {
+        case let .command(command):
             return command.extensionTitle
+        case let .calculator(result):
+            return result.detail.map { "\(result.expression) · \($0)" } ?? result.expression
+        default:
+            return nil
         }
-        return nil
     }
 
     /// Key for aliases and hotkeys; commands keep their historical "extension/command" key.
@@ -225,7 +232,7 @@ enum RootItem: Identifiable {
         case .app: id
         case let .command(command): command.id
         case .menuBarSearch: Self.menuBarSearchKey
-        case .settings: nil
+        case .settings, .calculator: nil
         }
     }
 
@@ -234,6 +241,7 @@ enum RootItem: Identifiable {
         case .app: "Application"
         case .command: "Command"
         case .menuBarSearch, .settings: "Floe"
+        case .calculator: "Calculator"
         }
     }
 

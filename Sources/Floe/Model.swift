@@ -171,6 +171,9 @@ final class LauncherModel: ObservableObject {
         results = query.isEmpty
             ? Ranking.browse(all, favorites: settings.favorites, frecency: frecency)
             : Ranking.search(all, query: query, favorites: settings.favorites, alias: alias(for:), frecency: frecency)
+        if let answer = Calculator.evaluate(query) {
+            results.insert(RootResult(item: .calculator(answer), section: "Calculator"), at: 0)
+        }
     }
 
     func alias(for item: RootItem) -> String? {
@@ -233,6 +236,13 @@ final class LauncherModel: ObservableObject {
     }
 
     func activate(_ item: RootItem) {
+        if case let .calculator(answer) = item {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(answer.copyText, forType: .string)
+            showHUD("Copied \(answer.copyText)")
+            return
+        }
         usage.recordUse(of: item.id)
         switch item {
         case let .app(app):
@@ -246,6 +256,8 @@ final class LauncherModel: ObservableObject {
         case .settings:
             hidePanel()
             openSettings(nil)
+        case .calculator:
+            break
         }
     }
 

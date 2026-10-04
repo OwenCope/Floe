@@ -286,6 +286,8 @@ struct RootIcon: View {
             IconView(value: "icon:MenubarRectangle", assetsPath: "", size: 24)
         case .settings:
             IconView(value: "icon:Gear", assetsPath: "", size: 24)
+        case .calculator:
+            IconView(value: "icon:PlusForwardslashMinus", assetsPath: "", size: 24)
         }
     }
 }
