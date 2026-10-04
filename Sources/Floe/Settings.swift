@@ -54,6 +54,10 @@ final class AppSettings: ObservableObject {
     /// the tint can follow the system appearance with separate light and dark
     /// values, or stay the same in both.
     @Published var launcherGlass = LauncherGlass()
+    /// While on, the launcher draws Thaw's menu bar look and leaves the appearance settings here as they are.
+    @Published var followsThawAppearance = false
+    /// What Thaw last answered, by colour scheme. `ThawAppearanceFollower` keeps these; they are not saved with the settings.
+    @Published var thawAppearances: [ThawAppearance.Scheme: ThawAppearance] = [:]
     /// Extended always shows the list; compact is the search bar alone until something is typed.
     @Published var launcherLayout = LauncherLayout.extended
     @Published var launcherTintIsDynamic = false
@@ -101,6 +105,7 @@ final class AppSettings: ObservableObject {
         var launcherShowsBorder: Bool?
         var launcherShowsShadow: Bool?
         var launcherGlass: LauncherGlass?
+        var followsThawAppearance: Bool?
         var launcherLayout: LauncherLayout?
         var aiSource: AISource?
         var aiBaseURL: String?
@@ -150,6 +155,7 @@ final class AppSettings: ObservableObject {
         launcherShowsBorder = stored.launcherShowsBorder ?? launcherShowsBorder
         launcherShowsShadow = stored.launcherShowsShadow ?? launcherShowsShadow
         launcherGlass = stored.launcherGlass ?? launcherGlass
+        followsThawAppearance = stored.followsThawAppearance ?? followsThawAppearance
         launcherLayout = stored.launcherLayout ?? launcherLayout
         aiSource = stored.aiSource ?? aiSource
         aiBaseURL = stored.aiBaseURL ?? aiBaseURL
@@ -196,6 +202,7 @@ final class AppSettings: ObservableObject {
             launcherShowsBorder: launcherShowsBorder,
             launcherShowsShadow: launcherShowsShadow,
             launcherGlass: launcherGlass,
+            followsThawAppearance: followsThawAppearance,
             launcherLayout: launcherLayout,
             aiSource: aiSource,
             aiBaseURL: aiBaseURL,

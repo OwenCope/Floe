@@ -40,10 +40,10 @@ struct LauncherView: View {
         }
         .frame(width: size.width, height: size.height, alignment: .top)
         .modifier(LauncherPanelAppearance(
-            glass: settings.launcherGlass,
-            tint: settings.launcherTint(for: colorScheme),
-            border: settings.launcherShowsBorder ? settings.launcherBorder : nil,
-            hasShadow: settings.launcherShowsShadow
+            glass: settings.launcherLook(for: colorScheme).glass,
+            tint: settings.launcherLook(for: colorScheme).tint,
+            border: settings.launcherLook(for: colorScheme).border,
+            hasShadow: settings.launcherLook(for: colorScheme).hasShadow
         ))
         .padding(Self.margin)
         // The window is resized a moment before or after the content: the search bar stays at the top meanwhile.

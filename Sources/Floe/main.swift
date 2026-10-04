@@ -124,8 +124,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.startCatalogLoading()
 
         UpdatesManager.shared.performSetup()
-        // Handles the browser coming back to floe://oauth after an extension's sign-in.
-        OAuthBroker.shared.install()
+        // Takes floe:// links: Thaw's answer about its appearance, and the browser's return once sign-in is back.
+        IncomingURLRouter.shared.install()
         TextExpander.shared.start()
         ExtensionStore.shared.onInstalled = { [weak self] in self?.model.reloadCommands() }
 

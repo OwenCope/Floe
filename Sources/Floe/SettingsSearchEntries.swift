@@ -163,6 +163,7 @@ extension SearchIndex {
     ]
 
     static let appearanceEntries: [SearchEntry] = [
+        .appearance("followThaw", "Follow Thaw's Appearance", section: "Thaw", keywords: ["thaw", "follow", "match", "mirror", "sync", "same look"]),
         .appearance("launcherLayout", "Launcher Layout", section: "Layout", keywords: ["layout", "compact", "extended", "size", "search bar", "list"]),
         .appearance("glassEffect", "Glass Effect", section: "Glass", keywords: ["glass", "liquid", "dynamic", "clear", "regular", "effect", "material"]),
         .appearance("tintStyle", "Tint", section: "Tint", keywords: ["tint", "colour", "color", "style", "solid", "gradient", "none"]),

@@ -135,6 +135,10 @@ targets:
         CFBundleVersion: "1"
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSUIElement: true
+        # Thaw answers Floe's appearance request by opening floe://thaw-appearance. IncomingURLRouter takes every floe:// link.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.thaw.floe
+            CFBundleURLSchemes: [floe]
         # AI.ask can be pointed at a model server on this Mac or the local network (Ollama, LM Studio),
         # which answers over plain http.
         NSAppTransportSecurity:

@@ -46,7 +46,7 @@ final class OAuthBroker: NSObject {
     static let shared = OAuthBroker()
 
     /// Sign-in through the browser is parked, and extensions fall back to a token preference.
-    /// To bring it back, turn this off and register the `floe` URL scheme in project.yml again.
+    /// To bring it back, turn this off: `IncomingURLRouter` then hands `floe://oauth` links to `complete(url:)`.
     static let isParked = true
 
     /// How long the browser has to come back before the sign-in fails.
@@ -60,23 +60,6 @@ final class OAuthBroker: NSObject {
 
     /// Sign-ins waiting for the browser, keyed by extension name and state together.
     private let pending = Mutex<[String: Pending]>([:])
-
-    func install() {
-        guard !Self.isParked else { return }
-        NSAppleEventManager.shared().setEventHandler(
-            self,
-            andSelector: #selector(handleGetURLEvent(_:_:)),
-            forEventClass: AEEventClass(kInternetEventClass),
-            andEventID: AEEventID(kAEGetURL)
-        )
-    }
-
-    @objc private func handleGetURLEvent(_ event: NSAppleEventDescriptor?, _: NSAppleEventDescriptor?) {
-        guard let urlString = event?.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
-              let url = URL(string: urlString)
-        else { return }
-        complete(url: url)
-    }
 
     /// Answers one parsed OAuth request for the session's extension.
     func perform(_ request: HostRequest, extensionName: String) async throws -> Any {
@@ -169,7 +152,7 @@ final class OAuthBroker: NSObject {
     }
 
     /// Answers the waiting sign-in whose extension and state the callback names; anything else is ignored.
-    private func complete(url: URL) {
+    func complete(url: URL) {
         guard url.scheme == "floe", url.host == "oauth",
               let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
               let state = items.first(where: { $0.name == "state" })?.value,

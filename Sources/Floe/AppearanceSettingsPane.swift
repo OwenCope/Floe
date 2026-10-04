@@ -12,7 +12,24 @@ import ThawUI
 /// The preview draws them at miniature scale, so a change reads without summoning the panel.
 struct AppearanceSettingsPane: View {
     @ObservedObject var settings: AppSettings
+    @ObservedObject private var follower = ThawAppearanceFollower.shared
     @Environment(\.colorScheme) private var colorScheme
+    @State private var thawIsInstalled = Thaw.applicationURL != nil
+
+    private var mirror: ThawMirror? {
+        settings.thawMirror(for: colorScheme)
+    }
+
+    /// The controls of a part Thaw supplies give way to a line saying so.
+    private func follows(_ part: LauncherLookPart) -> Bool {
+        mirror?.followed.contains(part) ?? false
+    }
+
+    private func footnote(_ text: String) -> some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+    }
 
     /// The tint the single editor writes: light when the tints are separate,
     /// which is also the tint a static configuration draws.
@@ -73,15 +90,20 @@ struct AppearanceSettingsPane: View {
     }
 
     var body: some View {
-        Form {
+        let look = settings.launcherLook(for: colorScheme)
+        return Form {
             ThawSection("Preview") {
-                LauncherAppearancePreview(
-                    glass: settings.launcherGlass,
-                    tint: settings.launcherTint(for: colorScheme),
-                    border: settings.launcherShowsBorder ? settings.launcherBorder : nil,
-                    hasShadow: settings.launcherShowsShadow
-                )
-                .frame(maxWidth: .infinity)
+                LauncherAppearancePreview(glass: look.glass, tint: look.tint, border: look.border, hasShadow: look.hasShadow)
+                    .frame(maxWidth: .infinity)
+            }
+            // Shown without Thaw too while it is on, so it can always be turned off.
+            if thawIsInstalled || settings.followsThawAppearance {
+                ThawSection("Thaw") {
+                    Toggle("Follow Thaw's menu bar appearance", isOn: $settings.followsThawAppearance)
+                    if settings.followsThawAppearance {
+                        ForEach(ThawAppearanceNote.lines(status: follower.status, mirror: mirror), id: \.self, content: footnote)
+                    }
+                }
             }
             ThawSection("Layout") {
                 Picker("Launcher layout", selection: $settings.launcherLayout) {
@@ -90,60 +112,89 @@ struct AppearanceSettingsPane: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                Text("Extended always shows the list. Compact shows only the search bar until you type.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                footnote("Extended always shows the list. Compact shows only the search bar until you type.")
             }
             ThawSection("Glass") {
-                Picker("Effect", selection: glassChoice) {
-                    Text("Match System").tag(GlassChoice.matchSystem)
-                    ForEach(LauncherGlassStyle.allCases) { style in
-                        Text(style.title).tag(GlassChoice.style(style))
-                    }
-                }
-                .help("Match System follows Liquid Glass in System Settings → Appearance: Regular while it's Tinted, Clear while it's Clear.")
-                // Only the Liquid styles take a wash; Regular and Clear are the system's glass as it is.
-                if settings.launcherGlass.resolvedStyle().usesTint {
-                    Toggle("Tint the glass", isOn: $settings.launcherGlass.isColored)
-                    if settings.launcherGlass.isColored {
-                        ColorPicker("Tint color", selection: glassColor, supportsOpacity: false)
-                        Slider(value: $settings.launcherGlass.opacity, in: 0.05 ... 1) {
-                            Text("Opacity")
-                        } minimumValueLabel: {
-                            Text("5%")
-                        } maximumValueLabel: {
-                            Text("100%")
-                        }
-                    }
+                if follows(.glass) {
+                    footnote("The launcher is following Thaw's glass.")
+                } else {
+                    glassControls
                 }
             }
             ThawSection("Tint") {
-                Toggle("Separate light and dark tints", isOn: $settings.launcherTintIsDynamic)
-                if settings.launcherTintIsDynamic {
-                    tintControls("Light appearance", editing)
-                    tintControls("Dark appearance", editingDark)
+                if follows(.tint) {
+                    footnote("The launcher is following Thaw's tint.")
                 } else {
-                    tintControls("Tint", editing)
+                    tintSection
                 }
             }
             ThawSection("Border") {
-                Toggle("Draw a border", isOn: $settings.launcherShowsBorder)
-                if settings.launcherShowsBorder {
-                    ColorPicker("Color", selection: borderColor, supportsOpacity: false)
-                    Slider(value: $settings.launcherBorder.width, in: 0.5 ... 4) {
-                        Text("Width")
-                    } minimumValueLabel: {
-                        Text("0.5 pt")
-                    } maximumValueLabel: {
-                        Text("4 pt")
-                    }
+                if follows(.border) {
+                    footnote("The launcher is following Thaw's border.")
+                } else {
+                    borderControls
                 }
             }
             ThawSection("Shadow") {
-                Toggle("Drop shadow", isOn: $settings.launcherShowsShadow)
+                if follows(.shadow) {
+                    footnote("The launcher is following Thaw's shadow.")
+                } else {
+                    Toggle("Drop shadow", isOn: $settings.launcherShowsShadow)
+                }
             }
         }
         .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private var glassControls: some View {
+        Picker("Effect", selection: glassChoice) {
+            Text("Match System").tag(GlassChoice.matchSystem)
+            ForEach(LauncherGlassStyle.allCases) { style in
+                Text(style.title).tag(GlassChoice.style(style))
+            }
+        }
+        .help("Match System follows Liquid Glass in System Settings → Appearance: Regular while it's Tinted, Clear while it's Clear.")
+        // Only the Liquid styles take a wash; Regular and Clear are the system's glass as it is.
+        if settings.launcherGlass.resolvedStyle().usesTint {
+            Toggle("Tint the glass", isOn: $settings.launcherGlass.isColored)
+            if settings.launcherGlass.isColored {
+                ColorPicker("Tint color", selection: glassColor, supportsOpacity: false)
+                Slider(value: $settings.launcherGlass.opacity, in: 0.05 ... 1) {
+                    Text("Opacity")
+                } minimumValueLabel: {
+                    Text("5%")
+                } maximumValueLabel: {
+                    Text("100%")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tintSection: some View {
+        Toggle("Separate light and dark tints", isOn: $settings.launcherTintIsDynamic)
+        if settings.launcherTintIsDynamic {
+            tintControls("Light appearance", editing)
+            tintControls("Dark appearance", editingDark)
+        } else {
+            tintControls("Tint", editing)
+        }
+    }
+
+    @ViewBuilder
+    private var borderControls: some View {
+        Toggle("Draw a border", isOn: $settings.launcherShowsBorder)
+        if settings.launcherShowsBorder {
+            ColorPicker("Color", selection: borderColor, supportsOpacity: false)
+            Slider(value: $settings.launcherBorder.width, in: 0.5 ... 4) {
+                Text("Width")
+            } minimumValueLabel: {
+                Text("0.5 pt")
+            } maximumValueLabel: {
+                Text("4 pt")
+            }
+        }
     }
 
     @ViewBuilder
@@ -228,5 +279,35 @@ struct LauncherAppearancePreview: View {
                 .frame(width: width, height: 8)
             Spacer()
         }
+    }
+}
+
+/// What the Appearance pane says under the switch while the launcher follows Thaw.
+enum ThawAppearanceNote {
+    static func lines(status: ThawAppearanceFollower.Status, mirror: ThawMirror?) -> [String] {
+        [answer(status), wallpaper(mirror)].compactMap(\.self)
+    }
+
+    private static func answer(_ status: ThawAppearanceFollower.Status) -> String? {
+        switch status {
+        case .idle, .following:
+            nil
+        case .noAnswer:
+            "Thaw has not answered, so the launcher keeps the last look it had. "
+                + "A development build of Floe has to be allowed first: run \"\(ThawAction.authorize.title)\" from the search."
+        case .notRunning:
+            "Thaw is not running. The launcher keeps the last look it had and asks again when Thaw opens."
+        case .unreadable:
+            "Thaw answered in a form this version of Floe cannot read, so the launcher keeps the last look it had. Update Floe and Thaw."
+        }
+    }
+
+    /// Names the fills Thaw takes from the wallpaper, which carry no colour to copy.
+    private static func wallpaper(_ mirror: ThawMirror?) -> String? {
+        guard let mirror, !mirror.unmirrored.isEmpty else { return nil }
+        let names = mirror.unmirrored.map(\.rawValue).joined(separator: " and ")
+        let verb = mirror.unmirrored.count == 1 ? "follows" : "follow"
+        let outcome = mirror.followed.contains(.tint) ? "it is left out" : "the launcher keeps its own tint"
+        return "Thaw's \(names) \(verb) the wallpaper, which the launcher cannot copy, so \(outcome)."
     }
 }

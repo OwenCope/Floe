@@ -68,6 +68,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [x] System commands (sleep, lock, empty Trash)
 - [x] System Settings panes
 - [x] Thaw 3's actions, when Thaw is installed: the hidden sections, swap, Zen Mode, the Thaw Bar, the layout and the application menus
+- [x] The launcher can follow Thaw's menu bar appearance: its tint, glass, border and shadow
 - [x] Toggles for Wi-Fi, mute and keeping the Mac awake
 - [x] Actions on applications and files (quit, show in Finder, open with, move to Trash)
 - [x] A preferred terminal and editor: open a file, a folder or the Finder selection in the ones you already use

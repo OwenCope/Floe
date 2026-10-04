@@ -91,6 +91,7 @@ struct AppSettingsTests {
         settings.launcherShowsBorder = true
         settings.launcherShowsShadow = true
         settings.launcherGlass = LauncherGlass(style: .dynamic, isColored: true, opacity: 0.6)
+        settings.followsThawAppearance = true
         settings.launcherLayout = .compact
         settings.menuBarCommands = ["github/unread-notifications"]
         settings.menuBarItemNames = ["com.a|status": "Renamed"]
@@ -130,6 +131,7 @@ struct AppSettingsTests {
         #expect(reloaded.launcherShowsBorder)
         #expect(reloaded.launcherShowsShadow)
         #expect(reloaded.launcherGlass == LauncherGlass(style: .dynamic, isColored: true, opacity: 0.6))
+        #expect(reloaded.followsThawAppearance)
         #expect(reloaded.launcherLayout == .compact)
         #expect(reloaded.menuBarCommands == ["github/unread-notifications"])
         #expect(reloaded.searchSources == ["tabs"])
@@ -158,6 +160,7 @@ struct AppSettingsTests {
         #expect(settings.launcherShowsShadow == false, "the launcher shipped without a shadow")
         #expect(settings.launcherGlass.resolvedStyle() == .regular, "the panel's own glass unless another is chosen")
         #expect(settings.launcherGlass.tintColor(for: .liquid) == nil)
+        #expect(settings.followsThawAppearance == false, "the launcher keeps its own look unless following Thaw is chosen")
         #expect(settings.launcherLayout == .extended, "the panel opens at full size unless compact is chosen")
     }
 
