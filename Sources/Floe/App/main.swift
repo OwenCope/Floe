@@ -299,6 +299,8 @@ func runSelfTest(extensionName: String, commandName: String) -> Never {
 
 Paths.prepareSupportFolders()
 
+AutoFillOptOut.install()
+
 let options = DebugOptions.parseOrExit()
 
 if options.pick {
