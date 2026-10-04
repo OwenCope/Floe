@@ -68,6 +68,7 @@ enum SettingsPage: Hashable {
     case snippets
     case extensionStore
     case appearance
+    case privacy
     case about
     case extensionPage(String)
 }
@@ -126,6 +127,8 @@ struct SettingsView: View {
             ExtensionStoreSettingsPage()
         case .appearance:
             AppearanceSettingsPane(settings: settings)
+        case .privacy:
+            PrivacySettingsPane(settings: settings)
         case .about:
             AboutSettingsPane()
         case let .extensionPage(name):
@@ -142,12 +145,13 @@ struct SettingsView: View {
     private var subtitle: String {
         guard !search.isSearching else { return "" }
         switch selection.page {
-        case .general: return "Startup, hotkeys and permissions"
+        case .general: return "Startup, hotkeys and built-in commands"
         case .applications: return "Aliases and hotkeys for apps"
         case .quicklinks: return "Keywords and fallbacks for web search"
         case .snippets: return "Text you paste or type by keyword"
         case .extensionStore: return "Install extensions from the Raycast store"
         case .appearance: return "Tint, border and shadow for the launcher"
+        case .privacy: return "Permissions and what Floe contacts"
         case .about: return "Version, updates and credits"
         case let .extensionPage(name):
             guard let command = model.allCommands.first(where: { $0.extensionName == name }) else { return "" }
@@ -216,6 +220,7 @@ private struct SettingsSidebarPaneList: View {
             Row(page: .snippets, title: "Snippets", symbol: "text.quote", icon: nil, assetsPath: ""),
             Row(page: .extensionStore, title: "Extension Store", symbol: "bag", icon: nil, assetsPath: ""),
             Row(page: .appearance, title: "Appearance", symbol: "paintbrush", icon: nil, assetsPath: ""),
+            Row(page: .privacy, title: "Privacy", symbol: "hand.raised", icon: nil, assetsPath: ""),
         ] + extensions + [
             Row(page: .about, title: "About", symbol: "info.circle", icon: nil, assetsPath: ""),
         ]
@@ -389,7 +394,7 @@ struct GeneralSettingsView: View {
                 )
             }
             MenuBarCommandsSettingsSection(model: model, settings: settings)
-            PermissionsSettingsSection()
+            WelcomeSettingsSection()
             NotesSettingsSection(settings: settings)
             ThawSection("Clipboard") {
                 Toggle(isOn: $settings.clipboardHistoryEnabled) {

@@ -14,6 +14,7 @@ extension SearchPaneLabel {
     static let snippets = SearchPaneLabel(title: "Snippets", symbol: "text.quote")
     static let extensionStore = SearchPaneLabel(title: "Extension Store", symbol: "bag")
     static let appearance = SearchPaneLabel(title: "Appearance", symbol: "paintbrush")
+    static let privacy = SearchPaneLabel(title: "Privacy", symbol: "hand.raised")
     static let about = SearchPaneLabel(title: "About", symbol: "info.circle")
 }
 
@@ -94,6 +95,14 @@ extension SearchIndex {
             keywords: ["appearance", "glass", "tint", "colour", "color", "gradient", "border", "shadow", "theme", "style"]
         ),
         SearchEntry(
+            id: "pane.privacy",
+            title: "Privacy",
+            descriptionText: "Permissions and what Floe contacts.",
+            pane: .privacy,
+            paneLabel: .privacy,
+            keywords: ["privacy", "permissions", "network", "analytics", "tracking", "data"]
+        ),
+        SearchEntry(
             id: "pane.general",
             title: "General",
             pane: .general,
@@ -162,6 +171,16 @@ extension SearchIndex {
         .appearance("border", "Border", section: "Border", keywords: ["border", "outline", "stroke", "edge", "width"]),
         .appearance("shadow", "Drop Shadow", section: "Shadow", keywords: ["shadow", "depth", "drop"]),
     ]
+
+    static let privacyEntries: [SearchEntry] = [
+        privacy("permissions", "Permissions", section: "Permissions", keywords: ["privacy", "security", "access", "grant", "allow", "accessibility"]),
+        privacy("accessibility", "Accessibility", section: "Permissions", keywords: ["permission", "privacy", "access", "grant", "trusted", "menu bar"]),
+        privacy("network", "Network Access", section: "Network Access", keywords: ["network", "internet", "updates", "github", "ai", "requests", "analytics"]),
+    ]
+
+    private static func privacy(_ id: String, _ title: String, section: String, keywords: [String]) -> SearchEntry {
+        SearchEntry(id: "privacy.\(id)", title: title, pane: .privacy, paneLabel: .privacy, section: section, keywords: keywords)
+    }
 
     static let generalEntries: [SearchEntry] = [
         .general(
@@ -241,18 +260,6 @@ extension SearchIndex {
             description: "Moves aliases, hotkeys, favorites, appearance and extension preferences to another Mac.",
             section: "Your Settings",
             keywords: ["export", "import", "backup", "transfer", "move", "file", "restore"]
-        ),
-        .general(
-            "permissions",
-            "Permissions",
-            section: "Permissions",
-            keywords: ["privacy", "security", "access", "grant", "allow", "accessibility"]
-        ),
-        .general(
-            "accessibility",
-            "Accessibility",
-            section: "Permissions",
-            keywords: ["permission", "privacy", "access", "grant", "trusted", "menu bar"]
         ),
         .general(
             "includeRaycastExtensions",

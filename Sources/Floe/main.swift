@@ -308,7 +308,7 @@ if options.benchSettings {
     let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 820, height: 560), styleMask: [.titled], backing: .buffered, defer: false)
     window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: .shared, selection: selection))
     window.orderFrontRegardless()
-    let pages: [(String, SettingsPage)] = [("general", .general), ("applications", .applications), ("about", .about), ("extension", .extensionPage("kill-process"))]
+    let pages: [(String, SettingsPage)] = [("general", .general), ("applications", .applications), ("privacy", .privacy), ("about", .about), ("extension", .extensionPage("kill-process"))]
     for (name, page) in pages {
         let start = Date()
         selection.page = page

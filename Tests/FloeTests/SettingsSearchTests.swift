@@ -137,13 +137,14 @@ struct SearchIndexTests {
             case .quicklinks: #expect(entry.paneLabel == .quicklinks)
             case .snippets: #expect(entry.paneLabel == .snippets)
             case .extensionStore: #expect(entry.paneLabel == .extensionStore)
+            case .privacy: #expect(entry.paneLabel == .privacy)
             case .about: #expect(entry.paneLabel == .about)
             case .extensionPage: Issue.record("\(entry.id) is a static entry on an extension's pane")
             }
         }
     }
 
-    @Test(arguments: [SettingsPage.general, .applications, .quicklinks, .snippets, .extensionStore, .appearance, .about])
+    @Test(arguments: [SettingsPage.general, .applications, .quicklinks, .snippets, .extensionStore, .appearance, .privacy, .about])
     func everyPaneOfFloeCanBeFoundByName(pane: SettingsPage) {
         #expect(SearchIndex.paneEntries.contains { $0.pane == pane })
     }
@@ -224,8 +225,8 @@ struct SearchModelTests {
         ("pop to root", "general.popToRootDelay"),
         ("return to root", "general.popToRootDelay"),
         ("menu bar", "general.menuBarSearchHotkey"),
-        ("permissions", "general.permissions"),
-        ("accessibility", "general.accessibility"),
+        ("permissions", "privacy.permissions"),
+        ("accessibility", "privacy.accessibility"),
         ("check for updates", "general.checkForUpdates"),
         ("raycast", "general.includeRaycastExtensions"),
         ("extensions folder", "general.extensionsFolder"),

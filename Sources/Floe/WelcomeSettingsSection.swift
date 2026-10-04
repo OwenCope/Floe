@@ -1,0 +1,23 @@
+//
+//  WelcomeSettingsSection.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU AGPLv3
+
+import SwiftUI
+import ThawUI
+
+/// Settings → General: a way back to the welcome window. The permissions themselves are on the Privacy page.
+struct WelcomeSettingsSection: View {
+    var body: some View {
+        ThawSection("Welcome") {
+            LabeledContent {
+                Button("Show Welcome") { OnboardingWindowController.shared.showIfNeeded(replayRequested: true) }
+            } label: {
+                Text("Welcome window")
+                Text("The introduction from the first launch.")
+            }
+        }
+    }
+}

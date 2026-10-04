@@ -49,7 +49,7 @@ class Dependency(NamedTuple):
 
 DEPENDENCIES = [
     Dependency("Thaw", "thaw", "GPL-3.0",
-               "ThawUI, ThawConcurrency, the hotkey code, the HUD, the glass styles and the search panel design. "
+               "ThawUI, ThawConcurrency, the hotkey code, the HUD, the glass styles, the Privacy pane and the search panel design. "
                "Copyright © 2026 Toni Förster et al"),
     # The license asks for this exact credit line wherever Floe lists what it is built from.
     Dependency("Droppy Code", "droppyCode", "AGPL-3.0",
