@@ -102,6 +102,8 @@
 		F03B98E4A5FA6F7B8C4893D5 /* Quicklinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB65908F87D1376EBC7FA28D /* Quicklinks.swift */; };
 		F17B5877F35D22CDFFF14571 /* ExtensionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662EC478F02099BE5BC4B9B0 /* ExtensionStore.swift */; };
 		FA8EA9B40FA7FF26B6D03FB3 /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B83CE1B17D83A1AC6396FF /* HotkeyRecorder.swift */; };
+		FABB403BBB3C3189958DD1BF /* LauncherGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A4E7591F69E972182C8543 /* LauncherGlass.swift */; };
+		FB0B022C5049D0D54C9E988C /* LauncherPanelAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA09D9D5DB148CE556993D01 /* LauncherPanelAppearance.swift */; };
 		FD44CA1326BA895AD956495A /* SettingsSearchEntries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3285F2DD34C108867AD321B4 /* SettingsSearchEntries.swift */; };
 		FF252147DD8A5CDE2F38D274 /* Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19EC354FED1BF630AE88C6F8 /* Calendar.swift */; };
 		FFCB0259382D909C8B55D0C9 /* CommandLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F8CA05EA6EA73E3BE7992 /* CommandLookup.swift */; };
@@ -186,9 +188,11 @@
 		A2B945A754222839702B06CD /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 		A3F1F04CB5B238D464961288 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A48EE7BCE3DB6DB75403FC86 /* GlassSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSupport.swift; sourceTree = "<group>"; };
+		A4A4E7591F69E972182C8543 /* LauncherGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherGlass.swift; sourceTree = "<group>"; };
 		A8A91D9CFF52277A3BF983DF /* AboutSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsPane.swift; sourceTree = "<group>"; };
 		A955598F6D439FDD893F9174 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		A973D1BA8F8EDEB12D15D62F /* UpdateLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLogic.swift; sourceTree = "<group>"; };
+		AA09D9D5DB148CE556993D01 /* LauncherPanelAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherPanelAppearance.swift; sourceTree = "<group>"; };
 		AAD7447870CB1042E0714636 /* SnippetsSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetsSettingsPage.swift; sourceTree = "<group>"; };
 		AE77F4EE054A6C520DC7476B /* Floe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Floe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B5F79E7C261FEF649D619BE4 /* release.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = release.sh; sourceTree = "<group>"; };
@@ -255,6 +259,7 @@
 				3C88D79A84B3FAC5F8E4332D /* HotkeyRegistry.swift */,
 				6AC8924ABF92EC374FAB32FB /* KeyCode.swift */,
 				42251D9E5402360C16FC6AAC /* KeyCombination.swift */,
+				A4A4E7591F69E972182C8543 /* LauncherGlass.swift */,
 				219F645E1E608A4BB123BFB4 /* Modifiers.swift */,
 				442606CB5ED8AC44669CA4D4 /* SearchPanelStyle.swift */,
 				604318B576A5FA49A67E10A4 /* ThawHUD.swift */,
@@ -292,6 +297,7 @@
 				20B7EEA754DB688FCB7EF7D0 /* HostRequest.swift */,
 				D7998806F2EEFDB2C0D99FC0 /* HotReload.swift */,
 				EDE7878F039A72C2B646A417 /* LauncherAppearance.swift */,
+				AA09D9D5DB148CE556993D01 /* LauncherPanelAppearance.swift */,
 				4E70D96CFBBB4B6A322E7BDB /* main.swift */,
 				0ECF7DFED5616C6762A29F68 /* MainMenu.swift */,
 				9282FBD75C06A6410E879C91 /* Manifest.swift */,
@@ -568,6 +574,8 @@
 				BA801F87D598934046F77403 /* KeyCode.swift in Sources */,
 				0A296B921416DFE1A91C9108 /* KeyCombination.swift in Sources */,
 				1E67B7F437AB8AB55EB1362D /* LauncherAppearance.swift in Sources */,
+				FABB403BBB3C3189958DD1BF /* LauncherGlass.swift in Sources */,
+				FB0B022C5049D0D54C9E988C /* LauncherPanelAppearance.swift in Sources */,
 				3AD35881F6B724143FF6B7E6 /* LoginEnvironment.swift in Sources */,
 				B69A67C493C8E472020DC5DC /* MainMenu.swift in Sources */,
 				5D4CE2F66CECA7B125BE0738 /* Manifest.swift in Sources */,

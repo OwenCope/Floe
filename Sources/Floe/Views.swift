@@ -52,51 +52,12 @@ struct LauncherView: View {
             height: Self.contentSize(menuBarSearch: model.isSearchingMenuBar).height
         )
         .modifier(LauncherPanelAppearance(
+            glass: settings.launcherGlass,
             tint: settings.launcherTint(for: colorScheme),
             border: settings.launcherShowsBorder ? settings.launcherBorder : nil,
             hasShadow: settings.launcherShowsShadow
         ))
         .padding(Self.margin)
-    }
-}
-
-/// Thaw's menu-bar appearance, applied to the launcher's glass: a tint layered
-/// between the glass and the content at the configured strength, an optional
-/// border, and a drop shadow that follows the rounded shape — the window's own
-/// shadow is a square, because the window is larger than the launcher by
-/// `margin`. Internal so the Appearance pane can preview with the same layering.
-struct LauncherPanelAppearance: ViewModifier {
-    let tint: LauncherTint
-    let border: LauncherBorder?
-    let hasShadow: Bool
-
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: ThawRadius.panel, style: .continuous)
-    }
-
-    func body(content: Content) -> some View {
-        // The tint is the content's background, so the order is glass, tint,
-        // content: a colour wash must never sit on top of the launcher's text.
-        let tinted = content.background {
-            if let style = tint.backgroundStyle {
-                shape.fill(style)
-            }
-        }
-        .thawGlass(.panel, in: shape)
-        let bordered = Group {
-            if let border {
-                tinted.overlay(shape.strokeBorder(border.color.color, lineWidth: border.width))
-            } else {
-                tinted
-            }
-        }
-        return Group {
-            if hasShadow {
-                bordered.shadow(color: .black.opacity(0.35), radius: 14, y: 6)
-            } else {
-                bordered
-            }
-        }
     }
 }
 

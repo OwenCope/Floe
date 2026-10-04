@@ -87,6 +87,7 @@ struct AppSettingsTests {
         settings.launcherBorder = LauncherBorder(color: StoredColor(Color.white.opacity(0.6)), width: 2)
         settings.launcherShowsBorder = true
         settings.launcherShowsShadow = true
+        settings.launcherGlass = LauncherGlass(style: .dynamic, isColored: true, opacity: 0.6)
         settings.menuBarItemNames = ["com.a|status": "Renamed"]
         settings.isRecordingHotkey = true
         settings.save()
@@ -118,6 +119,7 @@ struct AppSettingsTests {
         #expect(reloaded.launcherBorder.width == 2)
         #expect(reloaded.launcherShowsBorder)
         #expect(reloaded.launcherShowsShadow)
+        #expect(reloaded.launcherGlass == LauncherGlass(style: .dynamic, isColored: true, opacity: 0.6))
     }
 
     @Test func theAIChoiceStartsWithTheToolsAndComesBackAfterASave() {
@@ -141,6 +143,25 @@ struct AppSettingsTests {
         #expect(settings.launcherTint(for: .dark).kind == .none, "both modes start without a tint")
         #expect(settings.launcherShowsBorder == false)
         #expect(settings.launcherShowsShadow == false, "the launcher shipped without a shadow")
+        #expect(settings.launcherGlass.resolvedStyle() == .regular, "the panel's own glass unless another is chosen")
+        #expect(settings.launcherGlass.tintColor(for: .liquid) == nil)
+    }
+
+    @Test func aGlassThatFollowsTheSystemIsRegularWhileTintedAndClearOtherwise() {
+        var glass = LauncherGlass(style: .dynamic)
+        #expect(glass.resolvedStyle(systemGlassIsTinted: true) == .dynamic, "a chosen style ignores the system's")
+        glass.followsSystem = true
+        #expect(glass.resolvedStyle(systemGlassIsTinted: true) == .regular)
+        #expect(glass.resolvedStyle(systemGlassIsTinted: false) == .clear)
+    }
+
+    @Test func onlyTheLiquidStylesTakeAWash() {
+        let glass = LauncherGlass(isColored: true, opacity: 0.5)
+        #expect(glass.tintColor(for: .regular) == nil)
+        #expect(glass.tintColor(for: .clear) == nil)
+        #expect(glass.tintColor(for: .liquid)?.alphaComponent == 0.5)
+        #expect(glass.tintColor(for: .dynamic)?.alphaComponent == 0.5)
+        #expect(LauncherGlassStyle.allCases.filter(\.usesDarkFade) == [.dynamic])
     }
 
     @Test func settingsSavedBeforeNewerFieldsExistedStillLoad() {

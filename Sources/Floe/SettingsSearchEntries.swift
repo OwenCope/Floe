@@ -91,7 +91,7 @@ extension SearchIndex {
             descriptionText: "Tint, border and shadow for the launcher panel.",
             pane: .appearance,
             paneLabel: .appearance,
-            keywords: ["appearance", "tint", "colour", "color", "gradient", "border", "shadow", "theme", "style"]
+            keywords: ["appearance", "glass", "tint", "colour", "color", "gradient", "border", "shadow", "theme", "style"]
         ),
         SearchEntry(
             id: "pane.general",
@@ -154,6 +154,7 @@ extension SearchIndex {
     ]
 
     static let appearanceEntries: [SearchEntry] = [
+        .appearance("glassEffect", "Glass Effect", section: "Glass", keywords: ["glass", "liquid", "dynamic", "clear", "regular", "effect", "material"]),
         .appearance("tintStyle", "Tint", section: "Tint", keywords: ["tint", "colour", "color", "style", "solid", "gradient", "none"]),
         .appearance("tintColor", "Tint Colour", section: "Tint", keywords: ["tint", "colour", "color", "picker"]),
         .appearance("tintOpacity", "Tint Opacity", section: "Tint", keywords: ["tint", "opacity", "strength", "transparency"]),

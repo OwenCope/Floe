@@ -8,10 +8,8 @@
 import SwiftUI
 import ThawUI
 
-/// Thaw's menu-bar appearance controls, applied to the launcher panel: a tint
-/// layered between the glass and the content, an optional border, and a drop
-/// shadow that follows the launcher's rounded shape. A live preview renders
-/// the result at miniature scale, so changes read without summoning the panel.
+/// Thaw's menu-bar appearance controls, applied to the launcher panel: glass, tint, border and shadow.
+/// The preview draws them at miniature scale, so a change reads without summoning the panel.
 struct AppearanceSettingsPane: View {
     @ObservedObject var settings: AppSettings
     @Environment(\.colorScheme) private var colorScheme
@@ -39,6 +37,34 @@ struct AppearanceSettingsPane: View {
         )
     }
 
+    private var glassColor: Binding<Color> {
+        Binding(
+            get: { settings.launcherGlass.color.color },
+            set: { settings.launcherGlass.color = StoredColor($0) }
+        )
+    }
+
+    /// Following the system is its own flag, so the picker has one more choice than there are styles.
+    private enum GlassChoice: Hashable {
+        case matchSystem
+        case style(LauncherGlassStyle)
+    }
+
+    private var glassChoice: Binding<GlassChoice> {
+        Binding(
+            get: { settings.launcherGlass.followsSystem ? .matchSystem : .style(settings.launcherGlass.style) },
+            set: { choice in
+                switch choice {
+                case .matchSystem:
+                    settings.launcherGlass.followsSystem = true
+                case let .style(style):
+                    settings.launcherGlass.followsSystem = false
+                    settings.launcherGlass.style = style
+                }
+            }
+        )
+    }
+
     private func colorBinding(_ tint: Binding<LauncherTint>, _ keyPath: WritableKeyPath<LauncherGradient, StoredColor>) -> Binding<Color> {
         Binding(
             get: { tint.wrappedValue.gradient[keyPath: keyPath].color },
@@ -50,11 +76,35 @@ struct AppearanceSettingsPane: View {
         Form {
             ThawSection("Preview") {
                 LauncherAppearancePreview(
+                    glass: settings.launcherGlass,
                     tint: settings.launcherTint(for: colorScheme),
                     border: settings.launcherShowsBorder ? settings.launcherBorder : nil,
                     hasShadow: settings.launcherShowsShadow
                 )
                 .frame(maxWidth: .infinity)
+            }
+            ThawSection("Glass") {
+                Picker("Effect", selection: glassChoice) {
+                    Text("Match System").tag(GlassChoice.matchSystem)
+                    ForEach(LauncherGlassStyle.allCases) { style in
+                        Text(style.title).tag(GlassChoice.style(style))
+                    }
+                }
+                .help("Match System follows Liquid Glass in System Settings → Appearance: Regular while it's Tinted, Clear while it's Clear.")
+                // Only the Liquid styles take a wash; Regular and Clear are the system's glass as it is.
+                if settings.launcherGlass.resolvedStyle().usesTint {
+                    Toggle("Tint the glass", isOn: $settings.launcherGlass.isColored)
+                    if settings.launcherGlass.isColored {
+                        ColorPicker("Tint color", selection: glassColor, supportsOpacity: false)
+                        Slider(value: $settings.launcherGlass.opacity, in: 0.05 ... 1) {
+                            Text("Opacity")
+                        } minimumValueLabel: {
+                            Text("5%")
+                        } maximumValueLabel: {
+                            Text("100%")
+                        }
+                    }
+                }
             }
             ThawSection("Tint") {
                 Toggle("Separate light and dark tints", isOn: $settings.launcherTintIsDynamic)
@@ -130,8 +180,9 @@ struct AppearanceSettingsPane: View {
 }
 
 /// A miniature launcher that runs the exact panel appearance pipeline, so the
-/// tint, border and shadow read live next to their controls.
+/// glass, tint, border and shadow read live next to their controls.
 struct LauncherAppearancePreview: View {
+    let glass: LauncherGlass
     let tint: LauncherTint
     let border: LauncherBorder?
     let hasShadow: Bool
@@ -154,7 +205,7 @@ struct LauncherAppearancePreview: View {
             }
         }
         .padding(12)
-        .modifier(LauncherPanelAppearance(tint: tint, border: border, hasShadow: hasShadow))
+        .modifier(LauncherPanelAppearance(glass: glass, tint: tint, border: border, hasShadow: hasShadow))
         .padding(6)
     }
 
