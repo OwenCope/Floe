@@ -14,6 +14,8 @@ struct SystemSettingsPane: Identifiable, Hashable, Sendable {
     let title: String
     let symbol: String
     let keywords: [String]
+    /// The pane's own bundle, when macOS has an icon of its own for it. Nil draws the symbol.
+    var iconPath: String?
 
     var id: String {
         identifier
@@ -40,7 +42,7 @@ extension SystemSettingsPane {
     static let known: [String: Known] = [
         "com.apple.systempreferences.AppleIDSettings": Known(title: "Apple Account", symbol: "person.crop.circle", keywords: ["apple id", "icloud"]),
         "com.apple.wifi-settings-extension": Known(title: "Wi-Fi", symbol: "wifi", keywords: ["wifi", "wireless", "internet"]),
-        "com.apple.BluetoothSettings": Known(title: "Bluetooth", symbol: "dot.radiowaves.left.and.right", keywords: ["headphones", "pair"]),
+        "com.apple.BluetoothSettings": Known(title: "Bluetooth", symbol: "wave.3.right", keywords: ["headphones", "pair"]),
         "com.apple.Network-Settings.extension": Known(title: "Network", symbol: "network", keywords: ["ethernet", "dns", "proxy", "firewall"]),
         "com.apple.NetworkExtensionSettingsUI.NESettingsUIExtension": Known(title: "VPN", symbol: "lock.shield"),
         "com.apple.Battery-Settings.extension": Known(title: "Battery", symbol: "battery.75percent", keywords: ["energy", "power", "low power mode"]),
@@ -115,16 +117,33 @@ extension SystemSettingsPane {
     /// so it runs in the catalog worker.
     static func scan(folder: URL = extensionsFolder) -> [SystemSettingsPane] {
         let entries = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        return entries.compactMap { url -> SystemSettingsPane? in
-            guard url.pathExtension == "appex", let bundle = Bundle(url: url), let identifier = bundle.bundleIdentifier,
-                  let attributes = bundle.object(forInfoDictionaryKey: "EXAppExtensionAttributes") as? [String: Any],
-                  attributes["EXExtensionPointIdentifier"] as? String == settingsExtensionPoint
+        let found = entries.compactMap { url -> (pane: SystemSettingsPane, url: URL)? in
+            // The property list is read as a file first: a Bundle stays in memory for good, and most extensions here are not panes.
+            guard url.pathExtension == "appex",
+                  let info = NSDictionary(contentsOf: url.appendingPathComponent("Contents/Info.plist")),
+                  let attributes = info["EXAppExtensionAttributes"] as? [String: Any],
+                  attributes["EXExtensionPointIdentifier"] as? String == settingsExtensionPoint,
+                  let bundle = Bundle(url: url), let identifier = bundle.bundleIdentifier
             else { return nil }
             // Only the localized table is trusted: the plain Info.plist names are internal ones like "PowerPreferences".
             let localized = bundle.localizedInfoDictionary
             let name = (localized?["CFBundleDisplayName"] ?? localized?["CFBundleName"]) as? String
-            return pane(identifier: identifier, localizedName: name)
+            return pane(identifier: identifier, localizedName: name).map { ($0, url) }
         }
-        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        return found.map { $0.pane.withIcon(at: $0.url.path) }
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    /// Panes macOS has no icon of its own for: their bundle draws as the generic extension block.
+    static let withoutOwnIcon: Set<String> = [
+        "com.apple.Battery-Settings.extension",
+        "com.apple.HeadphoneSettings",
+    ]
+
+    /// The pane with its bundle as its icon, which is the picture System Settings shows for it.
+    func withIcon(at bundlePath: String) -> SystemSettingsPane {
+        var pane = self
+        pane.iconPath = Self.withoutOwnIcon.contains(identifier) ? nil : bundlePath
+        return pane
     }
 }

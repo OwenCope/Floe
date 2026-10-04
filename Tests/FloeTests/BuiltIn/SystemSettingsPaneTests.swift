@@ -59,6 +59,14 @@ struct SystemSettingsPaneTests {
         #expect(panes.first?.title == "Displays")
     }
 
+    @Test func aPaneDrawsItsOwnBundleUnlessMacOSHasNoIconForIt() throws {
+        let displays = try #require(SystemSettingsPane.pane(identifier: Self.displays, localizedName: "Displays"))
+        let battery = try #require(SystemSettingsPane.pane(identifier: "com.apple.Battery-Settings.extension", localizedName: "Battery"))
+        #expect(displays.iconPath == nil, "a pane made without a bundle draws its symbol")
+        #expect(displays.withIcon(at: "/x/Displays.appex").iconPath == "/x/Displays.appex")
+        #expect(battery.withIcon(at: "/x/PowerPreferences.appex").iconPath == nil)
+    }
+
     @Test func aPaneIsFoundByAKeywordAndOpensNothingElse() throws {
         let pane = try #require(SystemSettingsPane.pane(identifier: Self.displays, localizedName: "Displays"))
         let results = Ranking.search([.settingsPane(pane)], query: "monitor", favorites: [], alias: { _ in nil }, frecency: { _ in 0 })

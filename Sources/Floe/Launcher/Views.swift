@@ -255,7 +255,12 @@ struct RootIcon: View {
         case let .finderSelection(_, app):
             AppIconView(path: app.url.path, size: 24)
         case let .settingsPane(pane):
-            SymbolTile(symbol: pane.symbol)
+            // The icon System Settings shows for the pane, where macOS has one.
+            if let path = pane.iconPath {
+                AppIconView(path: path, size: 24)
+            } else {
+                SymbolTile(symbol: pane.symbol)
+            }
         case .snippet:
             SymbolTile(symbol: "text.quote", tint: .teal)
         case .event:
