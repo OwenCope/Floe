@@ -6,7 +6,7 @@ Usage, from anywhere:
 
 Writes two files:
     CREDITS.md                  the list for the repository, with versions
-    Sources/Floe/Credits.swift  the same list for the About page's Credits sheet
+    Sources/Floe/App/Credits.swift  the same list for the About page's Credits sheet
 
 Adapted from Thaw's script of the same name, which builds CREDITS.md from a translators export.
 Floe has no translations yet, so this one lists what the app is built from. Versions are read
@@ -29,7 +29,7 @@ PROJECT = ROOT / "project.yml"
 SWIFT_PINS = ROOT / "Package.resolved"
 RUNTIME_MANIFEST = ROOT / "runtime" / "package.json"
 MARKDOWN = ROOT / "CREDITS.md"
-SWIFT = ROOT / "Sources" / "Floe" / "Credits.swift"
+SWIFT = ROOT / "Sources" / "Floe" / "App" / "Credits.swift"
 
 
 class Dependency(NamedTuple):

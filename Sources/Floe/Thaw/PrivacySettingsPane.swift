@@ -114,12 +114,13 @@ enum PrivacyNetwork {
         case .api:
             let url = AIEndpoint.chatURL(baseURL: baseURL)
             guard let host = url?.host else { return "Questions go to the address set in General, once it is filled in." }
-            if onThisMacOnly, AIEndpoint.needsKey(url) {
+            let isOnThisMac = AIEndpoint.isOnThisMac(url)
+            if onThisMacOnly, !isOnThisMac {
                 return "\(host) is chosen, which is not on this Mac. \(refused)"
             }
-            return AIEndpoint.needsKey(url)
-                ? "Questions go to \(host), with your key, and nowhere else."
-                : "Questions go to the server on this Mac at \(host). Nothing leaves the machine."
+            return isOnThisMac
+                ? "Questions go to the server on this Mac at \(host). Nothing leaves the machine."
+                : "Questions go to \(host), with your key, and nowhere else."
         }
     }
 }

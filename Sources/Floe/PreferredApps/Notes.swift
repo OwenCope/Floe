@@ -118,10 +118,7 @@ enum Notes {
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { "<div>\($0.isEmpty ? "<br>" : String($0))</div>" }
             .joined()
-        let literal = html
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        return "tell application \"Notes\" to make new note with properties {body:\"\(literal)\"}"
+        return "tell application \"Notes\" to make new note with properties {body:\(AppleScript.literal(html))}"
     }
 
     /// Hands the note over and answers with the line for the HUD, or nil when the app came forward
@@ -141,16 +138,11 @@ enum Notes {
             return
         }
         let source = appleNotesScript(text: text)
-        DispatchQueue.global(qos: .userInitiated).async {
-            var error: NSDictionary?
-            NSAppleScript(source: source)?.executeAndReturnError(&error)
-            let number = error?[NSAppleScript.errorNumber] as? Int
-            DispatchQueue.main.async {
-                switch number {
-                case nil: completion(text.isEmpty ? nil : "Saved to Notes")
-                case -1743: SystemCommand.askForAutomation(toControl: "Notes")
-                default: completion("Couldn't save the note in Notes")
-                }
+        AppleScript.execute(source, qos: .userInitiated) { execution in
+            switch execution.errorNumber {
+            case nil: completion(text.isEmpty ? nil : "Saved to Notes")
+            case AppleScript.refusedErrorNumber: SystemCommand.askForAutomation(toControl: "Notes")
+            default: completion("Couldn't save the note in Notes")
             }
         }
     }

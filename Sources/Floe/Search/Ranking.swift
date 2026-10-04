@@ -1,0 +1,94 @@
+//
+//  Ranking.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU AGPLv3
+
+import Algorithms
+import Foundation
+
+enum Fuzzy {
+    /// Higher is better; nil means no match.
+    static func score(_ query: String, _ candidate: String) -> Int? {
+        evaluate(query, candidate, wantPositions: false)?.score
+    }
+}
+
+/// Orders the root search. Usage and settings come in as plain values, so this stays free of stored state.
+enum Ranking {
+    /// Use count weighted by recency: an item opened often but not lately fades behind one used today.
+    static func frecency(count: Int, age: TimeInterval) -> Double {
+        let weight: Double = switch age {
+        case ..<3600: 4
+        case ..<86400: 2
+        case ..<604_800: 1
+        case ..<2_592_000: 0.5
+        default: 0.25
+        }
+        return Double(count) * weight
+    }
+
+    /// An exact alias wins outright; an alias prefix ranks with a title prefix.
+    static func score(query: String, title: String, alias: String?) -> Int? {
+        let titleScore = Fuzzy.score(query, title)
+        guard let alias = alias?.lowercased(), !alias.isEmpty else { return titleScore }
+        if alias == query.lowercased() {
+            return 1000
+        }
+        if alias.hasPrefix(query.lowercased()) {
+            return max(titleScore ?? 0, 95)
+        }
+        return titleScore
+    }
+
+    /// No query: favourites, then recently used, then commands and applications.
+    /// `searchOnly` items are too many to list: they show here only as a favorite or a suggestion.
+    static func browse(_ all: [RootItem], searchOnly: [RootItem] = [], favorites: [String], frecency: (String) -> Double) -> [RootResult] {
+        let known = all + searchOnly
+        let byID = Dictionary(known.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let favoriteItems = favorites.compactMap { byID[$0] }
+        let favoriteIDs = Set(favoriteItems.map(\.id))
+        // Equally used items keep the order they came in, which a plain sort does not promise.
+        let suggestions = known
+            .filter { !favoriteIDs.contains($0.id) && frecency($0.id) > 0 }
+            .min(count: 5) { frecency($0.id) > frecency($1.id) }
+        let shown = favoriteIDs.union(suggestions.map(\.id))
+        let (commands, apps) = all.filter { !shown.contains($0.id) }.partitioned(by: \.isApp)
+        return favoriteItems.map { RootResult(item: $0, section: "Favorites") }
+            + suggestions.map { RootResult(item: $0, section: "Suggestions") }
+            + commands.map { RootResult(item: $0, section: "Commands") }
+            + apps.map { RootResult(item: $0, section: "Applications") }
+    }
+
+    /// With a query: match quality first, nudged by how often and how recently each item is used.
+    static func search(
+        _ all: [RootItem],
+        query: String,
+        favorites: [String],
+        alias: (RootItem) -> String?,
+        frecency: (String) -> Double,
+        limit: Int = 40
+    ) -> [RootResult] {
+        all.compactMap { item -> (RootItem, Double)? in
+            let scores = [score(query: query, title: item.title, alias: alias(item))] + item.keywords.map { keywordScore(query, $0) }
+            guard let match = scores.compactMap(\.self).max() else { return nil }
+            let boost = min(20, frecency(item.id) * 2) + (favorites.contains(item.id) ? 5 : 0)
+            return (item, Double(match) + boost)
+        }
+        // Equal scores keep the order they came in, which a plain sort does not promise.
+        .min(count: limit) { $0.1 > $1.1 }
+        .map { RootResult(item: $0.0, section: nil) }
+    }
+
+    /// A keyword counts for less than the title it stands in for, and scattered letters in one do
+    /// not count at all: an item with many keywords would otherwise answer to almost anything.
+    static func keywordScore(_ query: String, _ keyword: String) -> Int? {
+        Fuzzy.score(query, keyword).flatMap { $0 >= 55 ? $0 - 15 : nil }
+    }
+
+    /// A menu bar item matches on its name, or less strongly on the app that owns it.
+    static func menuBarScore(query: String, name: String, owner: String) -> Int? {
+        [Fuzzy.score(query, name), Fuzzy.score(query, owner).map { $0 - 10 }].compactMap(\.self).max()
+    }
+}

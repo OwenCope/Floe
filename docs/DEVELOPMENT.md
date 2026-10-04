@@ -33,18 +33,44 @@ Commands with required preferences or arguments ask for them in the panel before
 
 ## Layout
 
-- `Sources/Floe`: the app: panel, hotkey, app index, and a renderer for the JSON tree the host sends.
+- `Sources/Floe`: the app: panel, hotkey, app index, and a renderer for the JSON tree the host sends. One folder per
+  area, and no Swift file outside a folder:
+  - `App`: the entry point and app delegate (`main.swift`), the main menu, the `floe://` link router, the debug
+    options, the update rules and the generated credits.
+  - `Launcher`: the panel's model (`Model.swift`, with one `Model+….swift` per view it drives and one for the keys)
+    and its root views (`Views.swift`, `IconView.swift`), its layout and appearance, the Actions menus, the catalog
+    of apps and commands with its scans (`Catalog.swift`, which also holds `Paths`), and Markdown.
+  - `Search`: ranking and fuzzy matching, the command lookup the App Intents use, and `SearchProviders` (below).
+  - `BuiltIn`: what Floe does itself: the calculator, system commands and toggles, System Settings panes, emoji,
+    clipboard history, snippets and their expander, quicklinks, the calendar, the file search, browser tabs, menu bar
+    items, script commands and Thaw's actions, with the AppleScript runner and the selection and pasteboard helpers.
+  - `AI`: Ask AI and the sources that answer a prompt.
+  - `Extensions`: a running command (`Session.swift` and its extensions), what it asks the app for
+    (`HostRequest.swift`), the manifest, the store, menu bar commands, the background scheduler, OAuth, hot reload,
+    and the views an extension's forms and errors are drawn with.
+  - `Settings`: the settings model (`Settings.swift`), its window, pages and sections, settings search entries,
+    import and export, and the Keychain and preference stores.
+  - `Picker`: `Floe --pick`.
+  - `PreferredApps`, `Thaw` and `DroppyCode` are described below. `Tests/FloeTests` has the same folders.
 - `runtime/host.ts`: bundles a command, renders it with a custom React reconciler, speaks NDJSON on stdio.
 - `runtime/api/index.ts`: the `@raycast/api` stand-in.
 - `extensions/`: one folder per extension (`hello` is a sample, `diagnostics` fails on purpose to exercise the error screen).
 
-- `Sources/Floe/SearchProviders`: what the root search is made of. Each provider answers a query with rows to rank,
+- `Sources/Floe/Search/SearchProviders`: what the root search is made of. Each provider answers a query with rows to rank,
   to pin on top, to list under a section or to append (`SearchProvider.swift`); `RootSearch.swift` lists the providers
   and merges what they answer. `LauncherModel.refresh()` only builds the context they read.
   - A scope (`SearchScope.swift`) is a search of its own inside the root search: `files invoice`, `clipboard meeting`
     and `menu wifi` show only that scope's rows. It triggers on its keyword, a space and some text; the keyword alone
     is an ordinary search. A scope may deliver rows later through an `AsyncStream`, each batch replacing the last;
     `SearchUpdates` drops batches that arrive for a query that has been replaced.
+  - A source (`SearchSource.swift`) is a scope that may also add up to three rows to an ordinary search, in a section
+    of its own below the ranked rows and above the appended ones. Each is off until its switch in Settings › Privacy
+    is on (`AppSettings.searchSources`), and its keyword works only while it is. `SourceSearch` asks the enabled
+    sources after the ranked rows are shown, for queries of three characters or more, and follows each with its own
+    `SearchUpdates`. The files source is `FileSearchScope`; the tabs source is `TabSearchSource`.
+  - `BuiltIn/BrowserTabs.swift` holds the browsers whose tabs can be listed, one `BrowserApp` entry each, with the scripts that
+    list and switch tabs. Add a browser only after reading its scripting definition (`sdef /Applications/<App>.app`).
+    The script runner is passed in, so tests never talk to a browser; do not run these scripts from a test.
 - `Sources/Floe/PreferredApps`: the apps Floe hands things to instead of doing their work. A role (`AppRole.swift`)
   is a kind of app the user has a preferred one of: what it is handed, the known apps offered by name and what stands
   in when nothing is chosen. `PreferredApps.swift` decides which app a role resolves to and what it is handed, without
@@ -63,13 +89,13 @@ Commands with required preferences or arguments ask for them in the panel before
     a tool with a timeout.
   - `AI.ask` is answered by one-shot `claude` or `codex` runs (`TextGeneration.swift`) or by a streamed request to an
     OpenAI-compatible API (`ChatCompletionStream.swift`). Settings › General › AI picks between them; the choice and
-    the request an extension makes are in `HostRequest.swift`.
+    the request an extension makes are in `Extensions/HostRequest.swift`.
   - `HangWatchdog.swift` samples the app when its main thread stops answering for four seconds and writes the stacks
     to `~/Library/Logs/Floe`.
-  - `DirectoryWatcher.swift` watches a folder tree with FSEvents. `HotReload.swift` uses it to restart an open view
+  - `DirectoryWatcher.swift` watches a folder tree with FSEvents. `Extensions/HotReload.swift` uses it to restart an open view
     command when a file under its extension's `src/` or `assets/`, or its `package.json`, is saved. Only local
     extensions with a `src/` folder are watched, never the ones Raycast installed.
-- `CREDITS.md` and `Sources/Floe/Credits.swift` are written by `scripts/generate-credits.py`; run it after changing a dependency.
+- `CREDITS.md` and `Sources/Floe/App/Credits.swift` are written by `scripts/generate-credits.py`; run it after changing a dependency.
 - `Vendor/ThawUI`: design system copied from thaw-app/Thaw (commit in `Vendor/ThawUI/UPSTREAM`).
 - `Vendor/ThawConcurrency`: Thaw's timeout and one-shot continuation helpers, copied the same way.
 
@@ -135,7 +161,7 @@ Floe updates itself with [Sparkle](https://sparkle-project.org), the same way Th
   `https://thaw-app.github.io/Floe/appcast.xml`, served from this repository's `gh-pages` branch.
 - `Sources/Floe/Thaw/Updates.swift` wraps Sparkle. While `SUPublicEDKey` is empty the app builds no
   updater: "Check for Updates…" is absent from the status menu, the About page has no updates card, and
-  General has no "Automatically check for updates" switch. The rules are in `UpdateLogic.swift`.
+  General has no "Automatically check for updates" switch. The rules are in `App/UpdateLogic.swift`.
 - With a key, the first time Settings opens a sheet asks whether to check automatically. Sparkle does
   nothing before that answer except a check the user starts.
 - `.github/workflows/release.yml` builds an existing tag, notarizes it, zips the app, signs an appcast
@@ -199,7 +225,7 @@ in the input, counting from 0 and counting blank lines, instead of its text.
 | 1 | Nothing was chosen: Escape, the panel lost focus, or the input had no items. |
 | 64 | Standard input is a terminal, or an option is wrong. |
 
-It is its own short process (`PickerPanel.swift`, with the logic in `Picker.swift`): it reads the Appearance
+It is its own short process (`Picker/PickerPanel.swift`, with the logic in `Picker/Picker.swift`): it reads the Appearance
 settings and starts nothing else of the app. `FLOE_PICK_AUTO=1` prints the first match for `--query` without
 showing the panel, and `FLOE_PICK_SNAPSHOT=<file>` saves a picture of the panel drawn off screen.
 
