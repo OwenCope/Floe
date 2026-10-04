@@ -15,6 +15,7 @@ import { ctx, handlePop, handlePopToRoot, handleReply, handleReplyChunk, send, t
 import { dispatchEvent, render, toError } from "./renderer";
 import { NavigationRoot, handleToastAction } from "./api/index";
 import { bundle, findEntry } from "./build";
+import { flushCaches } from "./cache";
 
 const log = (...parts: unknown[]) =>
   process.stderr.write(parts.map((part) => (typeof part === "string" ? part : Bun.inspect(part))).join(" ") + "\n");
@@ -49,6 +50,16 @@ function fail(error: unknown, fatal = true) {
 process.on("uncaughtException", (error) => fail(error));
 // A rejected promise is usually one failed request, not a dead command.
 process.on("unhandledRejection", (error) => fail(error, false));
+
+// Cache writes are deferred, so every orderly way out flushes them first. The app stops a host with
+// SIGTERM; the signal is raised again afterwards so the host still dies of it.
+process.on("exit", flushCaches);
+for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"] as const) {
+  process.once(signal, () => {
+    flushCaches();
+    process.kill(process.pid, signal);
+  });
+}
 
 let buffered = "";
 process.stdin.on("data", (chunk: Buffer) => {
@@ -92,6 +103,8 @@ try {
     await Command(launchProps);
     // Give trailing HUD/toast messages a moment to flush before the process goes away.
     setTimeout(() => {
+      // A background run is killed as soon as the app reads "exit".
+      flushCaches();
       send({ type: "exit" });
       process.exit(0);
     }, 50);

@@ -24,6 +24,38 @@ const restorePadding = 64 * 1024;
 
 type Snapshot = { version: 1; entries: [string, string][] };
 
+// A burst of mutations is one write, this long after the first: writing per mutation rewrote the whole
+// snapshot every time. A hard kill loses at most this window; the app allows a second for an orderly stop.
+const writeDelay = 50;
+
+/// Where and when snapshots are written. The tests swap both, to count writes and run the timer by hand.
+export const cachePersistence = {
+    /// The temporary file is renamed over the snapshot, so a kill mid-write keeps the previous complete one.
+    write(file: string, content: string) {
+        // The name carries the pid: two processes of one extension must not share a temporary file.
+        const temporary = `${file}.${process.pid}.tmp`;
+        fs.writeFileSync(temporary, content);
+        fs.renameSync(temporary, file);
+    },
+    /// Returns what cancels the timer, for a flush that comes first.
+    defer(flush: () => void): () => void {
+        const timer = setTimeout(flush, writeDelay);
+        return () => clearTimeout(timer);
+    },
+};
+
+const pending = new Set<() => void>();
+let cancelDeferred: (() => void) | undefined;
+
+/// Writes every cache with unsaved changes, now. It is synchronous so the host can call it on its way out.
+export function flushCaches() {
+    cancelDeferred?.();
+    cancelDeferred = undefined;
+    const writes = [...pending];
+    pending.clear();
+    for (const write of writes) write();
+}
+
 function recordsOf(parsed: unknown): [string, string][] {
     if (parsed !== null && typeof parsed === "object" && Array.isArray((parsed as Snapshot).entries)) {
         return ((parsed as Snapshot).entries as unknown[]).filter(
@@ -50,6 +82,8 @@ export class Cache {
         }
         this.capacity = requested;
         this.file = path.join(ctx.supportPath, `cache-${options?.namespace ?? "default"}.json`);
+        // Another instance over the same file may have changes that are not on disk yet.
+        flushCaches();
         this.restore();
     }
 
@@ -122,18 +156,25 @@ export class Cache {
         };
     };
 
-    /// The snapshot on disk is replaced only after the in-memory state is final, atomically, so a
-    /// crash mid-write keeps the previous complete snapshot. Subscriber callbacks run after that,
-    /// over a frozen copy, so a callback that unsubscribes or mutates cannot corrupt the notification
-    /// pass — and observers only ever see the bounded final state.
+    /// Subscribers hear a mutation as it happens, over a frozen copy, so a callback that unsubscribes
+    /// or mutates cannot corrupt the notification pass. The snapshot follows later, once per burst.
     private readonly persist = (notifications: [string | undefined, string | undefined][]) => {
-        const temporary = `${this.file}.tmp`;
-        const snapshot: Snapshot = { version: 1, entries: [...this.entries] };
-        fs.writeFileSync(temporary, JSON.stringify(snapshot));
-        fs.renameSync(temporary, this.file);
+        pending.add(this.write);
+        cancelDeferred ??= cachePersistence.defer(flushCaches);
         const frozen = [...this.subscribers];
         for (const [key, value] of notifications) {
             frozen.forEach((subscriber) => subscriber(key, value));
+        }
+    };
+
+    /// A snapshot that cannot be written is a lost cache, not a failed command: this runs from a timer
+    /// or at exit, where nobody is left to catch it.
+    private readonly write = () => {
+        const snapshot: Snapshot = { version: 1, entries: [...this.entries] };
+        try {
+            cachePersistence.write(this.file, JSON.stringify(snapshot));
+        } catch (error) {
+            console.error(`cache ${path.basename(this.file)} was not saved:`, error);
         }
     };
 

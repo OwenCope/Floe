@@ -5,17 +5,21 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU AGPLv3
 
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
-import { Cache } from "../cache";
-import { installRuntime } from "./support";
+import { Cache, cachePersistence, flushCaches } from "../cache";
+import { installRuntime, makeTempDir } from "./support";
 
 const support = installRuntime("cache-tests");
+// Nothing is left for the real timer to write once the temp folder is gone.
+afterEach(flushCaches);
 
 const bytes = (text: string) => Buffer.byteLength(text, "utf8");
 
+// Snapshots are written once per burst, so the pending one is flushed before the file is read.
 function entriesOf(namespace: string): [string, string][] {
+    flushCaches();
     const parsed = JSON.parse(fs.readFileSync(path.join(support.supportPath, `cache-${namespace}.json`), "utf8"));
     return parsed.entries ?? Object.entries(parsed);
 }
@@ -272,5 +276,280 @@ describe("restore safety", () => {
         cache.set("k", "v");
         cache.clear();
         expect(entriesOf("cleared")).toEqual([]);
+    });
+});
+
+describe("coalesced writes", () => {
+    const original = { ...cachePersistence };
+    let written: { file: string; content: string }[] = [];
+    let timers: (() => void)[] = [];
+    const writtenBytes = () => written.reduce((total, write) => total + bytes(write.content), 0);
+    const runTimers = () => timers.splice(0).forEach((timer) => timer());
+
+    beforeEach(() => {
+        written = [];
+        timers = [];
+        cachePersistence.write = (file, content) => {
+            written.push({ file, content });
+            original.write(file, content);
+        };
+        cachePersistence.defer = (flush) => {
+            timers.push(flush);
+            return () => timers.splice(timers.indexOf(flush), 1);
+        };
+    });
+    afterEach(() => {
+        runTimers();
+        Object.assign(cachePersistence, original);
+    });
+
+    test("mutations in one tick are one write of the final state", () => {
+        const cache = new Cache({ namespace: "burst" });
+        cache.set("a", "1");
+        cache.set("b", "2");
+        cache.set("a", "3");
+        cache.remove("b");
+        cache.set("c", "4");
+        expect(written, "nothing is written while the burst runs").toEqual([]);
+        expect(timers.length, "one write is scheduled for the whole burst").toBe(1);
+
+        runTimers();
+        expect(written.length).toBe(1);
+        expect(path.basename(written[0].file)).toBe("cache-burst.json");
+        expect(JSON.parse(written[0].content)).toEqual({ version: 1, entries: [["a", "3"], ["c", "4"]] });
+        expect(new Cache({ namespace: "burst" }).get("c")).toBe("4");
+    });
+
+    test("a hundred 32 KiB inserts write the snapshot once, not a hundred times", () => {
+        const cache = new Cache({ namespace: "amplification" });
+        for (let index = 0; index < 100; index++) cache.set(`k-${index}`, "v".repeat(32 * 1024));
+        runTimers();
+        const finalBytes = fs.statSync(path.join(support.supportPath, "cache-amplification.json")).size;
+        expect(finalBytes).toBeGreaterThan(100 * 32 * 1024);
+        expect(written.length).toBe(1);
+        expect(writtenBytes(), "writing per insert cost fifty times the final snapshot").toBe(finalBytes);
+    });
+
+    test("inserts spread over several ticks cost one write per tick", () => {
+        const cache = new Cache({ namespace: "ticks" });
+        for (let tick = 0; tick < 4; tick++) {
+            for (let index = 0; index < 25; index++) cache.set(`k-${tick}-${index}`, "v".repeat(1024));
+            runTimers();
+        }
+        const finalBytes = fs.statSync(path.join(support.supportPath, "cache-ticks.json")).size;
+        expect(written.length).toBe(4);
+        expect(writtenBytes()).toBeLessThan(3 * finalBytes);
+    });
+
+    test("a flush writes the pending state at once and cancels the timer", () => {
+        const cache = new Cache({ namespace: "shutdown" });
+        cache.set("k", "v");
+        flushCaches();
+        expect(written.length).toBe(1);
+        expect(JSON.parse(fs.readFileSync(path.join(support.supportPath, "cache-shutdown.json"), "utf8")).entries).toEqual([["k", "v"]]);
+
+        expect(timers.length).toBe(0);
+        flushCaches();
+        expect(written.length, "an unchanged cache is not written again").toBe(1);
+    });
+
+    test("a mutation after a flush schedules a new write", () => {
+        const cache = new Cache({ namespace: "again" });
+        cache.set("k", "1");
+        runTimers();
+        expect(timers.length).toBe(0);
+
+        cache.set("k", "2");
+        expect(timers.length).toBe(1);
+        runTimers();
+        expect(written.map((write) => JSON.parse(write.content).entries)).toEqual([[["k", "1"]], [["k", "2"]]]);
+    });
+
+    test("reads never write, and a promotion is saved with the next mutation", () => {
+        const cache = new Cache({ namespace: "reads" });
+        cache.set("old", "1");
+        cache.set("new", "2");
+        runTimers();
+
+        expect(cache.get("old")).toBe("1");
+        expect(cache.has("new")).toBe(true);
+        expect(cache.get("missing")).toBeUndefined();
+        expect(cache.remove("missing")).toBe(false);
+        expect(timers.length, "nothing changed, so nothing is scheduled").toBe(0);
+
+        cache.set("third", "3");
+        runTimers();
+        expect(JSON.parse(written[1].content).entries.map(([key]: [string, string]) => key)).toEqual(["new", "old", "third"]);
+    });
+
+    test("subscribers hear each mutation as it happens, before anything is written", () => {
+        const cache = new Cache({ namespace: "heard", capacity: 2 * (bytes("a") + bytes("v")) });
+        const seen: unknown[][] = [];
+        cache.subscribe((key, data) => seen.push([key, data, written.length]));
+        cache.set("a", "v");
+        cache.set("b", "v");
+        cache.set("c", "w");
+        cache.remove("b");
+        cache.clear();
+        expect(seen).toEqual([
+            ["a", "v", 0],
+            ["b", "v", 0],
+            ["a", undefined, 0],
+            ["c", "w", 0],
+            ["b", undefined, 0],
+            [undefined, undefined, 0],
+        ]);
+        runTimers();
+        expect(seen.length, "the write itself announces nothing").toBe(6);
+    });
+
+    test("the least recently used entry is the one evicted, in memory and on disk", () => {
+        const cache = new Cache({ namespace: "evict", capacity: 3 * (bytes("a") + bytes("v")) });
+        for (const key of ["a", "b", "c"]) cache.set(key, "v");
+        cache.get("a");
+        cache.set("d", "v");
+        expect(["a", "b", "c", "d"].filter((key) => cache.has(key))).toEqual(["a", "c", "d"]);
+        runTimers();
+        expect(JSON.parse(written[0].content).entries).toEqual([["c", "v"], ["a", "v"], ["d", "v"]]);
+    });
+
+    test.each([
+        [undefined, [[undefined, undefined]]],
+        [{ notifySubscribers: true }, [[undefined, undefined]]],
+        [{ notifySubscribers: false }, []],
+    ])("clear(%p) empties the snapshot and notifies as asked", (options, expected) => {
+        const cache = new Cache({ namespace: "clears" });
+        cache.set("k", "v");
+        runTimers();
+        const seen: unknown[][] = [];
+        cache.subscribe((key, data) => seen.push([key, data]));
+        cache.clear(options);
+        expect(seen).toEqual(expected);
+        expect(cache.isEmpty).toBe(true);
+        runTimers();
+        expect(JSON.parse(written.at(-1)!.content)).toEqual({ version: 1, entries: [] });
+    });
+
+    test("a legacy dictionary loads, and is rewritten only when something changes", () => {
+        writeRaw("old-format", JSON.stringify({ alpha: "1", beta: "2" }));
+        const cache = new Cache({ namespace: "old-format" });
+        expect(cache.get("alpha")).toBe("1");
+        expect(cache.get("beta")).toBe("2");
+        expect(timers.length).toBe(0);
+
+        cache.set("gamma", "3");
+        runTimers();
+        expect(JSON.parse(written[0].content)).toEqual({ version: 1, entries: [["alpha", "1"], ["beta", "2"], ["gamma", "3"]] });
+        expect(new Cache({ namespace: "old-format" }).get("alpha")).toBe("1");
+    });
+
+    test("a second instance over the same file sees what the first has not saved yet", () => {
+        const first = new Cache({ namespace: "shared" });
+        first.set("k", "v");
+        expect(new Cache({ namespace: "shared" }).get("k")).toBe("v");
+        expect(written.length).toBe(1);
+    });
+
+    test("a failed write is logged, never thrown, and the next mutation tries again", () => {
+        const cache = new Cache({ namespace: "unwritable" });
+        const logged = spyOn(console, "error").mockImplementation(() => {});
+        try {
+            cachePersistence.write = () => {
+                throw new Error("disk full");
+            };
+            cache.set("k", "1");
+            expect(runTimers).not.toThrow();
+            expect(logged).toHaveBeenCalledTimes(1);
+            expect(cache.get("k"), "the value is still served from memory").toBe("1");
+        } finally {
+            logged.mockRestore();
+        }
+        cachePersistence.write = (file, content) => written.push({ file, content });
+        cache.set("k", "2");
+        runTimers();
+        expect(JSON.parse(written[0].content).entries).toEqual([["k", "2"]]);
+    });
+});
+
+// The real host and its real timer, in a throwaway home folder: each stop arrives before the timer can fire.
+describe("host shutdown", () => {
+    const hostPath = path.join(import.meta.dir, "../host.ts");
+
+    function makeHost(command: string, mode: string, source: string) {
+        const home = makeTempDir("home");
+        const extDir = path.join(home, "extension");
+        fs.mkdirSync(path.join(extDir, "src"), { recursive: true });
+        fs.writeFileSync(path.join(extDir, "package.json"), JSON.stringify({ name: "flush-sample", commands: [{ name: command, mode }] }));
+        fs.writeFileSync(path.join(extDir, `src/${command}.tsx`), source);
+        const proc = Bun.spawn(["bun", hostPath, extDir, command], {
+            stdin: "pipe",
+            stdout: "pipe",
+            stderr: "pipe",
+            env: { ...process.env, HOME: home },
+        });
+        const saved = () => {
+            const file = path.join(home, "Library/Application Support/Floe/Data/flush-sample/cache-default.json");
+            const entries = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")).entries : undefined;
+            fs.rmSync(home, { recursive: true, force: true });
+            return entries;
+        };
+        return { proc, saved };
+    }
+
+    async function waitFor(stream: ReadableStream<Uint8Array>, marker: string) {
+        const decoder = new TextDecoder();
+        let text = "";
+        for await (const chunk of stream) {
+            text += decoder.decode(chunk);
+            if (text.includes(marker)) return;
+        }
+        throw new Error(`the host ended before printing ${marker}`);
+    }
+
+    const view = `import { Cache, Detail } from "@raycast/api";
+new Cache().set("k", "v");
+console.log("ready");
+export default function Command() { return <Detail markdown="" />; }`;
+
+    test.each(["SIGTERM", "SIGINT", "SIGHUP"] as const)("%s saves the pending cache and still ends the host", async (signal) => {
+        const { proc, saved } = makeHost("view", "view", view);
+        await waitFor(proc.stderr, "ready");
+        proc.kill(signal);
+        await proc.exited;
+        expect(proc.signalCode).toBe(signal);
+        expect(saved()).toEqual([["k", "v"]]);
+    });
+
+    test("the app closing the host's input saves the pending cache", async () => {
+        const { proc, saved } = makeHost("view", "view", view);
+        await waitFor(proc.stderr, "ready");
+        proc.stdin.end();
+        expect(await proc.exited).toBe(0);
+        expect(saved()).toEqual([["k", "v"]]);
+    });
+
+    test("a no-view command's cache is on disk before the app hears exit", async () => {
+        // Set after the command returns, so the write is still pending when the host's own exit timer runs.
+        const source = `import { Cache } from "@raycast/api";
+export default async function Command() { setTimeout(() => new Cache().set("k", "v"), 30); }`;
+        const { proc, saved } = makeHost("once", "no-view", source);
+        await waitFor(proc.stdout, '"exit"');
+        proc.kill("SIGKILL");
+        await proc.exited;
+        expect(saved()).toEqual([["k", "v"]]);
+    });
+
+    test("closeMainWindow saves first, because a background run is killed on it", async () => {
+        const source = `import { Cache, closeMainWindow } from "@raycast/api";
+export default async function Command() {
+  new Cache().set("k", "v");
+  await closeMainWindow();
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+}`;
+        const { proc, saved } = makeHost("closer", "no-view", source);
+        await waitFor(proc.stdout, '"close"');
+        proc.kill("SIGKILL");
+        await proc.exited;
+        expect(saved()).toEqual([["k", "v"]]);
     });
 });

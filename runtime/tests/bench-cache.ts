@@ -17,6 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import { ctx } from "../bridge";
 import { Cache } from "../api";
+import { flushCaches } from "../cache";
 
 const baseline = process.argv.includes("--baseline");
 const valueCount = 32;
@@ -37,6 +38,7 @@ function sample(label: string) {
 }
 
 function persistedEntries(): [string, string][] {
+    flushCaches();
     const file = path.join(support, "cache-bounded.json");
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
     return parsed.entries ?? Object.entries(parsed);
@@ -70,6 +72,7 @@ console.log(
 );
 
 cache.clear();
+flushCaches();
 console.log(`[cache] after clear fileBytes=${fs.statSync(path.join(support, "cache-bounded.json")).size}`);
 
 if (!baseline) {

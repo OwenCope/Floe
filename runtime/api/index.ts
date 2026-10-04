@@ -11,6 +11,8 @@ import fs from "node:fs";
 import path from "node:path";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ctx, request, send, setPopHandler, setPopToRootHandler } from "../bridge";
+import { flushCaches } from "../cache";
+import { createLocalStorage, storagePersistence } from "../local-storage";
 
 const h = React.createElement;
 // The API is promise-based throughout; most calls here finish synchronously.
@@ -109,7 +111,7 @@ const dropdown = (prefix: string) => {
     }, []);
     const onChange = (next: string) => {
       setValue(next);
-      if (props.storeValue) fs.writeFileSync(dropdownStore(), JSON.stringify({ ...readJSON(dropdownStore()), [storeKey]: next }));
+      if (props.storeValue) storagePersistence.write(dropdownStore(), JSON.stringify({ ...readJSON(dropdownStore()), [storeKey]: next }));
       props.onChange?.(next);
     };
     return h(Host, { ...props, value: props.value ?? value, onChange });
@@ -307,6 +309,8 @@ export async function confirmAlert(options: Props) {
 
 export const PopToRootType = { Default: "default", Immediate: "immediate", Suspended: "suspended" };
 export function closeMainWindow(_options?: Props): Promise<void> {
+  // A background run is killed as soon as the app reads "close".
+  flushCaches();
   send({ type: "close" });
   return done;
 }
@@ -407,31 +411,8 @@ function readJSON(file: string): Record<string, any> {
     return {};
   }
 }
-const storageFile = () => path.join(ctx.supportPath, "local-storage.json");
-const writeStorage = (data: Props) => fs.writeFileSync(storageFile(), JSON.stringify(data));
-
-export const LocalStorage = {
-  getItem<T = string>(key: string): Promise<T | undefined> {
-    return Promise.resolve(readJSON(storageFile())[key] as T | undefined);
-  },
-  setItem(key: string, value: unknown): Promise<void> {
-    writeStorage({ ...readJSON(storageFile()), [key]: value });
-    return done;
-  },
-  removeItem(key: string): Promise<void> {
-    const data = readJSON(storageFile());
-    delete data[key];
-    writeStorage(data);
-    return done;
-  },
-  allItems<T = Props>(): Promise<T> {
-    return Promise.resolve(readJSON(storageFile()) as T);
-  },
-  clear(): Promise<void> {
-    writeStorage({});
-    return done;
-  },
-};
+// The implementation lives in local-storage.ts; the file is the extension's, shared by all of its commands.
+export const LocalStorage = createLocalStorage(() => path.join(ctx.supportPath, "local-storage.json"));
 
 // The bounded implementation lives in cache.ts; this re-export keeps the API surface stable.
 export { Cache } from "../cache";
