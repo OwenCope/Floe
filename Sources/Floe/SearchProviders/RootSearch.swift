@@ -16,6 +16,7 @@ enum RootSearch {
         CalendarSearchProvider(),
         NoteSearchProvider(),
         CatalogSearchProvider(),
+        FinderSelectionSearchProvider(),
         QuicklinkSearchProvider(),
         CalculatorSearchProvider(),
         ScriptArgumentsSearchProvider(),

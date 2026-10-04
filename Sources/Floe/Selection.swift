@@ -16,6 +16,8 @@ enum SelectionError: LocalizedError {
     case finderNotFrontmost
     case finderEmpty
     case finderAutomation(String)
+    /// macOS refused the script (error -1743): Floe may not control Finder.
+    case automationRefused
 
     var errorDescription: String? {
         switch self {
@@ -29,6 +31,8 @@ enum SelectionError: LocalizedError {
             "No files are selected in the Finder."
         case let .finderAutomation(details):
             details
+        case .automationRefused:
+            "Floe needs Automation access to read the Finder selection. Turn it on under System Settings › Privacy & Security › Automation, then try again. (-1743)"
         }
     }
 }
@@ -101,34 +105,47 @@ enum SelectedText {
 
 /// The Finder's selection, as POSIX paths.
 enum FinderSelection {
+    private static let selectionScript = """
+    tell application "Finder"
+      set sel to selection
+      set out to ""
+      repeat with itemRef in sel
+        set out to out & POSIX path of (itemRef as alias) & "\\n"
+      end repeat
+      return out
+    end tell
+    """
+
+    /// Where a new folder would land: the front window's folder, or the desktop without a window.
+    private static let folderScript = #"tell application "Finder" to return POSIX path of (insertion location as alias)"#
+
     static func current() throws -> [[String: String]] {
         guard NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder" else {
             throw SelectionError.finderNotFrontmost
         }
-        let script = """
-        tell application "Finder"
-          set sel to selection
-          set out to ""
-          repeat with itemRef in sel
-            set out to out & POSIX path of (itemRef as alias) & "\\n"
-          end repeat
-          return out
-        end tell
-        """
+        let paths = try paths(from: selectionScript)
+        guard !paths.isEmpty else { throw SelectionError.finderEmpty }
+        return paths.map { ["path": $0] }
+    }
+
+    /// What is selected, or the front window's folder when nothing is. Finder need not be frontmost.
+    static func selectionOrFolder() throws -> [URL] {
+        let selected = try paths(from: selectionScript)
+        return try (selected.isEmpty ? paths(from: folderScript) : selected).map { URL(fileURLWithPath: $0) }
+    }
+
+    /// The paths a script answers with, one per line.
+    private static func paths(from script: String) throws -> [String] {
         var error: NSDictionary?
-        let appleScript = NSAppleScript(source: script)
-        let result = appleScript?.executeAndReturnError(&error)
+        let result = NSAppleScript(source: script)?.executeAndReturnError(&error)
         if let error = error as? [String: Any] {
-            let number = error[NSAppleScript.errorNumber] as? Int ?? 0
-            if number == -1743 {
-                throw SelectionError.finderAutomation("Floe needs Automation access to read the Finder selection. Turn it on under System Settings › Privacy & Security › Automation, then try again. (-1743)")
+            if error[NSAppleScript.errorNumber] as? Int == -1743 {
+                throw SelectionError.automationRefused
             }
             let message = error[NSAppleScript.errorMessage] as? String ?? "The Finder selection couldn't be read."
             throw SelectionError.finderAutomation(message)
         }
-        let paths = (result?.stringValue ?? "").split(separator: "\n").map(String.init).filter { !$0.isEmpty }
-        guard !paths.isEmpty else { throw SelectionError.finderEmpty }
-        return paths.map { ["path": $0] }
+        return (result?.stringValue ?? "").split(separator: "\n").map(String.init).filter { !$0.isEmpty }
     }
 }
 

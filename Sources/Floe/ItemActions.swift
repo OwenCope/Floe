@@ -25,6 +25,8 @@ struct ActionHost {
     let showHUD: (String) -> Void
     /// Hides the panel and returns it to the root, as opening a result does.
     let dismiss: () -> Void
+    /// The roles a file can be opened in, each with its app: "Open in Ghostty".
+    var preferredApps: [RoleApp] = []
 }
 
 enum ActionsMenu {
@@ -106,6 +108,7 @@ enum FileActions {
         if let openWith = openWith(url, host: host) {
             actions.append(openWith)
         }
+        actions += preferredAppActions(for: url, host: host)
         actions += [
             ItemAction(title: "Show in Finder", symbol: "folder") {
                 NSWorkspace.shared.activateFileViewerSelecting([url])

@@ -45,14 +45,6 @@ Commands with required preferences or arguments ask for them in the panel before
     and `menu wifi` show only that scope's rows. It triggers on its keyword, a space and some text; the keyword alone
     is an ordinary search. A scope may deliver rows later through an `AsyncStream`, each batch replacing the last;
     `SearchUpdates` drops batches that arrive for a query that has been replaced.
-  - A source (`SearchSource.swift`) is a scope that may also add up to three rows to an ordinary search, in a section
-    of its own below the ranked rows and above the appended ones. Each is off until its switch in Settings › Privacy
-    is on (`AppSettings.searchSources`), and its keyword works only while it is. `SourceSearch` asks the enabled
-    sources after the ranked rows are shown, for queries of three characters or more, and follows each with its own
-    `SearchUpdates`. The files source is `FileSearchScope`; the tabs source is `TabSearchSource`.
-  - `BrowserTabs.swift` holds the browsers whose tabs can be listed, one `BrowserApp` entry each, with the scripts that
-    list and switch tabs. Add a browser only after reading its scripting definition (`sdef /Applications/<App>.app`).
-    The script runner is passed in, so tests never talk to a browser; do not run these scripts from a test.
 - `Sources/Floe/PreferredApps`: the apps Floe hands things to instead of doing their work. A role (`AppRole.swift`)
   is a kind of app the user has a preferred one of: what it is handed, the known apps offered by name and what stands
   in when nothing is chosen. `PreferredApps.swift` decides which app a role resolves to and what it is handed, without

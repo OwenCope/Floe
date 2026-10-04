@@ -112,6 +112,12 @@ final class LauncherModel: ObservableObject {
     private let sourceSearch = SourceSearch()
 
     private let settings: AppSettings
+    /// How the terminal and the editor are looked up. Tests replace it, so they do not read this Mac's apps.
+    var appLookup = AppLookup.system
+    var preferredApps: [RoleApp] {
+        PreferredApps.apps(choice: settings.appChoice, installed: appLookup)
+    }
+
     private let usage: UsageStore
     private let scanner: any CatalogScanning
     /// Bumped per request, so a result can tell whether its request is still the newest one.
@@ -341,6 +347,7 @@ final class LauncherModel: ObservableObject {
         context.scripts = allScripts
         context.apps = apps
         context.thawActions = Thaw.actions()
+        context.preferredApps = preferredApps
         context.settingsPanes = settingsPanes
         context.snippets = SnippetStore.shared.snippets
         context.quicklinks = QuicklinkStore.shared.links
@@ -474,6 +481,8 @@ final class LauncherModel: ObservableObject {
                     self?.showHUD(message)
                 }
             }
+        case let .finderSelection(role, app):
+            openFinderSelection(in: role, app: app)
         case let .thaw(action):
             hidePanel()
             reset()

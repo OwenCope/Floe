@@ -54,6 +54,8 @@ struct AppSettingsTests {
         #expect(settings.showInDock == false)
         #expect(settings.hasSeenOnboarding == false)
         #expect(settings.menuBarItemNames.isEmpty)
+        #expect(settings.terminalApp == nil, "no choice is the system's Terminal")
+        #expect(settings.editorApp == nil, "no choice is whatever opens plain text")
         #expect(settings.isRecordingHotkey == false)
         #expect(settings.searchSources.isEmpty, "every search source is off until it is switched on")
     }
@@ -92,6 +94,8 @@ struct AppSettingsTests {
         settings.launcherLayout = .compact
         settings.menuBarCommands = ["github/unread-notifications"]
         settings.menuBarItemNames = ["com.a|status": "Renamed"]
+        settings.terminalApp = AppChoice(bundleIdentifier: "com.mitchellh.ghostty", path: "/Applications/Ghostty.app")
+        settings.editorApp = AppChoice(bundleIdentifier: nil, path: "/Applications/Nova.app")
         settings.isRecordingHotkey = true
         settings.searchSources = ["tabs"]
         settings.save()
@@ -108,6 +112,8 @@ struct AppSettingsTests {
         #expect(reloaded.showInDock)
         #expect(reloaded.hasSeenOnboarding)
         #expect(reloaded.menuBarItemNames == ["com.a|status": "Renamed"])
+        #expect(reloaded.terminalApp == AppChoice(bundleIdentifier: "com.mitchellh.ghostty", path: "/Applications/Ghostty.app"))
+        #expect(reloaded.editorApp == AppChoice(bundleIdentifier: nil, path: "/Applications/Nova.app"))
         #expect(reloaded.isRecordingHotkey == false, "recording state is not persisted")
 
         #expect(reloaded.launcherTintIsDynamic)

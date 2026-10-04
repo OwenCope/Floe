@@ -39,9 +39,12 @@ final class AppSettings: ObservableObject {
     @Published var searchSources: Set<String> = []
     /// The menu-bar commands that have a status item, by command id. A command is added by running it.
     @Published var menuBarCommands: Set<String> = []
-    /// Where a note typed into the search goes, and the link that takes it there for "Another App".
+    /// The notes role's choice: where a note typed into the search goes, and the link for "Another App".
     @Published var notesApp = NotesApp.appleNotes
     @Published var notesURLTemplate = ""
+    /// The apps folders and files are opened in; nil is the role's default (see AppRole).
+    @Published var terminalApp: AppChoice?
+    @Published var editorApp: AppChoice?
     /// Names given to menu bar items with Edit Name, keyed by `MenuBarExtra.id`.
     @Published var menuBarItemNames: [String: String] = [:]
     /// True while a hotkey recorder is listening, so the registry can stand down.
@@ -85,6 +88,8 @@ final class AppSettings: ObservableObject {
         var menuBarCommands: Set<String>?
         var notesApp: NotesApp?
         var notesURLTemplate: String?
+        var terminalApp: AppChoice?
+        var editorApp: AppChoice?
         var menuBarItemNames: [String: String]?
         var showInDock: Bool?
         var hasSeenOnboarding: Bool?
@@ -132,6 +137,8 @@ final class AppSettings: ObservableObject {
         menuBarCommands = stored.menuBarCommands ?? []
         notesApp = stored.notesApp ?? notesApp
         notesURLTemplate = stored.notesURLTemplate ?? notesURLTemplate
+        terminalApp = stored.terminalApp
+        editorApp = stored.editorApp
         menuBarItemNames = stored.menuBarItemNames ?? [:]
         showInDock = stored.showInDock ?? false
         hasSeenOnboarding = stored.hasSeenOnboarding ?? false
@@ -177,6 +184,8 @@ final class AppSettings: ObservableObject {
             menuBarCommands: menuBarCommands,
             notesApp: notesApp,
             notesURLTemplate: notesURLTemplate,
+            terminalApp: terminalApp,
+            editorApp: editorApp,
             menuBarItemNames: menuBarItemNames,
             showInDock: showInDock,
             hasSeenOnboarding: hasSeenOnboarding,

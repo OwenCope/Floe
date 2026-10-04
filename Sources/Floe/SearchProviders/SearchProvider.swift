@@ -21,6 +21,8 @@ struct SearchContext {
     var apps: [AppEntry] = []
     /// What Thaw can be asked to do; empty when Thaw is not installed.
     var thawActions: [ThawAction] = []
+    /// The terminal and the editor as they resolve now; empty when neither has an app.
+    var preferredApps: [RoleApp] = []
     var settingsPanes: [SystemSettingsPane] = []
     var snippets: [Snippet] = []
     var quicklinks: [Quicklink] = []

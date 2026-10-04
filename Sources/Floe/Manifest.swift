@@ -213,6 +213,8 @@ enum RootItem: Identifiable {
     case settingsPane(SystemSettingsPane)
     /// Something Thaw does when asked through its `thaw://` links.
     case thaw(ThawAction)
+    /// The Finder selection, opened in the app a role stands for.
+    case finderSelection(AppRole, app: ResolvedApp)
     /// A note for the user's notes app; `text` is what was typed after the action's keyword.
     case note(NoteAction, text: String)
     case event(CalendarEvent)
@@ -251,6 +253,7 @@ enum RootItem: Identifiable {
         case let .settingsPane(pane): "settings-pane:\(pane.identifier)"
         case let .note(action, _): "note:\(action.rawValue)"
         case let .thaw(action): "thaw:\(action.rawValue)"
+        case let .finderSelection(role, _): "finder-selection:\(role.rawValue)"
         case let .event(event): "event:\(event.identifier)"
         case let .snippet(snippet): "snippet:\(snippet.id.uuidString)"
         case let .emoji(entry): entry.id
@@ -280,6 +283,7 @@ enum RootItem: Identifiable {
         case let .settingsPane(pane): pane.title
         case let .note(action, text): action.title(text: text)
         case let .thaw(action): action.title
+        case let .finderSelection(_, app): "Open Finder Selection in \(app.name)"
         case let .event(event): event.title
         case let .snippet(snippet): snippet.name
         case let .emoji(entry): entry.name
@@ -332,7 +336,7 @@ enum RootItem: Identifiable {
         case .fileSearch: Self.fileSearchKey
         case let .system(command): "system:\(command.rawValue)"
         case .snippet: id
-        case .settings, .settingsPane, .note, .thaw, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
+        case .settings, .settingsPane, .note, .thaw, .finderSelection, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
         case .file, .clipboardEntry, .menuBarItem, .menuBarAccess: nil
         case .browserTab: nil
         }
@@ -350,6 +354,7 @@ enum RootItem: Identifiable {
         case .settingsPane: "System Settings"
         case .note: "Notes"
         case .thaw: "Thaw"
+        case .finderSelection: "Finder"
         case .event: "Event"
         case .snippet: "Snippet"
         case .emoji: "Emoji"
@@ -366,8 +371,9 @@ enum RootItem: Identifiable {
         switch self {
         case let .system(command): command.keywords
         case let .settingsPane(pane): pane.keywords
-        case let .note(action, _): action == .new ? ["notes", "jot", "memo"] : ["add to note"]
+        case let .note(action, _): action == .new ? AppRole.notes.keywords : ["add to note"]
         case let .thaw(action): action.keywords
+        case let .finderSelection(role, _): role.keywords
         case let .snippet(snippet): [snippet.keyword]
         default: []
         }

@@ -244,11 +244,25 @@ extension SearchIndex {
             keywords: ["status item", "extension", "show", "remove"]
         ),
         .general(
+            "terminalApp",
+            "Terminal",
+            description: AppRole.terminal.detail,
+            section: "Preferred Apps",
+            keywords: ["terminal", "shell", "command line", "open in terminal", "preferred app", "default app"]
+        ),
+        .general(
+            "editorApp",
+            "Editor",
+            description: AppRole.editor.detail,
+            section: "Preferred Apps",
+            keywords: ["editor", "text editor", "code", "open in editor", "preferred app", "default app"]
+        ),
+        .general(
             "notesApp",
-            "Notes app",
-            description: "Type “note” and then your text in the search to send it there.",
-            section: "Notes",
-            keywords: ["notes", "apple notes", "antinote", "new note", "quick note", "capture"]
+            "Notes",
+            description: AppRole.notes.detail,
+            section: "Preferred Apps",
+            keywords: ["notes", "notes app", "apple notes", "antinote", "new note", "quick note", "capture", "preferred app"]
         ),
         .general(
             "clipboardHistory",

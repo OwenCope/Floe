@@ -7,7 +7,7 @@
 
 import AppKit
 
-/// The app notes go to. Floe keeps none of its own: it hands the text to the one already in use.
+/// The app the notes role stands for. Floe keeps no notes of its own: it hands the text to the one already in use.
 enum NotesApp: String, Codable, CaseIterable, Identifiable {
     case appleNotes
     case antinote

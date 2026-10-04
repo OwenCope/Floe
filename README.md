@@ -70,6 +70,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [x] Thaw 3's actions, when Thaw is installed: the hidden sections, swap, Zen Mode, the Thaw Bar, the layout and the application menus
 - [x] Toggles for Wi-Fi, mute and keeping the Mac awake
 - [x] Actions on applications and files (quit, show in Finder, open with, move to Trash)
+- [x] A preferred terminal and editor: open a file, a folder or the Finder selection in the ones you already use
 - [x] Calendar
 - [x] Notes sent to the app you already use: Apple Notes, Antinote, or any app with a URL scheme
 - [ ] Searching the notes in that app

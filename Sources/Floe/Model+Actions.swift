@@ -15,7 +15,8 @@ extension LauncherModel {
             dismiss: { [weak self] in
                 self?.hidePanel()
                 self?.reset()
-            }
+            },
+            preferredApps: preferredApps
         )
     }
 
