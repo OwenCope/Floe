@@ -33,6 +33,10 @@ enum AppInfo {
         link("repository")
     }
 
+    /// The changelog as text, for the release notes reader, and as a page, for the browser.
+    static let changelogURL = URL(string: "https://raw.githubusercontent.com/thaw-app/Floe/main/CHANGELOG.md")!
+    static let changelogPageURL = URL(string: "https://github.com/thaw-app/Floe/blob/main/CHANGELOG.md")!
+
     static var issuesURL: URL? {
         repositoryURL?.appendingPathComponent("issues")
     }
@@ -265,6 +269,7 @@ struct AboutSettingsPane: View {
             }
         })
         menu.addItem(.separator())
+        menu.addItem(item(String(localized: "What’s New"), "doc.text") { ReleaseNotesWindow.show() })
         menu.addItem(item(String(localized: "Acknowledgements"), "text.book.closed") { isShowingCredits = true })
         guard let anchor = menuAnchor.view else { return }
         // The anchor's own coordinate system is not flipped, so minY is its

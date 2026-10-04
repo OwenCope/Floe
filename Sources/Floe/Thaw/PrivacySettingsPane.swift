@@ -62,6 +62,7 @@ struct PrivacySettingsPane: View {
                     Text("Only use AI that runs on this Mac")
                     Text("A source that sends questions elsewhere is refused, for Ask AI and for extensions. Nothing else is asked in its place.")
                 }
+                row("Release notes", "Opening What’s New from About reads Floe’s changelog from GitHub and keeps the last copy.")
                 row("Extensions", "Each extension makes its own requests, and the images it shows are loaded from wherever it points.")
             }
         }
