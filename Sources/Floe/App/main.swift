@@ -318,6 +318,10 @@ if let query = options.search {
     exit(0)
 }
 
+if options.benchSearch {
+    runSearchBench(queries: options.rest)
+}
+
 // Catches slow page switches.
 if options.benchSettings {
     _ = NSApplication.shared

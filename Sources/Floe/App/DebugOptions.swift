@@ -17,6 +17,9 @@ struct DebugOptions: ParsableCommand {
     @Flag(help: "Time laying out each settings page off screen. FLOE_BENCH_DUMP=<folder> saves what each page looks like.")
     var benchSettings = false
 
+    @Flag(help: "Time the catalog scan and each keystroke of the queries after it, drawn off screen.")
+    var benchSearch = false
+
     @Flag(help: "Print a fingerprint of each command's icon and how much of it is drawn. FLOE_ICON_DUMP=<folder> also writes the PNGs.")
     var iconCheck = false
 

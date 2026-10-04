@@ -51,6 +51,7 @@
 		42FFD7AD94DBADD232B7E4DB /* IconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07471C2EA57FA7FD58ABB95C /* IconView.swift */; };
 		48306D1D79917D03EAA4F57A /* SearchPanelStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 442606CB5ED8AC44669CA4D4 /* SearchPanelStyle.swift */; };
 		48347EBF42AD598EA81D8285 /* SystemStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C178B96CB145E8FEA3F3778 /* SystemStores.swift */; };
+		4902891941C787A1667EB50E /* SearchBench.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066BDD252E1518F183DFBD42 /* SearchBench.swift */; };
 		4A198B56D23C732C3A2F6798 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6472032988506CF0BF94BAC1 /* Sparkle */; };
 		4D4FB99AD6D0D2F60B8AF7C5 /* Fuzzy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC14F1E0566FC342201715D0 /* Fuzzy.swift */; };
 		4D97246D3977B8B852742EE9 /* HotReload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E2DD9407CEA946488F4FC2 /* HotReload.swift */; };
@@ -171,6 +172,7 @@
 
 /* Begin PBXFileReference section */
 		05230EAF05CC25AF3298E02F /* project.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = project.yml; sourceTree = "<group>"; };
+		066BDD252E1518F183DFBD42 /* SearchBench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBench.swift; sourceTree = "<group>"; };
 		0740127A73E231F715377D0B /* OnboardingTourView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTourView.swift; sourceTree = "<group>"; };
 		07471C2EA57FA7FD58ABB95C /* IconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconView.swift; sourceTree = "<group>"; };
 		080FBD40C0E194E41EB45B48 /* MenuBarCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCommands.swift; sourceTree = "<group>"; };
@@ -638,6 +640,7 @@
 				C2E2C5C29CB5FB6EA6176046 /* IncomingURLRouter.swift */,
 				D967FA03573F90C35F2D5E9B /* main.swift */,
 				4350774BAFE25F278DF643A7 /* MainMenu.swift */,
+				066BDD252E1518F183DFBD42 /* SearchBench.swift */,
 				1AF1D982AAAE8FF36B96F53F /* UpdateLogic.swift */,
 			);
 			path = App;
@@ -913,6 +916,7 @@
 				586B027C00406193718A4457 /* RootSearch.swift in Sources */,
 				9BCA580FCA8421373D07A616 /* ScopeRows.swift in Sources */,
 				132B83E8D45E3CE01CD04852 /* ScriptCommands.swift in Sources */,
+				4902891941C787A1667EB50E /* SearchBench.swift in Sources */,
 				1EB90F727785E88C09F91E99 /* SearchIndex.swift in Sources */,
 				AFCACDF87AA3EFB29226266E /* SearchModel.swift in Sources */,
 				48306D1D79917D03EAA4F57A /* SearchPanelStyle.swift in Sources */,
