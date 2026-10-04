@@ -390,6 +390,7 @@ struct GeneralSettingsView: View {
             }
             MenuBarCommandsSettingsSection(model: model, settings: settings)
             PermissionsSettingsSection()
+            NotesSettingsSection(settings: settings)
             ThawSection("Clipboard") {
                 Toggle(isOn: $settings.clipboardHistoryEnabled) {
                     Text("Save clipboard history")

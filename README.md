@@ -68,7 +68,8 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [x] Toggles for Wi-Fi, mute and keeping the Mac awake
 - [x] Actions on applications and files (quit, show in Finder, open with, move to Trash)
 - [x] Calendar
-- [ ] Floating notes
+- [x] Notes sent to the app you already use: Apple Notes, Antinote, or any app with a URL scheme
+- [ ] Searching the notes in that app
 - [ ] Search an app's menus
 - [x] Script commands
 - [ ] AI chat

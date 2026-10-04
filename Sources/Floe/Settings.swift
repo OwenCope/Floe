@@ -37,6 +37,9 @@ final class AppSettings: ObservableObject {
     @Published var clipboardHistoryEnabled = true
     /// The menu-bar commands that have a status item, by command id. A command is added by running it.
     @Published var menuBarCommands: Set<String> = []
+    /// Where a note typed into the search goes, and the link that takes it there for "Another App".
+    @Published var notesApp = NotesApp.appleNotes
+    @Published var notesURLTemplate = ""
     /// Names given to menu bar items with Edit Name, keyed by `MenuBarExtra.id`.
     @Published var menuBarItemNames: [String: String] = [:]
     /// True while a hotkey recorder is listening, so the registry can stand down.
@@ -75,6 +78,8 @@ final class AppSettings: ObservableObject {
         var rememberMenuBarQuery: Bool?
         var clipboardHistoryEnabled: Bool?
         var menuBarCommands: Set<String>?
+        var notesApp: NotesApp?
+        var notesURLTemplate: String?
         var menuBarItemNames: [String: String]?
         var showInDock: Bool?
         var hasSeenOnboarding: Bool?
@@ -118,6 +123,8 @@ final class AppSettings: ObservableObject {
         rememberMenuBarQuery = stored.rememberMenuBarQuery ?? false
         clipboardHistoryEnabled = stored.clipboardHistoryEnabled ?? true
         menuBarCommands = stored.menuBarCommands ?? []
+        notesApp = stored.notesApp ?? notesApp
+        notesURLTemplate = stored.notesURLTemplate ?? notesURLTemplate
         menuBarItemNames = stored.menuBarItemNames ?? [:]
         showInDock = stored.showInDock ?? false
         hasSeenOnboarding = stored.hasSeenOnboarding ?? false
@@ -159,6 +166,8 @@ final class AppSettings: ObservableObject {
             rememberMenuBarQuery: rememberMenuBarQuery,
             clipboardHistoryEnabled: clipboardHistoryEnabled,
             menuBarCommands: menuBarCommands,
+            notesApp: notesApp,
+            notesURLTemplate: notesURLTemplate,
             menuBarItemNames: menuBarItemNames,
             showInDock: showInDock,
             hasSeenOnboarding: hasSeenOnboarding,

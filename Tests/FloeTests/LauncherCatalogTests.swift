@@ -144,7 +144,7 @@ struct LauncherCatalogTests {
         #expect(
             // Snippets come from the user's own file, so they are left out here.
             model.results.map(\.id).filter { !$0.hasPrefix("snippet:") }.sorted()
-                == (["builtin:clipboard-history", "builtin:emoji-search", "builtin:file-search", "builtin:menubar-search", "settings"]
+                == (["builtin:clipboard-history", "builtin:emoji-search", "builtin:file-search", "builtin:menubar-search", "note:new", "settings"]
                     + SystemCommand.allCases.map { "system:\($0.rawValue)" }).sorted(),
             "the built-ins are there before any catalog arrives"
         )

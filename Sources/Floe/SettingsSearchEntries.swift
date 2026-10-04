@@ -214,6 +214,13 @@ extension SearchIndex {
             keywords: ["status item", "extension", "show", "remove"]
         ),
         .general(
+            "notesApp",
+            "Notes app",
+            description: "Type “note” and then your text in the search to send it there.",
+            section: "Notes",
+            keywords: ["notes", "apple notes", "antinote", "new note", "quick note", "capture"]
+        ),
+        .general(
             "clipboardHistory",
             "Save clipboard history",
             description: "Keeps text, links, images and files you copy.",

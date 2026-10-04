@@ -275,6 +275,8 @@ struct RootIcon: View {
             IconView(value: "icon:Gear", assetsPath: "", size: 24)
         case let .system(command):
             SymbolTile(symbol: command.symbol)
+        case let .note(action, _):
+            SymbolTile(symbol: action.symbol)
         case let .settingsPane(pane):
             SymbolTile(symbol: pane.symbol)
         case .snippet:

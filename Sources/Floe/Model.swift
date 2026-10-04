@@ -277,6 +277,7 @@ final class LauncherModel: ObservableObject {
         var all = commands.map(RootItem.command) + allScripts.map(RootItem.script) + apps.map(RootItem.app)
             + [RootItem.menuBarSearch, RootItem.emojiSearch, RootItem.clipboardHistory, RootItem.fileSearch, RootItem.settings]
             + SystemCommand.allCases.map(RootItem.system) + SnippetStore.shared.snippets.map(RootItem.snippet)
+            + settings.notesApp.actions.map { RootItem.note($0, text: "") }
         let frecency = { [usage] (id: String) in usage.frecency(of: id) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let links = QuicklinkStore.shared.links
@@ -304,6 +305,12 @@ final class LauncherModel: ObservableObject {
             if !trimmed.isEmpty, let keywordResult = Self.keywordSearchResult(query: trimmed, links: links) {
                 results.removeAll { $0.id == keywordResult.id }
                 results.insert(keywordResult, at: 0)
+            }
+            // `note buy milk` leads with the note it would make.
+            if let note = Notes.request(in: trimmed, app: settings.notesApp) {
+                let row = RootResult(item: .note(note.action, text: note.text), section: nil)
+                results.removeAll { $0.id == row.id }
+                results.insert(row, at: 0)
             }
             // Enabled fallbacks in user order at the bottom.
             if !trimmed.isEmpty {
@@ -455,6 +462,14 @@ final class LauncherModel: ObservableObject {
             reset()
         case let .system(command):
             runSystemCommand(command)
+        case let .note(action, text):
+            hidePanel()
+            reset()
+            Notes.perform(action, text: text, app: settings.notesApp, template: settings.notesURLTemplate) { [weak self] message in
+                if let message {
+                    self?.showHUD(message)
+                }
+            }
         case let .settingsPane(pane):
             if let url = pane.url {
                 NSWorkspace.shared.open(url)

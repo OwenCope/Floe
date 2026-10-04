@@ -156,22 +156,28 @@ enum SystemCommand: String, CaseIterable, Identifiable {
             guard let error, let number = error[NSAppleScript.errorNumber] as? Int else { return }
             DispatchQueue.main.async {
                 if number == -1743 {
-                    let alert = NSAlert()
-                    alert.messageText = "Floe needs permission to control System Events and Finder."
-                    alert.informativeText = "Allow it in System Settings, Privacy and Security, Automation."
-                    alert.addButton(withTitle: "Open Settings")
-                    alert.addButton(withTitle: "Cancel")
-                    if alert.runModal() == .alertFirstButtonReturn,
-                       let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")
-                    {
-                        NSWorkspace.shared.open(url)
-                    }
+                    Self.askForAutomation(toControl: "System Events and Finder")
                 } else {
                     let alert = NSAlert()
                     alert.messageText = (error[NSAppleScript.errorMessage] as? String) ?? "The system command failed."
                     alert.runModal()
                 }
             }
+        }
+    }
+
+    /// What to show when macOS refused a script (error -1743): the pane where it is allowed.
+    static func askForAutomation(toControl apps: String) {
+        let alert = NSAlert()
+        alert.messageText = "Floe needs permission to control \(apps)."
+        alert.informativeText = "Allow it in System Settings, Privacy and Security, Automation."
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate()
+        if alert.runModal() == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")
+        {
+            NSWorkspace.shared.open(url)
         }
     }
 

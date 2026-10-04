@@ -139,7 +139,7 @@ targets:
         # which answers over plain http.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-        NSAppleEventsUsageDescription: Floe uses AppleScript to read the Finder selection and to run system commands such as Empty Trash and Toggle Dark Mode.
+        NSAppleEventsUsageDescription: Floe uses AppleScript to read the Finder selection, to save a note in Notes, and to run system commands such as Empty Trash and Toggle Dark Mode.
         NSCalendarsFullAccessUsageDescription: Floe shows your upcoming events and meeting links when you search for them.
         NSCalendarsUsageDescription: Floe shows your upcoming events and meeting links when you search for them.
         NSHighResolutionCapable: true
