@@ -92,6 +92,50 @@ struct HostRequestTests {
         #expect(AIEndpoint.problem(baseURL: "nonsense", model: "", apiKey: "") == "AI can't answer yet. It needs an address that starts with http:// or https://, a model and an API key.")
     }
 
+    @Test func aServerOnThisMacNeedsNoKey() {
+        let local = AIEndpoint(baseURL: "http://localhost:11434/v1", model: "llama3.2", apiKey: nil)
+        #expect(local?.chatURL.absoluteString == "http://localhost:11434/v1/chat/completions")
+        #expect(local?.apiKey.isEmpty == true)
+        #expect(AIEndpoint.problem(baseURL: "http://127.0.0.1:1234/v1", model: "qwen", apiKey: "") == nil)
+        #expect(AIEndpoint.problem(baseURL: "http://localhost:11434/v1", model: "", apiKey: nil) == "AI can't answer yet. It needs a model.")
+        #expect(AIEndpoint.needsKey(URL(string: "https://openrouter.ai/api/v1/chat/completions")))
+        #expect(AIEndpoint.needsKey(nil), "an address that is not one still asks for everything")
+    }
+
+    @Test func aRequestWithoutAKeyCarriesNoAuthorizationHeader() throws {
+        let url = try #require(URL(string: "http://localhost:11434/v1/chat/completions"))
+        let keyless = ChatCompletionStream.request(chatURL: url, apiKey: "", model: "llama3.2", prompt: "hi")
+        #expect(keyless.value(forHTTPHeaderField: "Authorization") == nil)
+        let keyed = ChatCompletionStream.request(chatURL: url, apiKey: "key-123", model: "llama3.2", prompt: "hi")
+        #expect(keyed.value(forHTTPHeaderField: "Authorization") == "Bearer key-123")
+    }
+
+    @Test func theServicePickerFollowsTheAddressThatIsStored() {
+        #expect(AIService.matching("") == .openAI, "an empty address is OpenAI's")
+        #expect(AIService.matching("https://api.openai.com/v1/") == .openAI)
+        #expect(AIService.matching("http://localhost:11434/v1") == .ollama)
+        #expect(AIService.matching("http://localhost:1234/v1/chat/completions") == .lmStudio)
+        #expect(AIService.matching("https://openrouter.ai/api/v1") == .openRouter)
+        #expect(AIService.matching("https://api.z.ai/api/paas/v4") == .other)
+        #expect(AIService.matching("nonsense") == .other)
+        #expect(AIService.allCases.filter { $0.baseURL == nil } == [.other])
+    }
+
+    @Test func appleIntelligenceIsAChoiceThatNeverReadsTheKey() {
+        let choice = AIAnswer.choice(source: .appleIntelligence, baseURL: "", model: "") {
+            Issue.record("the Keychain was read for the on-device model")
+            return "key"
+        }
+        #expect(choice == .appleIntelligence)
+    }
+
+    @Test func onlyWhatIsNewInAnAnswerIsPassedOn() {
+        #expect(AppleIntelligence.addition(from: "", to: "po") == "po")
+        #expect(AppleIntelligence.addition(from: "po", to: "pong") == "ng")
+        #expect(AppleIntelligence.addition(from: "pong", to: "pong").isEmpty)
+        #expect(AppleIntelligence.addition(from: "ping", to: "pong") == "pong", "a rewritten answer is sent whole")
+    }
+
     @Test func theToolsChoiceNeverReadsTheKey() {
         let choice = AIAnswer.choice(source: .tools, baseURL: "https://api.test/v1", model: "small") {
             Issue.record("the Keychain was read for the tools")

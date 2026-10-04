@@ -48,7 +48,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [x] Pasting into the frontmost app
 - [x] Confirmation dialogs inside the panel
 - [ ] `launchCommand` and deeplinks
-- [x] `AI.ask`, answered by the `claude` or `codex` tool you are signed in to, or streamed from an OpenAI-compatible API with your key
+- [x] `AI.ask`, answered by the `claude` or `codex` tool you are signed in to, by Apple Intelligence on your Mac, or by an OpenAI-compatible API: OpenAI or OpenRouter with your key, Ollama or LM Studio without one
 - [ ] AI tools
 - [ ] Grid layout and full detail metadata
 - [x] App picker for preferences

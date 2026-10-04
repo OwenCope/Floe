@@ -76,7 +76,10 @@ enum ChatCompletionStream {
         var request = URLRequest(url: chatURL, timeoutInterval: 300)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        // A server on the same Mac takes no key, and an empty one would be a malformed header.
+        if !apiKey.isEmpty {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let payload: [String: Any] = [
             "model": model,

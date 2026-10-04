@@ -102,6 +102,8 @@ enum HostRequest: Sendable, Equatable {
                 }
                 let request = ChatCompletionStream.request(chatURL: endpoint.chatURL, apiKey: endpoint.apiKey, model: endpoint.model, prompt: prompt)
                 return try await ChatCompletionStream.run(request, onText: emit)
+            case .appleIntelligence:
+                return try await AppleIntelligence.answer(prompt, emit: emit)
             case .tools:
                 // A request right after launch waits for the shell, so a tool under nvm or mise is found.
                 await LoginEnvironment.load()
@@ -129,6 +131,50 @@ enum AISource: String, Codable, CaseIterable {
     case tools
     /// An OpenAI-compatible API, with the user's own key.
     case api
+    /// The model macOS runs on this Mac.
+    case appleIntelligence
+}
+
+/// The services Settings fills the API's address in for; anything else is typed by hand.
+enum AIService: String, CaseIterable, Identifiable {
+    case openAI
+    case openRouter
+    case ollama
+    case lmStudio
+    case other
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .openAI: "OpenAI"
+        case .openRouter: "OpenRouter"
+        case .ollama: "Ollama, on this Mac"
+        case .lmStudio: "LM Studio, on this Mac"
+        case .other: "Another address"
+        }
+    }
+
+    /// The address the service answers at; nil for one the user types.
+    var baseURL: String? {
+        switch self {
+        case .openAI: AIEndpoint.defaultBaseURL
+        case .openRouter: "https://openrouter.ai/api/v1"
+        case .ollama: "http://localhost:11434/v1"
+        case .lmStudio: "http://localhost:1234/v1"
+        case .other: nil
+        }
+    }
+
+    /// The service an address belongs to, so the picker shows what was chosen without storing it.
+    static func matching(_ baseURL: String) -> AIService {
+        let chat = AIEndpoint.chatURL(baseURL: baseURL)
+        return allCases.first { service in
+            service.baseURL.flatMap { AIEndpoint.chatURL(baseURL: $0) } == chat && chat != nil
+        } ?? .other
+    }
 }
 
 /// Where an OpenAI-compatible API is, what to ask it for, and the key it takes.
@@ -141,11 +187,18 @@ struct AIEndpoint: Equatable, Sendable {
     let model: String
     let apiKey: String
 
-    /// Nil until the address, the model and the key are all filled in.
+    /// A server on this Mac, such as Ollama or LM Studio, takes requests without a key.
+    static func needsKey(_ url: URL?) -> Bool {
+        guard let host = url?.host?.lowercased() else { return true }
+        return !["localhost", "127.0.0.1", "::1", "[::1]"].contains(host)
+    }
+
+    /// Nil until the address and the model are filled in, and the key where the server asks for one.
     init?(baseURL: String, model: String, apiKey: String?) {
         let model = model.trimmingCharacters(in: .whitespacesAndNewlines)
         let apiKey = (apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let chatURL = Self.chatURL(baseURL: baseURL), !model.isEmpty, !apiKey.isEmpty else { return nil }
+        guard let chatURL = Self.chatURL(baseURL: baseURL), !model.isEmpty else { return nil }
+        guard !apiKey.isEmpty || !Self.needsKey(chatURL) else { return nil }
         self.chatURL = chatURL
         self.model = model
         self.apiKey = apiKey
@@ -160,7 +213,7 @@ struct AIEndpoint: Equatable, Sendable {
         if model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             needs.append("a model")
         }
-        if (apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if needsKey(chatURL(baseURL: baseURL)), (apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             needs.append("an API key")
         }
         guard let last = needs.popLast() else { return nil }
@@ -194,6 +247,7 @@ enum AIAnswer {
         case tools
         /// Nil when the API's settings are incomplete.
         case api(AIEndpoint?)
+        case appleIntelligence
     }
 
     /// `key` reads the stored API key; it is only called when the API is the choice, so the
@@ -202,6 +256,7 @@ enum AIAnswer {
         switch source {
         case .tools: .tools
         case .api: .api(AIEndpoint(baseURL: baseURL, model: model, apiKey: key()))
+        case .appleIntelligence: .appleIntelligence
         }
     }
 
@@ -211,11 +266,12 @@ enum AIAnswer {
         }
     }
 
-    /// Whether extensions should be told AI is there: a tool is installed, or the API is filled in.
+    /// Whether extensions should be told AI is there: a tool is installed, the API is filled in, or the Mac's own model is ready.
     static var isAvailable: Bool {
         switch configured() {
         case .tools: AIEngine.isAvailable
         case let .api(endpoint): endpoint != nil
+        case .appleIntelligence: AppleIntelligence.problem == nil
         }
     }
 }

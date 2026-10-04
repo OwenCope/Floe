@@ -284,7 +284,7 @@ extension SearchIndex {
             "Answer AI requests with",
             description: "Extensions that ask AI a question get their answer from here.",
             section: "AI",
-            keywords: ["ai", "ask", "claude", "codex", "openai", "model", "llm", "assistant", "provider"]
+            keywords: ["ai", "ask", "claude", "codex", "openai", "apple intelligence", "ollama", "lm studio", "local", "model", "llm", "assistant", "provider"]
         ),
         .general(
             "aiAddress",

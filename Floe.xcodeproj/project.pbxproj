@@ -51,6 +51,7 @@
 		69FA09CF14D792E717C7D569 /* Permission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44808651241F3E3186FE6311 /* Permission.swift */; };
 		6D78BD03B2BA3DDF1F14B9D8 /* Node.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE235E95146CA7BA1F7ADC3F /* Node.swift */; };
 		7151EAD1E7A84F8F938C5B0B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50ADD0E066254B7397123694 /* SettingsView.swift */; };
+		75EC55A338EDA7CDCB9FF39E /* AppleIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F1013ADE880A5CE4FE6B856 /* AppleIntelligence.swift */; };
 		76AC8B902C788E70C72BF370 /* SnippetsSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD7447870CB1042E0714636 /* SnippetsSettingsPage.swift */; };
 		78089551521EC8A3D75F61F6 /* DirectoryWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2443DAEFA2A54768C09AA21 /* DirectoryWatcher.swift */; };
 		793CE9F8C14ADDBA6777D252 /* PropFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD3746F8BA517FB6A621DEA /* PropFormat.swift */; };
@@ -149,6 +150,7 @@
 		3A4690CBF6FD48F469CE38F1 /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; path = runtime; sourceTree = SOURCE_ROOT; };
 		3C88D79A84B3FAC5F8E4332D /* HotkeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRegistry.swift; sourceTree = "<group>"; };
 		3D236320A340CECA893A9686 /* SettingsTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTransfer.swift; sourceTree = "<group>"; };
+		3F1013ADE880A5CE4FE6B856 /* AppleIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligence.swift; sourceTree = "<group>"; };
 		3FC0C0537C1703FB936504D4 /* PermissionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionViews.swift; sourceTree = "<group>"; };
 		42251D9E5402360C16FC6AAC /* KeyCombination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCombination.swift; sourceTree = "<group>"; };
 		442606CB5ED8AC44669CA4D4 /* SearchPanelStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPanelStyle.swift; sourceTree = "<group>"; };
@@ -298,6 +300,7 @@
 				15D53C4BCA0A6B29EB4EAFF1 /* Thaw */,
 				205C86145D30F43EBD39AF0E /* AISettingsSection.swift */,
 				89BD35BDC416FFE62A018661 /* AppearanceSettingsPane.swift */,
+				3F1013ADE880A5CE4FE6B856 /* AppleIntelligence.swift */,
 				8AB1649B146F0F20464E0BB5 /* BackgroundScheduler.swift */,
 				D9EABD76BAB335DE5A5FC78E /* Calculator.swift */,
 				19EC354FED1BF630AE88C6F8 /* Calendar.swift */,
@@ -579,6 +582,7 @@
 				824417A33AE3D6A87DF9AEEA /* AboutSettingsPane.swift in Sources */,
 				86B68EECCB3D41E47E4ED450 /* AppPermissions.swift in Sources */,
 				D49E83F22A2642B38824C849 /* AppearanceSettingsPane.swift in Sources */,
+				75EC55A338EDA7CDCB9FF39E /* AppleIntelligence.swift in Sources */,
 				EF2879CD5E1B9A3841ED1869 /* BackgroundScheduler.swift in Sources */,
 				CA6DF82FEB1271E0CEFBB616 /* Calculator.swift in Sources */,
 				FF252147DD8A5CDE2F38D274 /* Calendar.swift in Sources */,
