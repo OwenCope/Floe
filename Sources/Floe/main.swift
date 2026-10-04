@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.setActivationPolicy(settings.showInDock ? .regular : .accessory)
 
         panel = LauncherPanel(
-            contentRect: NSRect(origin: .zero, size: LauncherView.windowSize(menuBarSearch: false)),
+            contentRect: NSRect(origin: .zero, size: model.panelState.windowSize(in: settings.launcherLayout)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, self.panel.isKeyWindow else { return event }
-            return self.model.handleKey(event) ? nil : event
+            return self.model.handlePanelKey(event, layout: self.settings.launcherLayout) ? nil : event
         }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -86,9 +86,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.$allScripts
             .sink { [weak self] _ in DispatchQueue.main.async { self?.registerHotkeys() } }
             .store(in: &cancellables)
-        // Thaw's inspector panel is 600 × 400; the launcher needs room for extension detail panes.
-        model.$isSearchingMenuBar.removeDuplicates()
-            .sink { [weak self] inspector in self?.resizePanel(to: LauncherView.windowSize(menuBarSearch: inspector)) }
+        model.panelWindowSizes(settings: settings)
+            .sink { [weak self] size in self?.panel.resizeKeepingTop(to: size) }
             .store(in: &cancellables)
         settings.$isRecordingHotkey
             .sink { [weak self] in self?.hotkeys.isSuspended = $0 }
@@ -191,16 +190,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         backgroundScheduler?.stopAll()
     }
 
-    /// Keeps the panel's top edge and horizontal center where they are.
-    private func resizePanel(to size: NSSize) {
-        let frame = panel.frame
-        guard frame.size != size else { return }
-        panel.setFrame(
-            NSRect(x: frame.midX - size.width / 2, y: frame.maxY - size.height, width: size.width, height: size.height),
-            display: true
-        )
-    }
-
     private func toggle() {
         if panel.isVisible {
             hide()
@@ -213,10 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard !panel.isVisible || !panel.isKeyWindow else { return }
         let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
         if let frame = screen?.visibleFrame {
-            panel.setFrameOrigin(NSPoint(
-                x: frame.midX - panel.frame.width / 2,
-                y: frame.minY + frame.height * 0.62 - panel.frame.height / 2
-            ))
+            panel.setFrameOrigin(model.panelState.origin(in: frame, panelSize: panel.frame.size))
         }
         model.panelWillShow()
         panel.makeKeyAndOrderFront(nil)
@@ -395,21 +381,29 @@ if let path = options.panelSnapshot {
     _ = NSApplication.shared
     let folder = URL(fileURLWithPath: path)
     let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
-    let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -4000, y: -4000), size: LauncherView.windowSize(menuBarSearch: false)), styleMask: [.borderless], backing: .buffered, defer: false)
-    window.contentView = NSHostingView(rootView: LauncherView(model: model))
+    // Scratch settings, so drawing the compact layout leaves the saved one alone.
+    let settings = AppSettings(defaults: UserDefaults(suiteName: "floe.snapshot") ?? .standard)
+    let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -4000, y: -4000), size: model.panelState.windowSize(in: settings.launcherLayout)), styleMask: [.borderless], backing: .buffered, defer: false)
+    window.contentView = NSHostingView(rootView: LauncherView(model: model, settings: settings))
     window.orderFrontRegardless()
+    let resizing = model.panelWindowSizes(settings: settings).sink { window.resizeKeepingTop(to: $0) }
     func snapshot(_ name: String, wait: TimeInterval = 1) {
         RunLoop.main.run(until: Date().addingTimeInterval(wait))
         guard let view = window.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("\(name).png"))
-        print("SNAPSHOT \(name)")
+        print("SNAPSHOT \(name) \(Int(window.frame.width))x\(Int(window.frame.height)) top=\(Int(window.frame.maxY))")
     }
     model.query = "co"
     snapshot("root")
+    settings.launcherLayout = .compact
+    snapshot("compact-query")
+    model.query = ""
+    snapshot("compact")
+    settings.launcherLayout = .extended
     model.openMenuBarSearch()
-    window.setContentSize(LauncherView.windowSize(menuBarSearch: true))
     snapshot("menubar", wait: 5)
+    resizing.cancel()
     exit(0)
 }
 

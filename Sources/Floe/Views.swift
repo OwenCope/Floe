@@ -21,17 +21,8 @@ struct LauncherView: View {
     /// rounded glass; the margin leaves the glass room to draw its own depth.
     static let margin: CGFloat = 40
 
-    static func contentSize(menuBarSearch: Bool) -> NSSize {
-        menuBarSearch ? NSSize(width: 600, height: 400) : NSSize(width: 750, height: 474)
-    }
-
-    /// The window is the content plus the margin on every side.
-    static func windowSize(menuBarSearch: Bool) -> NSSize {
-        let size = contentSize(menuBarSearch: menuBarSearch)
-        return NSSize(width: size.width + margin * 2, height: size.height + margin * 2)
-    }
-
     var body: some View {
+        let size = model.panelState.contentSize(in: settings.launcherLayout)
         GlassEffectContainer {
             if let setup = model.setup {
                 SetupView(model: model, request: setup)
@@ -44,13 +35,10 @@ struct LauncherView: View {
             } else if model.isSearchingFiles {
                 FileSearchView(model: model, fileSearch: model.fileSearch)
             } else {
-                RootView(model: model)
+                RootView(model: model, isCollapsed: model.panelState.isCollapsed(in: settings.launcherLayout))
             }
         }
-        .frame(
-            width: Self.contentSize(menuBarSearch: model.isSearchingMenuBar).width,
-            height: Self.contentSize(menuBarSearch: model.isSearchingMenuBar).height
-        )
+        .frame(width: size.width, height: size.height, alignment: .top)
         .modifier(LauncherPanelAppearance(
             glass: settings.launcherGlass,
             tint: settings.launcherTint(for: colorScheme),
@@ -58,6 +46,8 @@ struct LauncherView: View {
             hasShadow: settings.launcherShowsShadow
         ))
         .padding(Self.margin)
+        // The window is resized a moment before or after the content: the search bar stays at the top meanwhile.
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -130,12 +120,15 @@ struct KeyCap: View {
 
 struct RootView: View {
     @ObservedObject var model: LauncherModel
+    var isCollapsed = false
 
     var body: some View {
         let results = model.results
         VStack(spacing: 0) {
             SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken, isLoading: model.isLoadingCatalog) { EmptyView() }
-            if results.isEmpty, !model.isLoadingCatalog {
+            if isCollapsed {
+                EmptyView()
+            } else if results.isEmpty, !model.isLoadingCatalog {
                 ThawEmptyState(
                     systemImage: "magnifyingglass",
                     title: "Nothing matches",
@@ -164,7 +157,9 @@ struct RootView: View {
                     }
                 }
             }
-            bottomBar(results: results)
+            if !isCollapsed {
+                bottomBar(results: results)
+            }
         }
     }
 

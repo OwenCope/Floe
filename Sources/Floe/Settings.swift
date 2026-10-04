@@ -49,6 +49,8 @@ final class AppSettings: ObservableObject {
     /// the tint can follow the system appearance with separate light and dark
     /// values, or stay the same in both.
     @Published var launcherGlass = LauncherGlass()
+    /// Extended always shows the list; compact is the search bar alone until something is typed.
+    @Published var launcherLayout = LauncherLayout.extended
     @Published var launcherTintIsDynamic = false
     @Published var launcherTintLight = LauncherTint()
     @Published var launcherTintDark = LauncherTint()
@@ -91,6 +93,7 @@ final class AppSettings: ObservableObject {
         var launcherShowsBorder: Bool?
         var launcherShowsShadow: Bool?
         var launcherGlass: LauncherGlass?
+        var launcherLayout: LauncherLayout?
         var aiSource: AISource?
         var aiBaseURL: String?
         var aiModel: String?
@@ -136,6 +139,7 @@ final class AppSettings: ObservableObject {
         launcherShowsBorder = stored.launcherShowsBorder ?? launcherShowsBorder
         launcherShowsShadow = stored.launcherShowsShadow ?? launcherShowsShadow
         launcherGlass = stored.launcherGlass ?? launcherGlass
+        launcherLayout = stored.launcherLayout ?? launcherLayout
         aiSource = stored.aiSource ?? aiSource
         aiBaseURL = stored.aiBaseURL ?? aiBaseURL
         aiModel = stored.aiModel ?? aiModel
@@ -178,6 +182,7 @@ final class AppSettings: ObservableObject {
             launcherShowsBorder: launcherShowsBorder,
             launcherShowsShadow: launcherShowsShadow,
             launcherGlass: launcherGlass,
+            launcherLayout: launcherLayout,
             aiSource: aiSource,
             aiBaseURL: aiBaseURL,
             aiModel: aiModel

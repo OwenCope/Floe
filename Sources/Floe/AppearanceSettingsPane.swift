@@ -83,6 +83,17 @@ struct AppearanceSettingsPane: View {
                 )
                 .frame(maxWidth: .infinity)
             }
+            ThawSection("Layout") {
+                Picker("Launcher layout", selection: $settings.launcherLayout) {
+                    ForEach(LauncherLayout.allCases) { layout in
+                        Text(layout.title).tag(layout)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Text("Extended always shows the list. Compact shows only the search bar until you type.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
             ThawSection("Glass") {
                 Picker("Effect", selection: glassChoice) {
                     Text("Match System").tag(GlassChoice.matchSystem)

@@ -23,7 +23,7 @@ struct DebugOptions: ParsableCommand {
     @Flag(name: .customLong("menubar"), help: "List the menu bar items Floe can open, ranked for the query after it if there is one.")
     var menuBar = false
 
-    @Option(help: ArgumentHelp("Draw the launcher's root and menu bar views off screen and save them.", valueName: "folder"))
+    @Option(help: ArgumentHelp("Draw the launcher's root, compact and menu bar views off screen and save them.", valueName: "folder"))
     var panelSnapshot: String?
 
     @Option(parsing: .upToNextOption, help: ArgumentHelp("Run a command without UI and report the first view it renders.", valueName: "extension> <command"))

@@ -100,6 +100,7 @@
 		D49E83F22A2642B38824C849 /* AppearanceSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BD35BDC416FFE62A018661 /* AppearanceSettingsPane.swift */; };
 		DC2E662CC58403BDAE09B454 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A955598F6D439FDD893F9174 /* ErrorView.swift */; };
 		DE519FFD07518B87C28314BA /* Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219F645E1E608A4BB123BFB4 /* Modifiers.swift */; };
+		E03C8C99B5E9167992FA8516 /* LauncherLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8E4CDE0295F2A2FD4D6011 /* LauncherLayout.swift */; };
 		E4F2BF5C06A34F0C81C63ACD /* Subprocess in Frameworks */ = {isa = PBXBuildFile; productRef = A5734F6D7F1BB261482C7608 /* Subprocess */; };
 		E77FE90D50EE031C388A8FEB /* ItemActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4DDDDDEE561A2AF0DE4F07 /* ItemActions.swift */; };
 		E90B7E506C03D9DD853A1C04 /* ChatCompletionStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3403F2FFC4C6AC53013ACA55 /* ChatCompletionStream.swift */; };
@@ -130,6 +131,7 @@
 		15BDEE94D408295874A7461E /* ThawHUDPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThawHUDPlacement.swift; sourceTree = "<group>"; };
 		15F463C41E01C04BDA443705 /* UpdateChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChannel.swift; sourceTree = "<group>"; };
 		19EC354FED1BF630AE88C6F8 /* Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
+		1D8E4CDE0295F2A2FD4D6011 /* LauncherLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherLayout.swift; sourceTree = "<group>"; };
 		1E248280C8BC41591C09710E /* set-secrets.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "set-secrets.sh"; sourceTree = "<group>"; };
 		1EAFF08383C7623D0B69A028 /* FormViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormViews.swift; sourceTree = "<group>"; };
 		205C86145D30F43EBD39AF0E /* AISettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsSection.swift; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 				D7998806F2EEFDB2C0D99FC0 /* HotReload.swift */,
 				6F4DDDDDEE561A2AF0DE4F07 /* ItemActions.swift */,
 				EDE7878F039A72C2B646A417 /* LauncherAppearance.swift */,
+				1D8E4CDE0295F2A2FD4D6011 /* LauncherLayout.swift */,
 				AA09D9D5DB148CE556993D01 /* LauncherPanelAppearance.swift */,
 				4E70D96CFBBB4B6A322E7BDB /* main.swift */,
 				0ECF7DFED5616C6762A29F68 /* MainMenu.swift */,
@@ -606,6 +609,7 @@
 				0A296B921416DFE1A91C9108 /* KeyCombination.swift in Sources */,
 				1E67B7F437AB8AB55EB1362D /* LauncherAppearance.swift in Sources */,
 				FABB403BBB3C3189958DD1BF /* LauncherGlass.swift in Sources */,
+				E03C8C99B5E9167992FA8516 /* LauncherLayout.swift in Sources */,
 				FB0B022C5049D0D54C9E988C /* LauncherPanelAppearance.swift in Sources */,
 				3AD35881F6B724143FF6B7E6 /* LoginEnvironment.swift in Sources */,
 				B69A67C493C8E472020DC5DC /* MainMenu.swift in Sources */,
