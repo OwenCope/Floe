@@ -292,7 +292,8 @@ if options.pick {
 }
 
 if let query = options.search {
-    let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
+    // No sources: the process exits before they answer, and a tab read must not start from here.
+    let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions), sources: [])
     model.query = query
     for result in model.results.prefix(8) {
         print("\(result.section.map { "[\($0)] " } ?? "")\(result.item.title) (\(result.item.kind))\(model.alias(for: result.item).map { " (alias \($0))" } ?? "")")

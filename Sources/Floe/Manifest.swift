@@ -221,6 +221,14 @@ enum RootItem: Identifiable {
     /// A quicklink matched against the query: `queryText` is the text put into the URL,
     /// and `fallback`/`keywordSearch` rows read as Search … for "…" instead of the link's name.
     case quicklink(Quicklink, queryText: String, fallback: Bool, keywordSearch: Bool)
+    /// A scope's rows: a file Spotlight found, a clipboard entry, a menu bar item under the name it is shown by.
+    case file(FileResult)
+    /// An open browser tab, or the row that stands in for a browser Floe may not ask (see BrowserTabs.swift).
+    case browserTab(BrowserTabRow)
+    case clipboardEntry(ClipboardEntry)
+    case menuBarItem(MenuBarExtra, name: String)
+    /// Stands in for the menu bar items until Floe may read them.
+    case menuBarAccess
 
     static let menuBarSearchKey = "builtin:menubar-search"
     static let emojiSearchKey = "builtin:emoji-search"
@@ -248,6 +256,11 @@ enum RootItem: Identifiable {
         case let .emoji(entry): entry.id
         case let .quicklink(link, _, fallback, _):
             (fallback ? "quicklink-fallback:" : "quicklink:") + link.id.uuidString
+        case let .file(file): "file:\(file.id)"
+        case let .browserTab(row): row.id
+        case let .clipboardEntry(entry): "clipboard-entry:\(entry.id.uuidString)"
+        case let .menuBarItem(extra, _): "menubar-item:\(extra.id)"
+        case .menuBarAccess: "menubar-access"
         }
     }
 
@@ -276,6 +289,11 @@ enum RootItem: Identifiable {
             } else {
                 link.name
             }
+        case let .file(file): file.name
+        case let .browserTab(row): row.title
+        case let .clipboardEntry(entry): entry.title.isEmpty ? entry.kind.rawValue.capitalized : entry.title
+        case let .menuBarItem(_, name): name
+        case .menuBarAccess: "Floe needs Accessibility to list your menu bar items"
         }
     }
 
@@ -315,6 +333,8 @@ enum RootItem: Identifiable {
         case let .system(command): "system:\(command.rawValue)"
         case .snippet: id
         case .settings, .settingsPane, .note, .thaw, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
+        case .file, .clipboardEntry, .menuBarItem, .menuBarAccess: nil
+        case .browserTab: nil
         }
     }
 
@@ -334,6 +354,10 @@ enum RootItem: Identifiable {
         case .snippet: "Snippet"
         case .emoji: "Emoji"
         case .quicklink: "Quicklink"
+        case .file: "File"
+        case .browserTab: "Browser Tab"
+        case .clipboardEntry: "Clipboard"
+        case .menuBarItem, .menuBarAccess: "Menu Bar"
         }
     }
 

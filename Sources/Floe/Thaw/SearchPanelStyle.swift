@@ -9,7 +9,8 @@
 //
 //  The launcher face of Thaw 3's menu bar search panel (Panels/Search and UI/Views/SectionedList),
 //  ported to Floe as standalone views: query field metrics, palette row metrics, the row background
-//  with its selection and hover washes, section headings, and key caps.
+//  with its selection and hover washes, section headings, and key caps. The palette row can also
+//  draw the characters a query matched in a stronger weight.
 
 import SwiftUI
 import ThawUI
@@ -64,14 +65,25 @@ struct PaletteRow<Icon: View, Trailing: View>: View {
     let title: String
     let subtitle: String?
     let selected: Bool
+    /// Character offsets in the title that the query matched; they are drawn in a stronger weight.
+    var matched: [Int] = []
     @ViewBuilder var icon: Icon
     @ViewBuilder var trailing: Trailing
+
+    private var styledTitle: AttributedString {
+        var styled = AttributedString(title)
+        for offset in matched where offset < styled.characters.count {
+            let start = styled.characters.index(styled.startIndex, offsetBy: offset)
+            styled[start ..< styled.characters.index(after: start)].font = ThawType.body.weight(.semibold)
+        }
+        return styled
+    }
 
     var body: some View {
         HStack(spacing: 10) {
             icon.frame(width: 24, height: 24)
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(ThawType.body).lineLimit(1)
+                Text(styledTitle).font(ThawType.body).lineLimit(1)
                 if let subtitle {
                     Text(subtitle).font(ThawType.caption).foregroundStyle(.secondary).lineLimit(1)
                 }

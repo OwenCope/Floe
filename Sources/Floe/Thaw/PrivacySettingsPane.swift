@@ -10,6 +10,7 @@
 //  Ported to Floe from Thaw 3's Privacy pane: the notice, the permissions and the network list.
 //  The network rows are Floe's own, since what it contacts is not what Thaw does, and Thaw's
 //  capture inspector and connection status sections have nothing to describe here.
+//  The search sources' switches are Floe's too.
 
 import SwiftUI
 import ThawUI
@@ -42,6 +43,14 @@ struct PrivacySettingsPane: View {
                     }
                 }
             }
+            ThawSection("Search Sources") {
+                ForEach(SearchSourceInfo.all) { source in
+                    Toggle(isOn: isOn(source)) {
+                        Text(source.title)
+                        Text(source.detail)
+                    }
+                }
+            }
             ThawSection("Network Access") {
                 if let host = PrivacyNetwork.updateHost {
                     AutomaticUpdateCheckToggle()
@@ -55,6 +64,19 @@ struct PrivacySettingsPane: View {
         .formStyle(.grouped)
         // The grant happens in System Settings; look again whenever this page comes back.
         .onAppear { permissions.refreshPermissionsState() }
+    }
+
+    /// A source's switch: on while its id is among the settings' search sources.
+    private func isOn(_ source: SearchSourceInfo) -> Binding<Bool> {
+        Binding {
+            settings.searchSources.contains(source.id)
+        } set: { isOn in
+            if isOn {
+                settings.searchSources.insert(source.id)
+            } else {
+                settings.searchSources.remove(source.id)
+            }
+        }
     }
 
     private func row(_ title: String, _ detail: String) -> some View {

@@ -63,6 +63,8 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [ ] Calculator, with unit and currency conversion
 - [x] Emoji and symbols
 - [x] File search
+- [x] Scopes in the root search: `files invoice`, `clipboard meeting`, `menu wifi`
+- [x] Optional search sources, off until you turn them on in Privacy: files and open browser tabs (Safari, Dia, Helium) in an ordinary search, and `tabs invoice` for every matching tab
 - [x] System commands (sleep, lock, empty Trash)
 - [x] System Settings panes
 - [x] Thaw 3's actions, when Thaw is installed: the hidden sections, swap, Zen Mode, the Thaw Bar, the layout and the application menus

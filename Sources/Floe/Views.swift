@@ -125,14 +125,14 @@ struct RootView: View {
     var body: some View {
         let results = model.results
         VStack(spacing: 0) {
-            SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken, isLoading: model.isLoadingCatalog) { EmptyView() }
+            SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken, isLoading: model.isLoadingCatalog || model.isAwaitingResults) { EmptyView() }
             if isCollapsed {
                 EmptyView()
-            } else if results.isEmpty, !model.isLoadingCatalog {
+            } else if results.isEmpty, !model.isLoadingCatalog, !model.isAwaitingResults {
                 ThawEmptyState(
                     systemImage: "magnifyingglass",
-                    title: "Nothing matches",
-                    caption: "Try part of an app's or a command's name, or an alias."
+                    title: LocalizedStringKey(model.activeScope?.scope.emptyTitle ?? "Nothing matches"),
+                    caption: model.activeScope == nil ? "Try part of an app's or a command's name, or an alias." : nil
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -183,11 +183,13 @@ struct RootView: View {
             Spacer(minLength: 0)
 
             if let selected = results.indices.contains(model.selection) ? results[model.selection].item : nil {
-                ShortcutHintButton(title: "Favorite") { model.toggleFavorite(selected) } hint: {
-                    KeyCapView(text: "⌘")
-                    Text(verbatim: "+")
-                    KeyCapView(text: "⇧")
-                    KeyCapView(text: "F")
+                if !selected.isScopeResult {
+                    ShortcutHintButton(title: "Favorite") { model.toggleFavorite(selected) } hint: {
+                        KeyCapView(text: "⌘")
+                        Text(verbatim: "+")
+                        KeyCapView(text: "⇧")
+                        KeyCapView(text: "F")
+                    }
                 }
                 ShortcutHintButton(title: "Actions…") { model.showActions() } hint: {
                     KeyCapView(text: "⌘")
@@ -222,13 +224,13 @@ struct RootRow: View {
     let selected: Bool
 
     var body: some View {
-        PaletteRow(title: item.title, subtitle: nil, selected: selected) {
+        PaletteRow(title: item.title, subtitle: nil, selected: selected, matched: Fuzzy.match(model.query, item.title)?.matched ?? []) {
             RootIcon(item: item)
         } trailing: {
             HStack(spacing: ThawSpacing.compact) {
                 // Raycast-style: the kind sits on the row's right edge instead
                 // of a second line, so the name uses the full width.
-                Text(item.kind)
+                Text(item.rowLabel)
                     .font(ThawType.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -292,6 +294,25 @@ struct RootIcon: View {
                 .frame(width: 24, height: 24)
                 .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+        case let .file(file):
+            AppIconView(path: file.url.path, size: 24)
+        case let .browserTab(row):
+            // The browser's icon says where the tab is; a browser that refused shows the raised hand.
+            if case .tab = row, let path = row.browser.applicationURL?.path {
+                AppIconView(path: path, size: 24)
+            } else {
+                SymbolTile(symbol: "hand.raised")
+            }
+        case let .clipboardEntry(entry):
+            SymbolTile(symbol: entry.kind.symbol)
+        case let .menuBarItem(extra, _):
+            if let owner = extra.ownerURL {
+                AppIconView(path: owner.path, size: 24)
+            } else {
+                SymbolTile(symbol: "menubar.rectangle")
+            }
+        case .menuBarAccess:
+            SymbolTile(symbol: "hand.raised")
         }
     }
 }

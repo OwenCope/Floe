@@ -176,6 +176,9 @@ extension SearchIndex {
         privacy("permissions", "Permissions", section: "Permissions", keywords: ["privacy", "security", "access", "grant", "allow", "accessibility"]),
         privacy("accessibility", "Accessibility", section: "Permissions", keywords: ["permission", "privacy", "access", "grant", "trusted", "menu bar"]),
         privacy("network", "Network Access", section: "Network Access", keywords: ["network", "internet", "updates", "github", "ai", "requests", "analytics"]),
+        privacy("searchSources", "Search Sources", section: "Search Sources", keywords: ["sources", "root search", "results", "sections"]),
+        privacy("searchSources.files", "Files", section: "Search Sources", keywords: ["file search", "spotlight", "documents", "source"]),
+        privacy("searchSources.tabs", "Browser Tabs", section: "Search Sources", keywords: ["tabs", "browser", "safari", "open tabs", "automation", "applescript", "source"]),
     ]
 
     private static func privacy(_ id: String, _ title: String, section: String, keywords: [String]) -> SearchEntry {

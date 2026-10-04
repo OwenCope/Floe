@@ -43,6 +43,191 @@ struct FuzzyTests {
     }
 }
 
+struct FuzzyGradingTests {
+    /// The matcher as it was before grading, kept to prove the upper tiers did not move.
+    private func fixedTierScore(_ query: String, _ candidate: String) -> Int? {
+        let query = query.lowercased()
+        let candidate = candidate.lowercased()
+        if candidate.hasPrefix(query) {
+            return 100 - min(candidate.count - query.count, 20)
+        }
+        let words = candidate.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+        if words.contains(where: { $0.hasPrefix(query) }) {
+            return 75
+        }
+        if String(words.compactMap(\.first)).hasPrefix(query) {
+            return 70
+        }
+        if candidate.contains(query) {
+            return 55
+        }
+        var remaining = Substring(query)
+        for character in candidate where character == remaining.first {
+            remaining = remaining.dropFirst()
+        }
+        return remaining.isEmpty ? 25 : nil
+    }
+
+    private static let candidates = [
+        "Safari", "Activity Monitor", "Visual Studio Code", "Google Chrome", "ColorSync Utility", "System Settings",
+        "Café Crème", "Über Notes", "foo_bar-baz.swift", "Sources/Floe/Ranking.swift", "A-B-C", "xaxbxc ab-c", "",
+        "Privacy & Security", "1Password 7", "iPhone Mirroring", "ÉCOLE", "a\r\nb",
+    ]
+
+    private static let queries = [
+        "", "s", "saf", "SAF", "mon", "vsc", "tivi", "sfr", "gchr", "cs", "abc", "é", "cré", "uber", "über", "fbb",
+        "rank", "floe/r", "bar-b", "y m", "1p", "7", "pm", "ecole", "école", "ac", "b", "a b", "safarii", "&",
+    ]
+
+    @Test func theFourFixedTiersScoreExactlyAsBefore() {
+        for query in Self.queries {
+            for candidate in Self.candidates {
+                let before = fixedTierScore(query, candidate)
+                let after = Fuzzy.score(query, candidate)
+                if let before, before >= 55 {
+                    #expect(after == before, "\(query) in \(candidate)")
+                } else {
+                    #expect((after == nil) == (before == nil), "\(query) in \(candidate)")
+                    #expect(after.map { (1 ..< 55).contains($0) } ?? true, "\(query) in \(candidate)")
+                }
+            }
+        }
+    }
+
+    @Test func everyFixedTierOutranksTheBestScatteredMatch() throws {
+        // Both letters sit on word starts at the very front: nothing scattered scores higher.
+        let scattered = try #require(Fuzzy.score("ac", "A-B-C"))
+        #expect(scattered == 54)
+        let prefix = try #require(Fuzzy.score("a", "a" + String(repeating: "b", count: 60)))
+        let wordPrefix = try #require(Fuzzy.score("mon", "Activity Monitor"))
+        let initials = try #require(Fuzzy.score("vsc", "Visual Studio Code"))
+        let substring = try #require(Fuzzy.score("tivi", "Activity Monitor"))
+        #expect(prefix > wordPrefix)
+        #expect(wordPrefix > initials)
+        #expect(initials > substring)
+        #expect(substring > scattered)
+    }
+
+    @Test func lettersAtWordStartsBeatLettersInsideAWord() throws {
+        let atWordStarts = try #require(Fuzzy.score("gchr", "Google Chrome"))
+        let insideWords = try #require(Fuzzy.score("gchr", "Bigger Machinery"))
+        #expect(atWordStarts > insideWords)
+    }
+
+    @Test func lettersInARowBeatTheSameLettersSpreadOut() throws {
+        let inRuns = try #require(Fuzzy.score("abcd", "zabzcd"))
+        let spreadOut = try #require(Fuzzy.score("abcd", "zazbzczd"))
+        #expect(inRuns > spreadOut)
+    }
+
+    @Test func aMatchThatStartsEarlyBeatsOneThatStartsLate() throws {
+        let early = try #require(Fuzzy.score("sr", "safari"))
+        let late = try #require(Fuzzy.score("sr", "xxxxxxsafari"))
+        #expect(early > late)
+    }
+
+    @Test(arguments: [("-", "color-sync"), ("_", "color_sync"), (".", "color.sync"), ("/", "color/sync"), (" ", "color sync")])
+    func aLetterAfterASeparatorCountsAsAWordStart(separator: String, candidate: String) throws {
+        let separated = try #require(Fuzzy.score("os", candidate), "after \(separator)")
+        let joined = try #require(Fuzzy.score("os", "colorsync"))
+        #expect(separated > joined)
+    }
+
+    @Test func camelCaseHumpsCountAsWordStarts() throws {
+        let humped = try #require(Fuzzy.match("os", "ColorSync"))
+        let flat = try #require(Fuzzy.match("os", "Colorsync"))
+        #expect(humped.score > flat.score)
+        #expect(humped.matched == [1, 5])
+        let accented = try #require(Fuzzy.score("oé", "ColorÉcole"))
+        #expect(accented == humped.score, "humps are found outside ASCII too")
+    }
+
+    @Test func theBestAlignmentIsFoundNotTheFirst() throws {
+        let match = try #require(Fuzzy.match("abc", "xaxbxc ab-c"))
+        #expect(match.matched == [7, 8, 10])
+        #expect(match.score > Fuzzy.score("abc", "xaxbxc")!)
+    }
+
+    @Test(arguments: [
+        ("sfr", "Safari"), ("gchr", "Google Chrome"), ("ac", "A-B-C"), ("abdefgh", "a-b-c-d-e-f-g-h x"),
+        ("os", "ColorSync"), ("aba", "a-b-b-a"), ("abab", "ab-ab ab_ab"), ("pz", "pizza buzz"),
+    ])
+    func noScatteredMatchReachesTheSubstringScore(query: String, candidate: String) throws {
+        let score = try #require(Fuzzy.score(query, candidate))
+        #expect((1 ..< 55).contains(score))
+    }
+
+    @Test func keywordsStillRejectScatteredLetters() {
+        #expect(Ranking.keywordScore("sfr", "Safari") == nil)
+        #expect(Ranking.keywordScore("ac", "A-B-C") == nil, "even the best scattered match is not a keyword match")
+        #expect(Ranking.keywordScore("far", "Safari") == 40)
+    }
+
+    @Test(arguments: [
+        ("saf", "Safari", 97, [0, 1, 2]),
+        ("mon", "Activity Monitor", 75, [9, 10, 11]),
+        ("vsc", "Visual Studio Code", 70, [0, 7, 14]),
+        ("tivi", "Activity Monitor", 55, [2, 3, 4, 5]),
+        ("gchr", "Google Chrome", 50, [0, 7, 8, 9]),
+    ])
+    func matchedPositionsAreRightForEachTier(query: String, candidate: String, score: Int, matched: [Int]) throws {
+        let match = try #require(Fuzzy.match(query, candidate))
+        #expect(match.score == score)
+        #expect(match.matched == matched)
+        #expect(Fuzzy.score(query, candidate) == score, "score is the same number without the positions")
+    }
+
+    @Test func accentedLettersMatchThemselvesAndCountAsOneCharacter() throws {
+        #expect(Fuzzy.score("é", "Café") == 55)
+        #expect(Fuzzy.match("é", "Café")?.matched == [3])
+        #expect(Fuzzy.score("CAFÉ", "café") == 100)
+        #expect(Fuzzy.score("e", "Caf\u{E9}") == nil, "a plain letter is not its accented form")
+        let scattered = try #require(Fuzzy.match("cé", "Crème brûlée"))
+        #expect(scattered.matched == [0, 10])
+        #expect((1 ..< 55).contains(scattered.score))
+        #expect(Fuzzy.match("b", "a\r\nb")?.matched == [2], "a line break is one character")
+    }
+
+    @Test func uppercaseQueriesScoreLikeLowercaseOnes() {
+        #expect(Fuzzy.score("GCHR", "google chrome") == Fuzzy.score("gchr", "google chrome"))
+        #expect(Fuzzy.match("GCHR", "Google Chrome")?.matched == [0, 7, 8, 9])
+    }
+
+    @Test func anEmptyQueryIsAPrefixOfEverythingAndMatchesNoCharacters() throws {
+        let match = try #require(Fuzzy.match("", "Safari"))
+        #expect(match.score == 94)
+        #expect(match.matched.isEmpty)
+        #expect(Fuzzy.score("", "") == 100)
+    }
+
+    @Test func aQueryLongerThanTheCandidateDoesNotMatch() {
+        #expect(Fuzzy.match("safari browser", "Safari") == nil)
+        #expect(Fuzzy.score("ab", "a") == nil)
+        #expect(Fuzzy.score("a", "") == nil)
+    }
+
+    @Test func menuBarItemsRankAGoodScatteredNameAboveAPoorOne() throws {
+        let good = try #require(Ranking.menuBarScore(query: "gchr", name: "Google Chrome", owner: "x"))
+        let poor = try #require(Ranking.menuBarScore(query: "gchr", name: "Bigger Machinery", owner: "x"))
+        #expect(good > poor)
+    }
+
+    @Test func tenThousandCandidatesScoreWellWithinAKeystroke() {
+        let words = ["Google", "Chrome", "System", "Settings", "Activity", "Monitor", "ColorSync", "Utility", "Terminal", "Notes"]
+        let candidates = (0 ..< 10000).map { "\(words[$0 % 10]) \(words[($0 / 10) % 10]) \(words[($0 / 100) % 10]) \($0)" }
+        let clock = ContinuousClock()
+        var matches = 0
+        let elapsed = clock.measure {
+            for candidate in candidates where Fuzzy.score("gcset", candidate) != nil {
+                matches += 1
+            }
+        }
+        #expect(matches > 0)
+        // Loose on purpose: an unoptimized build on a busy machine still has to pass.
+        #expect(elapsed < .milliseconds(500), "took \(elapsed) for \(matches) matches")
+    }
+}
+
 struct RankingTests {
     private let items: [RootItem] = [
         .command(Fixture.command("frontpage", extension: "hacker-news", title: "Hacker News")),

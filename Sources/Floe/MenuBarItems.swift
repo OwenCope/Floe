@@ -18,6 +18,15 @@ struct MenuBarExtra: Identifiable {
     /// Where the item sits, in global top-left-origin points (Accessibility's coordinates).
     let frame: CGRect
     fileprivate let element: AXUIElement
+
+    init(id: String, name: String, ownerName: String, ownerURL: URL?, frame: CGRect, element: AXUIElement) {
+        self.id = id
+        self.name = name
+        self.ownerName = ownerName
+        self.ownerURL = ownerURL
+        self.frame = frame
+        self.element = element
+    }
 }
 
 enum MenuBarExtras {

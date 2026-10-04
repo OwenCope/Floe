@@ -99,6 +99,18 @@ final class LauncherModel: ObservableObject {
     /// Pops the Actions menu of the search that is on screen: root, files or menu bar items.
     var showActions: () -> Void = { /* set by the Actions button */ }
 
+    /// The scope whose rows are on screen, when the query names one.
+    private(set) var activeScope: ScopeMatch?
+    /// True while a scope's rows are still on their way.
+    @Published private(set) var isAwaitingResults = false
+    /// Stands in for opening a scope's row. Tests set it: the real thing pastes and clicks outside the launcher.
+    var scopeResultOpener: ((RootItem) -> Void)?
+    private let scopes: [any SearchScope]
+    private let scopeUpdates = SearchUpdates()
+    /// The optional sources, and the rows they found for the ordinary search on screen.
+    private let sources: [any SearchSource]
+    private let sourceSearch = SourceSearch()
+
     private let settings: AppSettings
     private let usage: UsageStore
     private let scanner: any CatalogScanning
@@ -154,8 +166,12 @@ final class LauncherModel: ObservableObject {
         scanner: any CatalogScanning = CatalogLoader(),
         settings: AppSettings = .shared,
         usage: UsageStore = .shared,
-        snapshot: CatalogSnapshot? = nil
+        snapshot: CatalogSnapshot? = nil,
+        scopes: [any SearchScope] = RootSearch.standardScopes(),
+        sources: [any SearchSource] = RootSearch.standardSources()
     ) {
+        self.scopes = scopes
+        self.sources = sources
         self.scanner = scanner
         self.settings = settings
         self.usage = usage
@@ -273,87 +289,67 @@ final class LauncherModel: ObservableObject {
     }
 
     private func refresh() {
+        let context = searchContext()
+        // A source that is switched on also answers to its keyword, after the scopes that are always there.
+        let enabled = RootSearch.enabled(sources, in: settings.searchSources)
+        guard let match = RootSearch.scope(in: context, scopes: scopes + enabled) else {
+            activeScope = nil
+            scopeUpdates.cancel()
+            selection = 0
+            // The list is shown at once; a source's rows join it when they arrive.
+            sourceSearch.search(context, sources: enabled) { [weak self] in self?.showSourceRows() }
+            isAwaitingResults = sourceSearch.isSearching
+            results = RootSearch.results(for: context, sources: sourceSearch.rows)
+            return
+        }
+        // A refresh that is not a new query, such as a rescan or a favorite, leaves a running scope alone.
+        guard match.query != activeScope?.query else { return }
+        sourceSearch.cancel()
+        activeScope = match
         selection = 0
-        var all = commands.map(RootItem.command) + allScripts.map(RootItem.script) + apps.map(RootItem.app)
-            + [RootItem.menuBarSearch, RootItem.emojiSearch, RootItem.clipboardHistory, RootItem.fileSearch, RootItem.settings]
-            + SystemCommand.allCases.map(RootItem.system) + SnippetStore.shared.snippets.map(RootItem.snippet)
-            + settings.notesApp.actions.map { RootItem.note($0, text: "") } + Thaw.actions().map(RootItem.thaw)
-        let frecency = { [usage] (id: String) in usage.frecency(of: id) }
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let links = QuicklinkStore.shared.links
-        let panes = settingsPanes.map(RootItem.settingsPane)
-        if query.isEmpty {
-            results = Ranking.browse(all, searchOnly: panes, favorites: settings.favorites, frecency: frecency)
-        } else {
-            all += panes
-            // Quicklink names and keywords rank alongside everything else, through the keyword alias.
-            if !trimmed.isEmpty {
-                all += links.map { RootItem.quicklink($0, queryText: trimmed, fallback: false, keywordSearch: false) }
-            }
-            // A script matches when the query starts with its title and the rest is its arguments.
-            let scriptHits = allScripts.compactMap { script -> RootItem? in
-                guard script.argumentsText(in: query) != nil else { return nil }
-                return .script(script)
-            }
-            let searched = Ranking.search(all, query: query, favorites: settings.favorites, alias: alias(for:), frecency: frecency)
-            let hitIDs = Set(scriptHits.map(\.id))
-            results = scriptHits.map { RootResult(item: $0, section: nil) } + searched.filter { !hitIDs.contains($0.item.id) }
-            if let answer = Calculator.evaluate(query) {
-                results.insert(RootResult(item: .calculator(answer), section: "Calculator"), at: 0)
-            }
-            // `keyword rest` searches that link first: `gh floe` offers Search GitHub for "floe" first.
-            if !trimmed.isEmpty, let keywordResult = Self.keywordSearchResult(query: trimmed, links: links) {
-                results.removeAll { $0.id == keywordResult.id }
-                results.insert(keywordResult, at: 0)
-            }
-            // `note buy milk` leads with the note it would make.
-            if let note = Notes.request(in: trimmed, app: settings.notesApp) {
-                let row = RootResult(item: .note(note.action, text: note.text), section: nil)
-                results.removeAll { $0.id == row.id }
-                results.insert(row, at: 0)
-            }
-            // Enabled fallbacks in user order at the bottom.
-            if !trimmed.isEmpty {
-                results += links.filter(\.isFallback).map { link in
-                    RootResult(item: .quicklink(link, queryText: trimmed, fallback: true, keywordSearch: false), section: "Fallbacks")
-                }
-            }
-        }
-        let agenda = CalendarAgenda.shared.events(matching: query)
-        if !agenda.isEmpty {
-            let today = agenda.filter { Calendar.current.isDateInToday($0.startDate) }
-            let tomorrow = agenda.filter { !Calendar.current.isDateInToday($0.startDate) }
-            let rows = today.map { RootResult(item: .event($0), section: "Today") }
-                + tomorrow.map { RootResult(item: .event($0), section: "Tomorrow") }
-            results.insert(contentsOf: rows, at: 0)
-        }
-        if query.hasPrefix(":") {
-            let matches = EmojiCatalog.search(
-                term: String(query.dropFirst()),
-                frecency: { [usage] in usage.frecency(of: EmojiResult.id(for: $0)) }
-            )
-            results.insert(
-                contentsOf: matches.map { RootResult(item: .emoji($0), section: "Emoji & Symbols") },
-                at: 0
-            )
-        }
-        if !query.isEmpty {
-            results.append(RootResult(item: .searchFiles(query), section: nil))
+        results = match.rows(match.scope.results(for: match.text, context: context))
+        isAwaitingResults = scopeUpdates.follow(match.scope.updates(for: match.text, context: context)) { [weak self] items in
+            self?.showScoped(match.rows(items))
+        } finish: { [weak self] in
+            self?.isAwaitingResults = false
         }
     }
 
-    /// The `keyword rest` row for a query starting with a quicklink's keyword and a space, if any.
-    private static func keywordSearchResult(query: String, links: [Quicklink]) -> RootResult? {
-        guard let match = links.first(where: { query.hasPrefix($0.keyword + " ") }) else { return nil }
-        let rest = String(query.dropFirst(match.keyword.count + 1))
-        return RootResult(item: .quicklink(match, queryText: rest, fallback: false, keywordSearch: true), section: nil)
+    /// Rows that arrived after the query was typed. A selection the user moved stays on its row.
+    private func showScoped(_ rows: [RootResult]) {
+        let selected = selection == 0 ? nil : selectedRootItem?.id
+        results = rows
+        selection = selected.flatMap { id in rows.firstIndex { $0.id == id } } ?? min(selection, max(rows.count - 1, 0))
+    }
+
+    /// A source's rows arrived below the ranked ones. The selection stays on the row it was on.
+    private func showSourceRows() {
+        let selected = selectedRootItem?.id
+        isAwaitingResults = sourceSearch.isSearching
+        results = RootSearch.results(for: searchContext(), sources: sourceSearch.rows)
+        selection = selected.flatMap { id in results.firstIndex { $0.id == id } } ?? min(selection, max(results.count - 1, 0))
+    }
+
+    /// Everything the search providers may know, read once per search.
+    private func searchContext() -> SearchContext {
+        var context = SearchContext(query: query)
+        context.favorites = settings.favorites
+        context.aliases = settings.aliases
+        context.notesApp = settings.notesApp
+        context.frecency = { [usage] in usage.frecency(of: $0) }
+        context.commands = commands
+        context.scripts = allScripts
+        context.apps = apps
+        context.thawActions = Thaw.actions()
+        context.settingsPanes = settingsPanes
+        context.snippets = SnippetStore.shared.snippets
+        context.quicklinks = QuicklinkStore.shared.links
+        context.menuBarItemNames = settings.menuBarItemNames
+        return context
     }
 
     func alias(for item: RootItem) -> String? {
-        if case let .quicklink(link, _, _, _) = item {
-            return link.keyword
-        }
-        return item.settingsKey.flatMap { settings.aliases[$0] }.flatMap { $0.isEmpty ? nil : $0 }
+        RootSearch.alias(for: item, aliases: settings.aliases)
     }
 
     func isFavorite(_ item: RootItem) -> Bool {
@@ -363,6 +359,9 @@ final class LauncherModel: ObservableObject {
     func toggleFavorite(_ item: RootItem) {
         if case .searchFiles = item {
             // The fallback row names a query, not a thing: it has no favorites entry.
+            return
+        }
+        if item.isScopeResult {
             return
         }
         if let index = settings.favorites.firstIndex(of: item.id) {
@@ -423,6 +422,11 @@ final class LauncherModel: ObservableObject {
         }
         if case let .emoji(entry) = item {
             pasteEmojiResult(entry)
+            return
+        }
+        if item.isScopeResult {
+            // Found just now and gone next time: opening one records no frecency entry.
+            (scopeResultOpener ?? openScopeResult)(item)
             return
         }
         if case .searchFiles = item {
@@ -490,7 +494,9 @@ final class LauncherModel: ObservableObject {
             }
             hidePanel()
             reset()
-        case .calculator, .emoji:
+        case .calculator, .emoji, .file, .clipboardEntry, .menuBarItem, .menuBarAccess:
+            break
+        case .browserTab:
             break
         }
     }
@@ -585,18 +591,7 @@ final class LauncherModel: ObservableObject {
 
     /// History entries matching the clipboard query, pins first, then newest first.
     func filteredClipboardEntries() -> [ClipboardEntry] {
-        let entries = ClipboardHistoryStore.shared.entries
-        let tokens = clipboardQuery.lowercased().split(separator: " ")
-        let matching = tokens.isEmpty ? entries : entries.filter { entry in
-            let haystack = "\(entry.title) \(entry.text ?? "") \((entry.filePaths ?? []).joined(separator: " ")) \(entry.sourceApp ?? "")".lowercased()
-            return tokens.allSatisfy { haystack.contains($0) }
-        }
-        return matching.sorted { lhs, rhs in
-            if lhs.pinned != rhs.pinned {
-                return lhs.pinned
-            }
-            return lhs.date > rhs.date
-        }
+        ClipboardSearchScope.matching(ClipboardHistoryStore.shared.entries, query: clipboardQuery)
     }
 
     var selectedClipboardEntry: ClipboardEntry? {
@@ -659,6 +654,10 @@ final class LauncherModel: ObservableObject {
 
     func openSelectedFile() {
         guard let file = selectedFile else { return }
+        open(file)
+    }
+
+    func open(_ file: FileResult) {
         fileSearch.open(file)
         hidePanel()
         reset()
@@ -714,12 +713,8 @@ final class LauncherModel: ObservableObject {
                 + menuBarExtras.filter { !recentIDs.contains($0.id) }.map { MenuBarResult(extra: $0, section: "Menu Bar") }
             return
         }
-        menuBarResults = menuBarExtras
-            .compactMap { extra -> (MenuBarExtra, Int)? in
-                Ranking.menuBarScore(query: query, name: displayName(for: extra), owner: extra.ownerName).map { (extra, $0) }
-            }
-            .sorted { $0.1 > $1.1 }
-            .map { MenuBarResult(extra: $0.0, section: nil) }
+        menuBarResults = MenuBarSearchScope.ranked(menuBarExtras, query: query, names: settings.menuBarItemNames)
+            .map { MenuBarResult(extra: $0, section: nil) }
     }
 
     /// The owning app's name, when it says something the item's name doesn't.
@@ -729,7 +724,7 @@ final class LauncherModel: ObservableObject {
 
     /// The name the user gave the item, else the one its app reports.
     func displayName(for extra: MenuBarExtra) -> String {
-        settings.menuBarItemNames[extra.id].flatMap { $0.isEmpty ? nil : $0 } ?? extra.name
+        MenuBarSearchScope.displayName(for: extra, names: settings.menuBarItemNames)
     }
 
     var selectedMenuBarExtra: MenuBarExtra? {

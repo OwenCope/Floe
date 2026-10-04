@@ -31,8 +31,11 @@ final class FileSearch: ObservableObject {
     private var round = 0
     private var settling: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
+    /// Whether what Spotlight has found so far is published while it is still gathering.
+    private let publishesProgress: Bool
 
-    init() {
+    init(publishesProgress: Bool = false) {
+        self.publishesProgress = publishesProgress
         let stream = queries.stream
         settling = Task { @MainActor [weak self] in
             for await query in stream.debounce(for: .milliseconds(150)) {
@@ -78,6 +81,11 @@ final class FileSearch: ObservableObject {
             center.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadata, queue: .main) { [weak self] _ in self?.finish() },
             center.addObserver(forName: .NSMetadataQueryDidUpdate, object: metadata, queue: .main) { [weak self] _ in self?.finish() },
         ]
+        if publishesProgress {
+            observers.append(center.addObserver(forName: .NSMetadataQueryGatheringProgress, object: metadata, queue: .main) { [weak self] _ in
+                self?.publishProgress()
+            })
+        }
         metadataQuery = metadata
         metadata.start()
     }
@@ -85,6 +93,20 @@ final class FileSearch: ObservableObject {
     private func finish() {
         guard let metadata = metadataQuery else { return }
         metadata.disableUpdates()
+        results = Self.files(in: metadata)
+        isSearching = false
+        stopQuery()
+    }
+
+    private func publishProgress() {
+        guard let metadata = metadataQuery else { return }
+        metadata.disableUpdates()
+        results = Self.files(in: metadata)
+        metadata.enableUpdates()
+    }
+
+    /// The first files of a query that are worth showing. The query's updates must be off while this reads it.
+    private static func files(in metadata: NSMetadataQuery) -> [FileResult] {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         var files: [FileResult] = []
         for item in metadata.results.prefix(50) {
@@ -119,9 +141,7 @@ final class FileSearch: ObservableObject {
                 lastUsed: metadataItem.value(forAttribute: "kMDItemLastUsedDate") as? Date
             ))
         }
-        results = files
-        isSearching = false
-        stopQuery()
+        return files
     }
 
     private func stopQuery() {

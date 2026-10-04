@@ -55,6 +55,7 @@ struct AppSettingsTests {
         #expect(settings.hasSeenOnboarding == false)
         #expect(settings.menuBarItemNames.isEmpty)
         #expect(settings.isRecordingHotkey == false)
+        #expect(settings.searchSources.isEmpty, "every search source is off until it is switched on")
     }
 
     @Test func savedSettingsComeBackInANewInstance() {
@@ -92,6 +93,7 @@ struct AppSettingsTests {
         settings.menuBarCommands = ["github/unread-notifications"]
         settings.menuBarItemNames = ["com.a|status": "Renamed"]
         settings.isRecordingHotkey = true
+        settings.searchSources = ["tabs"]
         settings.save()
 
         let reloaded = AppSettings(defaults: scratch.defaults)
@@ -124,6 +126,7 @@ struct AppSettingsTests {
         #expect(reloaded.launcherGlass == LauncherGlass(style: .dynamic, isColored: true, opacity: 0.6))
         #expect(reloaded.launcherLayout == .compact)
         #expect(reloaded.menuBarCommands == ["github/unread-notifications"])
+        #expect(reloaded.searchSources == ["tabs"])
     }
 
     @Test func theAIChoiceStartsWithTheToolsAndComesBackAfterASave() {
@@ -181,6 +184,7 @@ struct AppSettingsTests {
         #expect(settings.showInDock == false)
         #expect(settings.hasSeenOnboarding == false)
         #expect(settings.menuBarItemNames.isEmpty)
+        #expect(settings.searchSources.isEmpty)
     }
 
     @Test func unreadableSettingsFallBackToDefaults() {

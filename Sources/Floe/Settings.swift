@@ -35,6 +35,8 @@ final class AppSettings: ObservableObject {
     @Published var rememberMenuBarQuery = false
     /// Whether copies are saved to the clipboard history.
     @Published var clipboardHistoryEnabled = true
+    /// The search sources that are switched on, by `SearchSource.id`. All are off until switched on in Privacy.
+    @Published var searchSources: Set<String> = []
     /// The menu-bar commands that have a status item, by command id. A command is added by running it.
     @Published var menuBarCommands: Set<String> = []
     /// Where a note typed into the search goes, and the link that takes it there for "Another App".
@@ -79,6 +81,7 @@ final class AppSettings: ObservableObject {
         var favorites: [String]?
         var rememberMenuBarQuery: Bool?
         var clipboardHistoryEnabled: Bool?
+        var searchSources: Set<String>?
         var menuBarCommands: Set<String>?
         var notesApp: NotesApp?
         var notesURLTemplate: String?
@@ -125,6 +128,7 @@ final class AppSettings: ObservableObject {
         favorites = stored.favorites ?? []
         rememberMenuBarQuery = stored.rememberMenuBarQuery ?? false
         clipboardHistoryEnabled = stored.clipboardHistoryEnabled ?? true
+        searchSources = stored.searchSources ?? []
         menuBarCommands = stored.menuBarCommands ?? []
         notesApp = stored.notesApp ?? notesApp
         notesURLTemplate = stored.notesURLTemplate ?? notesURLTemplate
@@ -169,6 +173,7 @@ final class AppSettings: ObservableObject {
             favorites: favorites,
             rememberMenuBarQuery: rememberMenuBarQuery,
             clipboardHistoryEnabled: clipboardHistoryEnabled,
+            searchSources: searchSources,
             menuBarCommands: menuBarCommands,
             notesApp: notesApp,
             notesURLTemplate: notesURLTemplate,

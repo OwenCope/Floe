@@ -11,26 +11,7 @@ import Foundation
 enum Fuzzy {
     /// Higher is better; nil means no match.
     static func score(_ query: String, _ candidate: String) -> Int? {
-        let query = query.lowercased()
-        let candidate = candidate.lowercased()
-        if candidate.hasPrefix(query) {
-            return 100 - min(candidate.count - query.count, 20)
-        }
-        let words = candidate.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-        if words.contains(where: { $0.hasPrefix(query) }) {
-            return 75
-        }
-        if String(words.compactMap(\.first)).hasPrefix(query) {
-            return 70
-        }
-        if candidate.contains(query) {
-            return 55
-        }
-        var remaining = Substring(query)
-        for character in candidate where character == remaining.first {
-            remaining = remaining.dropFirst()
-        }
-        return remaining.isEmpty ? 25 : nil
+        evaluate(query, candidate, wantPositions: false)?.score
     }
 }
 
