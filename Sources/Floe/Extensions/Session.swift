@@ -44,7 +44,14 @@ final class ExtensionSession: ObservableObject {
     @Published var formValues: [String: Any] = [:]
     @Published var toast: ToastState?
     @Published var alert: AlertState?
-    @Published var failure: SessionFailure?
+    @Published var failure: SessionFailure? {
+        didSet {
+            if let failure {
+                Log.extensions.error("\(command.extensionName)/\(command.name) failed: \(failure.message)")
+            }
+        }
+    }
+
     @Published var selection = 0
     @Published var actionMenuOpen = false {
         didSet {

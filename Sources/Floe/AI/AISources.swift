@@ -55,6 +55,25 @@ extension AIAnswer {
         sources: AISources = .live,
         emit: AISources.Emit
     ) async throws -> String {
+        let started = Date()
+        do {
+            let text = try await route(prompt, model: model, choice: choice, localOnly: localOnly, sources: sources, emit: emit)
+            Log.ai.info("\(choice.logName) answered \(prompt.count) characters in \(Log.milliseconds(since: started)) ms")
+            return text
+        } catch {
+            Log.ai.error("\(choice.logName) failed after \(Log.milliseconds(since: started)) ms: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    private static func route(
+        _ prompt: String,
+        model: String?,
+        choice: Choice,
+        localOnly: Bool,
+        sources: AISources,
+        emit: AISources.Emit
+    ) async throws -> String {
         if case .api(nil) = choice {
             throw ProviderError.failed(incompleteMessage)
         }

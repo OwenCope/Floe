@@ -219,6 +219,13 @@ extension SearchIndex {
             keywords: ["check for updates", "update", "updates", "automatic", "upgrade", "new version"]
         ),
         .general(
+            "diagnosticLogging",
+            "Detailed logging",
+            description: "Writes a log for troubleshooting to ~/Library/Logs/Floe.",
+            section: "Diagnostics",
+            keywords: ["log", "logs", "logging", "diagnostics", "debug", "troubleshoot", "slow", "report"]
+        ),
+        .general(
             "menuBarSearchHotkey",
             "Search Menu Bar Items",
             description: "Find an item in the menu bar and open its menu.",

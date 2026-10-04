@@ -392,6 +392,7 @@ struct GeneralSettingsView: View {
             }
             MenuBarCommandsSettingsSection(model: model, settings: settings)
             WelcomeSettingsSection()
+            DiagnosticsSettingsSection(settings: settings)
             PreferredAppsSettingsSection(settings: settings)
             ThawSection("Clipboard") {
                 Toggle(isOn: $settings.clipboardHistoryEnabled) {

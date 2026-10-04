@@ -59,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var backgroundScheduler: BackgroundScheduler?
 
     func applicationDidFinishLaunching(_: Notification) {
+        Log.follow(settings).store(in: &cancellables)
         NSApp.setActivationPolicy(settings.showInDock ? .regular : .accessory)
 
         panel = LauncherPanel(size: model.panelState.windowSize(in: settings.launcherLayout))
@@ -136,6 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             .store(in: &cancellables)
         // Everything the panel needs is wired up: the catalog can fill in behind it now.
         model.startCatalogLoading()
+        Log.app.notice("Launched in \(Log.milliseconds(since: processStart)) ms")
 
         UpdatesManager.shared.performSetup()
         // Takes floe:// links: Thaw's answer about its appearance, and the browser's return once sign-in is back.
@@ -301,6 +303,7 @@ Paths.prepareSupportFolders()
 
 AutoFillOptOut.install()
 
+let processStart = Date()
 let options = DebugOptions.parseOrExit()
 
 if options.pick {

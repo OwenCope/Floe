@@ -277,6 +277,7 @@ final class LauncherModel: ObservableObject {
         hasLoadedApps = true
         isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands || !hasLoadedScripts
         apps = newApps
+        Log.catalog.info("Applications scanned: \(newApps.count)")
         refresh()
     }
 
@@ -287,6 +288,7 @@ final class LauncherModel: ObservableObject {
         hasLoadedCommands = true
         isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands || !hasLoadedScripts
         allCommands = newCommands
+        Log.catalog.info("Extension commands scanned: \(newCommands.count)")
         refresh()
     }
 
@@ -301,6 +303,12 @@ final class LauncherModel: ObservableObject {
     }
 
     private func refresh() {
+        let started = Date()
+        defer {
+            if Date().timeIntervalSince(started) >= Log.slowSearch {
+                Log.search.warning("Slow search: \(Log.milliseconds(since: started)) ms for \(query.count) characters, \(results.count) rows")
+            }
+        }
         let context = searchContext()
         // A source that is switched on also answers to its keyword, after the scopes that are always there.
         let enabled = RootSearch.enabled(sources, in: settings.searchSources)
@@ -633,6 +641,7 @@ final class LauncherModel: ObservableObject {
     }
 
     private func launch(_ command: ExtensionCommand, arguments: [String: Any]) {
+        Log.extensions.info("Running \(command.extensionName)/\(command.name) (\(command.mode))")
         let session = ExtensionSession(command: command, arguments: arguments)
         session.onMessage = { [weak self, weak session] message in
             guard let self, let session else { return }
