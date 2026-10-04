@@ -16,8 +16,9 @@ enum HostRequest: Sendable, Equatable {
     case oauthAuthorize(url: String, state: String, providerName: String)
     /// `OAuth.PKCEClient.getTokens`: the stored tokens, if the extension signed in before.
     case oauthGetTokens(providerId: String)
-    /// `OAuth.PKCEClient.setTokens`: what the provider answered the authorization code with.
-    case oauthSetTokens(providerId: String, tokens: [String: Any])
+    /// `OAuth.PKCEClient.setTokens`: what the provider answered the authorization code with, as the JSON text
+    /// the Keychain stores. Text, not a dictionary, so the request can cross to another thread.
+    case oauthSetTokens(providerId: String, tokens: String)
     /// `OAuth.PKCEClient.removeTokens`.
     case oauthRemoveTokens(providerId: String)
 
@@ -54,10 +55,13 @@ enum HostRequest: Sendable, Equatable {
             guard let providerId = params["providerId"] as? String else { return nil }
             self = .oauthGetTokens(providerId: providerId)
         case "oauth.setTokens":
+            // Sorted keys, so the same tokens are the same text.
             guard let providerId = params["providerId"] as? String,
-                  let tokens = params["tokens"] as? [String: Any]
+                  let tokens = params["tokens"] as? [String: Any],
+                  let data = try? JSONSerialization.data(withJSONObject: tokens, options: [.sortedKeys]),
+                  let text = String(data: data, encoding: .utf8)
             else { return nil }
-            self = .oauthSetTokens(providerId: providerId, tokens: tokens)
+            self = .oauthSetTokens(providerId: providerId, tokens: text)
         case "oauth.removeTokens":
             guard let providerId = params["providerId"] as? String else { return nil }
             self = .oauthRemoveTokens(providerId: providerId)
@@ -69,23 +73,6 @@ enum HostRequest: Sendable, Equatable {
             self = .clipboardRead
         default:
             return nil
-        }
-    }
-
-    static func == (lhs: HostRequest, rhs: HostRequest) -> Bool {
-        switch (lhs, rhs) {
-        case let (.askAI(prompt1, model1), .askAI(prompt2, model2)):
-            prompt1 == prompt2 && model1 == model2
-        case let (.oauthAuthorize(url1, state1, provider1), .oauthAuthorize(url2, state2, provider2)):
-            url1 == url2 && state1 == state2 && provider1 == provider2
-        case let (.oauthGetTokens(first), .oauthGetTokens(second)):
-            first == second
-        case let (.oauthSetTokens(firstId, firstTokens), .oauthSetTokens(secondId, secondTokens)):
-            firstId == secondId && NSDictionary(dictionary: firstTokens).isEqual(to: secondTokens)
-        case let (.oauthRemoveTokens(first), .oauthRemoveTokens(second)):
-            first == second
-        default:
-            false
         }
     }
 

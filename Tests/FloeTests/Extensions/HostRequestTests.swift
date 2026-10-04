@@ -17,6 +17,14 @@ struct HostRequestTests {
         { name in names.contains(name) ? URL(fileURLWithPath: "/tools/\(name)") : nil }
     }
 
+    @Test func tokensToStoreAreCarriedAsTheSameTextWhateverTheirOrder() throws {
+        let first = try #require(HostRequest(method: "oauth.setTokens", params: ["providerId": "github", "tokens": ["accessToken": "a", "scope": "repo"]]))
+        let second = try #require(HostRequest(method: "oauth.setTokens", params: ["providerId": "github", "tokens": ["scope": "repo", "accessToken": "a"]]))
+        #expect(first == second)
+        #expect(first == .oauthSetTokens(providerId: "github", tokens: #"{"accessToken":"a","scope":"repo"}"#))
+        #expect(HostRequest(method: "oauth.setTokens", params: ["providerId": "github"]) == nil)
+    }
+
     @Test func anAskCarriesItsPromptAndModel() {
         #expect(HostRequest(method: "ai.ask", params: ["prompt": "why?", "model": "Anthropic_Claude_Sonnet"]) == .askAI(prompt: "why?", model: "Anthropic_Claude_Sonnet"))
         #expect(HostRequest(method: "ai.ask", params: ["prompt": "why?"]) == .askAI(prompt: "why?", model: nil))

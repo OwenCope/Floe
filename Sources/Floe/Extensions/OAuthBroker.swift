@@ -179,10 +179,7 @@ final class OAuthBroker: NSObject {
         return tokens
     }
 
-    func saveTokens(_ tokens: [String: Any], extensionName: String, providerId: String) {
-        guard let data = try? JSONSerialization.data(withJSONObject: tokens),
-              let text = String(data: data, encoding: .utf8)
-        else { return }
+    func saveTokens(_ text: String, extensionName: String, providerId: String) {
         Keychain.write(text, account: tokenAccount(extensionName: extensionName, providerId: providerId))
     }
 
