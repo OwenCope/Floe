@@ -35,6 +35,8 @@ final class AppSettings: ObservableObject {
     @Published var rememberMenuBarQuery = false
     /// Whether copies are saved to the clipboard history.
     @Published var clipboardHistoryEnabled = true
+    /// The menu-bar commands that have a status item, by command id. A command is added by running it.
+    @Published var menuBarCommands: Set<String> = []
     /// Names given to menu bar items with Edit Name, keyed by `MenuBarExtra.id`.
     @Published var menuBarItemNames: [String: String] = [:]
     /// True while a hotkey recorder is listening, so the registry can stand down.
@@ -72,6 +74,7 @@ final class AppSettings: ObservableObject {
         var favorites: [String]?
         var rememberMenuBarQuery: Bool?
         var clipboardHistoryEnabled: Bool?
+        var menuBarCommands: Set<String>?
         var menuBarItemNames: [String: String]?
         var showInDock: Bool?
         var hasSeenOnboarding: Bool?
@@ -114,6 +117,7 @@ final class AppSettings: ObservableObject {
         favorites = stored.favorites ?? []
         rememberMenuBarQuery = stored.rememberMenuBarQuery ?? false
         clipboardHistoryEnabled = stored.clipboardHistoryEnabled ?? true
+        menuBarCommands = stored.menuBarCommands ?? []
         menuBarItemNames = stored.menuBarItemNames ?? [:]
         showInDock = stored.showInDock ?? false
         hasSeenOnboarding = stored.hasSeenOnboarding ?? false
@@ -154,6 +158,7 @@ final class AppSettings: ObservableObject {
             favorites: favorites,
             rememberMenuBarQuery: rememberMenuBarQuery,
             clipboardHistoryEnabled: clipboardHistoryEnabled,
+            menuBarCommands: menuBarCommands,
             menuBarItemNames: menuBarItemNames,
             showInDock: showInDock,
             hasSeenOnboarding: hasSeenOnboarding,

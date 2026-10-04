@@ -133,9 +133,6 @@ targets:
         GitCommitSHA: unknown
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
-        CFBundleURLTypes:
-          - CFBundleURLName: com.thaw.floe
-            CFBundleURLSchemes: [floe]
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSUIElement: true
         # AI.ask can be pointed at a model server on this Mac or the local network (Ollama, LM Studio),

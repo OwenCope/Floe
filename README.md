@@ -41,8 +41,8 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 
 ### Extensions
 
-- [x] OAuth sign-in (GitHub, Notion, Linear, Spotify, Todoist)
-- [x] Menu bar commands
+- [ ] OAuth sign-in (GitHub, Notion, Linear, Spotify, Todoist). The client is written and parked; extensions use a token preference for now
+- [x] Menu bar commands, each added to the menu bar by running it or from Settings
 - [x] Background and interval commands
 - [x] Selected text and the Finder selection
 - [x] Pasting into the frontmost app

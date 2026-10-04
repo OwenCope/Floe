@@ -313,7 +313,7 @@ enum RootItem: Identifiable {
     var kind: String {
         switch self {
         case .app: "Application"
-        case .command: "Command"
+        case let .command(command): command.mode == "menu-bar" ? "Menu Bar" : "Command"
         case .script: "Script"
         case .menuBarSearch, .emojiSearch, .clipboardHistory, .settings: "Floe"
         case .fileSearch, .searchFiles: "Files"

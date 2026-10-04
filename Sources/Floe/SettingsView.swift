@@ -388,6 +388,7 @@ struct GeneralSettingsView: View {
                     prompt: Text("None")
                 )
             }
+            MenuBarCommandsSettingsSection(model: model, settings: settings)
             PermissionsSettingsSection()
             ThawSection("Clipboard") {
                 Toggle(isOn: $settings.clipboardHistoryEnabled) {

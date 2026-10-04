@@ -30,12 +30,17 @@ import SwiftUI
     private final class MenuDispatch: NSObject {
         var onAction: ((Int) -> Void)?
         var onRetry: (() -> Void)?
+        var onRemove: (() -> Void)?
         @objc func fire(_ sender: NSMenuItem) {
             onAction?(sender.tag)
         }
 
         @objc func retry(_: NSMenuItem) {
             onRetry?()
+        }
+
+        @objc func remove(_: NSMenuItem) {
+            onRemove?()
         }
     }
 
@@ -84,6 +89,7 @@ import SwiftUI
             self?.rebuild(command.id)
         }
         entry.dispatch.onRetry = { [weak self] in self?.refresh(command) }
+        entry.dispatch.onRemove = { [weak self] in self?.model.toggleMenuBarCommand(command) }
         session.onMessage = { [weak self] message in
             self?.model.handleBackgroundMessage(message)
         }
@@ -146,6 +152,11 @@ import SwiftUI
             loading.isEnabled = false
             menu.addItem(loading)
         }
+        // Always the last row, so an item can be taken out of the menu bar from the menu bar.
+        menu.addItem(.separator())
+        let remove = NSMenuItem(title: "Remove from Menu Bar", action: #selector(MenuDispatch.remove(_:)), keyEquivalent: "")
+        remove.target = entry.dispatch
+        menu.addItem(remove)
         entry.item.menu = menu
     }
 

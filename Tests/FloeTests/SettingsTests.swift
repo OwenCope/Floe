@@ -88,6 +88,7 @@ struct AppSettingsTests {
         settings.launcherShowsBorder = true
         settings.launcherShowsShadow = true
         settings.launcherGlass = LauncherGlass(style: .dynamic, isColored: true, opacity: 0.6)
+        settings.menuBarCommands = ["github/unread-notifications"]
         settings.menuBarItemNames = ["com.a|status": "Renamed"]
         settings.isRecordingHotkey = true
         settings.save()
@@ -120,6 +121,7 @@ struct AppSettingsTests {
         #expect(reloaded.launcherShowsBorder)
         #expect(reloaded.launcherShowsShadow)
         #expect(reloaded.launcherGlass == LauncherGlass(style: .dynamic, isColored: true, opacity: 0.6))
+        #expect(reloaded.menuBarCommands == ["github/unread-notifications"])
     }
 
     @Test func theAIChoiceStartsWithTheToolsAndComesBackAfterASave() {

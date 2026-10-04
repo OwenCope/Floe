@@ -45,6 +45,10 @@ enum OAuthError: LocalizedError {
 final class OAuthBroker: NSObject {
     static let shared = OAuthBroker()
 
+    /// Sign-in through the browser is parked, and extensions fall back to a token preference.
+    /// To bring it back, turn this off and register the `floe` URL scheme in project.yml again.
+    static let isParked = true
+
     /// How long the browser has to come back before the sign-in fails.
     static let timeout: TimeInterval = 600
 
@@ -58,6 +62,7 @@ final class OAuthBroker: NSObject {
     private let pending = Mutex<[String: Pending]>([:])
 
     func install() {
+        guard !Self.isParked else { return }
         NSAppleEventManager.shared().setEventHandler(
             self,
             andSelector: #selector(handleGetURLEvent(_:_:)),

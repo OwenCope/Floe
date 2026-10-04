@@ -111,8 +111,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let backgroundScheduler = BackgroundScheduler(model: model, menuBarCommands: menuBarCommands)
         self.menuBarCommands = menuBarCommands
         self.backgroundScheduler = backgroundScheduler
-        model.$allCommands.combineLatest(settings.$disabledExtensions)
-            .sink { [weak self] _, _ in
+        model.$allCommands.combineLatest(settings.$disabledExtensions, settings.$menuBarCommands)
+            .sink { [weak self] _, _, _ in
                 // After the publishers' willSet, so enabledCommands reads the new values.
                 DispatchQueue.main.async {
                     guard let self else { return }

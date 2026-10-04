@@ -207,6 +207,13 @@ extension SearchIndex {
             keywords: ["menu bar", "keyword", "abbreviation", "short name"]
         ),
         .general(
+            "menuBarCommands",
+            "Extension Commands in the Menu Bar",
+            description: "Which extension commands have an item in the menu bar.",
+            section: "Menu Bar Commands",
+            keywords: ["status item", "extension", "show", "remove"]
+        ),
+        .general(
             "clipboardHistory",
             "Save clipboard history",
             description: "Keeps text, links, images and files you copy.",

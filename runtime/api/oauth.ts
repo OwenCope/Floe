@@ -6,7 +6,28 @@
 //  Licensed under the GNU AGPLv3
 
 // Raycast OAuth PKCE client. The browser flow and token storage run in the Swift app over the bridge.
+// Parked until the app sets FLOE_OAUTH: a client still constructs, and only starting a sign-in fails.
 import { ctx, request } from "../bridge";
+
+const signInIsOn = () => process.env.FLOE_OAUTH === "1";
+
+// A preference that takes a token or key, which most extensions accept in place of signing in.
+function tokenPreference() {
+  const command = ctx.manifest.commands?.find((candidate: { name: string }) => candidate.name === ctx.commandName);
+  const declared: { name: string; title?: string; type?: string }[] = [...(ctx.manifest.preferences ?? []), ...(command?.preferences ?? [])];
+  const secrets = declared.filter((preference) => preference.type === "password");
+  const named = (preference: { name: string; title?: string }) => /token|api[ _-]?key|secret/i.test(`${preference.name} ${preference.title ?? ""}`);
+  return secrets.find(named) ?? secrets[0] ?? declared.find(named);
+}
+
+function signInUnavailable(provider?: string) {
+  const preference = tokenPreference();
+  const service = provider ? ` to ${provider}` : "";
+  const instead = preference
+    ? `Add "${preference.title ?? preference.name}" in this extension's preferences instead.`
+    : "This extension has no token preference to use instead.";
+  return new Error(`Floe can't sign in${service} yet. ${instead}`);
+}
 
 export const RedirectMethod = { Web: "web", App: "app", AppURI: "appURI" } as const;
 
@@ -162,23 +183,25 @@ export type PKCEClientOptions = {
 };
 
 export class PKCEClient {
-  private options: PKCEClientOptions;
+  private options: Partial<PKCEClientOptions>;
 
-  constructor(options: PKCEClientOptions) {
-    this.options = options;
+  constructor(options?: Partial<PKCEClientOptions>) {
+    this.options = options ?? {};
   }
 
   private get providerId(): string {
-    return this.options.providerId ?? this.options.providerName;
+    return this.options.providerId ?? this.options.providerName ?? "";
   }
 
   async authorizationRequest(options: AuthorizationRequestOptions): Promise<AuthorizationRequest> {
+    if (!signInIsOn()) throw signInUnavailable(this.options.providerName);
     const codeVerifier = randomString(64);
     const codeChallenge = await s256Challenge(codeVerifier);
     return new AuthorizationRequest({ ...options, codeVerifier, codeChallenge, state: randomString(32), redirectURI: redirectURI() });
   }
 
   async authorize(requestOrOptions: AuthorizationRequest | { url: string }): Promise<{ authorizationCode: string }> {
+    if (!signInIsOn()) throw signInUnavailable(this.options.providerName);
     const url = requestOrOptions instanceof AuthorizationRequest ? requestOrOptions.toURL() : requestOrOptions.url;
     const state = requestOrOptions instanceof AuthorizationRequest ? requestOrOptions.state : (requestOrOptions as { state?: string }).state;
     const response = await request("oauth.authorize", { url, state, providerName: this.options.providerName });
@@ -193,16 +216,19 @@ export class PKCEClient {
   }
 
   async setTokens(tokens: TokenSet | TokenSetInit | RawTokenResponse): Promise<void> {
+    if (!signInIsOn()) throw signInUnavailable(this.options.providerName);
     await request("oauth.setTokens", { providerId: this.providerId, tokens: toPlainTokens(tokens) });
   }
 
   async getTokens(): Promise<TokenSet | undefined> {
+    if (!signInIsOn()) return undefined;
     const stored = await request("oauth.getTokens", { providerId: this.providerId });
     if (stored === null || stored === undefined) return undefined;
     return new TokenSet({ ...stored, updatedAt: new Date(stored.updatedAt) });
   }
 
   async removeTokens(): Promise<void> {
+    if (!signInIsOn()) return;
     await request("oauth.removeTokens", { providerId: this.providerId });
   }
 }

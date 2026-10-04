@@ -45,7 +45,7 @@ extension ExtensionSession {
             var reply: [String: Any] = ["type": "reply", "id": id]
             do {
                 if request.isOAuth {
-                    guard let self else { throw OAuthError.cancelled }
+                    guard let self, !OAuthBroker.isParked else { throw OAuthError.cancelled }
                     reply["result"] = try await OAuthBroker.shared.perform(request, extensionName: self.command.extensionName)
                 } else {
                     // Text that arrives early is sent on in order, while the request is still wanted.
@@ -113,6 +113,7 @@ extension ExtensionSession {
             variables["FLOE_PREFERENCES"] = String(bytes: preferences, encoding: .utf8)
         }
         variables["FLOE_AI"] = hasAI ? "1" : nil
+        variables["FLOE_OAUTH"] = OAuthBroker.isParked ? nil : "1"
         variables["FLOE_LAUNCH_TYPE"] = launchType
         return variables
     }

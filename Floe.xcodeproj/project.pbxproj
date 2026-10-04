@@ -11,6 +11,7 @@
 		032EB45470A494A9B1129BB1 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DCB3DFC16635F2E970DEF1 /* Session.swift */; };
 		034CBC0B680B9B58D3C3D6A7 /* FileSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3236DEE9A622DD0D03E3A752 /* FileSearch.swift */; };
 		05DE26C5F339D6E008D554CE /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F1F04CB5B238D464961288 /* OnboardingView.swift */; };
+		06A18613618261F58CF871CC /* MenuBarCommandsSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C744D183B546A111B479D243 /* MenuBarCommandsSettingsSection.swift */; };
 		08EBD958FD49AE0D1BA860A9 /* CatalogLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8834D1F068570DEC8D2B961F /* CatalogLoader.swift */; };
 		094BF08A42283922909FA733 /* OAuthBroker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F77DCB4303CFDC52739E75 /* OAuthBroker.swift */; };
 		097D5FBD5255D9F68DBB9AA9 /* PermissionsSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5AE6CC56910A19D88E7BA9 /* PermissionsSettingsSection.swift */; };
@@ -210,6 +211,7 @@
 		BEB425F614388AB1A87EBF09 /* Credits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Credits.swift; sourceTree = "<group>"; };
 		BF247D3BD42852E40E2A6E41 /* SystemStores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStores.swift; sourceTree = "<group>"; };
 		C1B83CE1B17D83A1AC6396FF /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
+		C744D183B546A111B479D243 /* MenuBarCommandsSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCommandsSettingsSection.swift; sourceTree = "<group>"; };
 		CB65908F87D1376EBC7FA28D /* Quicklinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quicklinks.swift; sourceTree = "<group>"; };
 		CE235E95146CA7BA1F7ADC3F /* Node.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Node.swift; sourceTree = "<group>"; };
 		D2349D78CC267E82F6B8211A /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 				9282FBD75C06A6410E879C91 /* Manifest.swift */,
 				8487FD4DDFB449E52573EB31 /* MarkdownParser.swift */,
 				F20F6DF0B9BFDE2B04E303B4 /* MenuBarCommands.swift */,
+				C744D183B546A111B479D243 /* MenuBarCommandsSettingsSection.swift */,
 				6517001EBFA66B4BD7F1DA69 /* MenuBarItems.swift */,
 				2207765089964A4BDDF2F7B4 /* MenuBarLogic.swift */,
 				68564AF5DA9F1E27CBB726B9 /* MenuBarSearchView.swift */,
@@ -603,6 +606,7 @@
 				5D4CE2F66CECA7B125BE0738 /* Manifest.swift in Sources */,
 				3BFD70A5864BDC8FEA732B2A /* MarkdownParser.swift in Sources */,
 				0F848EBE6EB08EC29C1087E0 /* MenuBarCommands.swift in Sources */,
+				06A18613618261F58CF871CC /* MenuBarCommandsSettingsSection.swift in Sources */,
 				1EE414B8D4D91989A2F64ED1 /* MenuBarItems.swift in Sources */,
 				EDB220A71026548DB214E898 /* MenuBarLogic.swift in Sources */,
 				AB822604951E3AAE92E59D05 /* MenuBarSearchView.swift in Sources */,

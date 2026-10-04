@@ -121,9 +121,25 @@ final class LauncherModel: ObservableObject {
         allCommands.filter { !settings.disabledExtensions.contains($0.extensionName) }
     }
 
-    /// Every enabled command, including menu-bar commands; controllers read this and filter by mode.
+    /// Every command that may run on its own: a menu-bar command only once it was put in the menu bar.
+    /// Controllers read this and filter by mode.
     var enabledCommands: [ExtensionCommand] {
-        commands
+        commands.filter { $0.mode != "menu-bar" || settings.menuBarCommands.contains($0.id) }
+    }
+
+    func isInMenuBar(_ command: ExtensionCommand) -> Bool {
+        settings.menuBarCommands.contains(command.id)
+    }
+
+    /// Gives a menu-bar command its status item, or takes it away again.
+    func toggleMenuBarCommand(_ command: ExtensionCommand) {
+        if settings.menuBarCommands.remove(command.id) != nil {
+            showHUD("Removed from Menu Bar")
+        } else {
+            settings.menuBarCommands.insert(command.id)
+            showHUD("Added to Menu Bar")
+        }
+        refresh()
     }
 
     /// True when a command can run unattended: no missing required preferences or arguments.
@@ -258,8 +274,7 @@ final class LauncherModel: ObservableObject {
 
     private func refresh() {
         selection = 0
-        let menuBarFree = commands.filter { $0.mode != "menu-bar" }
-        var all = menuBarFree.map(RootItem.command) + allScripts.map(RootItem.script) + apps.map(RootItem.app)
+        var all = commands.map(RootItem.command) + allScripts.map(RootItem.script) + apps.map(RootItem.app)
             + [RootItem.menuBarSearch, RootItem.emojiSearch, RootItem.clipboardHistory, RootItem.fileSearch, RootItem.settings]
             + SystemCommand.allCases.map(RootItem.system) + SnippetStore.shared.snippets.map(RootItem.snippet)
         let frecency = { [usage] (id: String) in usage.frecency(of: id) }
@@ -810,10 +825,15 @@ final class LauncherModel: ObservableObject {
 
     /// Runs a command, first asking for missing required preferences and then for its arguments.
     func run(_ command: ExtensionCommand, arguments: [String: Any]? = nil) {
+        let missing = PreferenceStore.missingRequired(for: command)
+        // Running a menu-bar command is choosing whether it has a status item.
+        if command.mode == "menu-bar", missing.isEmpty {
+            toggleMenuBarCommand(command)
+            return
+        }
         if let session {
             end(session)
         }
-        let missing = PreferenceStore.missingRequired(for: command)
         if !missing.isEmpty {
             beginSetup(SetupRequest(command: command, kind: .preferences, fields: command.preferences))
         } else if arguments == nil, !command.arguments.isEmpty {

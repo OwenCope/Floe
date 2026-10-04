@@ -23,9 +23,15 @@ extension LauncherModel {
         results.indices.contains(selection) ? results[selection].item : nil
     }
 
+    /// What Return does to a result, as its button and the first row of its menu say it.
+    func primaryActionTitle(for item: RootItem) -> String {
+        guard case let .command(command) = item, command.mode == "menu-bar" else { return "Open" }
+        return isInMenuBar(command) ? "Remove from Menu Bar" : "Add to Menu Bar"
+    }
+
     func rootActions(for item: RootItem) -> [ItemAction?] {
         var actions: [ItemAction?] = [
-            ItemAction(title: "Open", symbol: "return") { [weak self] in self?.activate(item) },
+            ItemAction(title: primaryActionTitle(for: item), symbol: "return") { [weak self] in self?.activate(item) },
         ]
         switch item {
         case let .app(app):

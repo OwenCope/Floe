@@ -201,7 +201,7 @@ struct RootView: View {
                 }
                 // The actions menu hangs off this button, so it has to be reachable as an AppKit view.
                 .background { ActionsAnchor(model: model) { $0.selectedRootItem.map($0.rootActions) ?? [] } }
-                ShortcutHintButton(title: "Open") { model.activate(selected) } hint: {
+                ShortcutHintButton(title: model.primaryActionTitle(for: selected)) { model.activate(selected) } hint: {
                     KeyCapView(systemImage: "return")
                 }
             }
@@ -237,6 +237,10 @@ struct RootRow: View {
                     .font(ThawType.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if case let .command(command) = item, model.isInMenuBar(command) {
+                    Image(systemName: "checkmark").font(ThawType.caption).foregroundStyle(.secondary)
+                        .accessibilityLabel("In the menu bar")
+                }
                 if model.isFavorite(item) {
                     Image(systemName: "star.fill").font(ThawType.caption).foregroundStyle(.yellow)
                         .accessibilityLabel("Favorite")
