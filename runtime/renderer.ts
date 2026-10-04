@@ -5,7 +5,7 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU AGPLv3
 
-// Custom React renderer: keeps a plain object tree and ships it to Swift as JSON after each commit.
+// Custom React renderer: keeps a plain object tree and ships it to Swift as JSON after each commit that changed what is on show.
 import React from "react";
 import Reconciler from "react-reconciler";
 import { ConcurrentRoot, DefaultEventPriority } from "react-reconciler/constants";
@@ -16,27 +16,45 @@ type Instance = {
   type: string;
   props: Record<string, unknown>;
   children: (Instance | TextInstance)[];
+  parent?: Instance;
 };
-type TextInstance = { id: number; text: string };
+type TextInstance = { id: number; text: string; parent?: Instance };
 type Child = Instance | TextInstance;
 
 let nextId = 1;
 const instances = new Map<number, Instance>();
 const container: Instance = { id: 0, type: "root", props: {}, children: [] };
 
+const visibleScreen = (root: Instance) => root.children.findLast((child) => child.type === "_screen");
+
+// Set by a commit that changed something the app is shown. A commit that only touched screens under
+// the top one leaves it alone, so nothing is serialized or sent for it.
+let dirty = true;
+function touch(node: Instance | undefined) {
+  if (dirty) return;
+  let top = node;
+  while (top?.parent && top.parent !== container) top = top.parent;
+  // Only a node known to sit in a hidden screen is skipped: the root's own children and detached nodes count.
+  dirty = top?.parent !== container || top.type !== "_screen" || top === visibleScreen(container);
+}
+
 function remove(parent: Instance, child: Child) {
+  touch(parent);
   const index = parent.children.indexOf(child);
   if (index >= 0) parent.children.splice(index, 1);
+  child.parent = undefined;
 }
 function append(parent: Instance, child: Child) {
   remove(parent, child);
   parent.children.push(child);
+  child.parent = parent;
 }
 function insertBefore(parent: Instance, child: Child, before: Child) {
   remove(parent, child);
   const index = parent.children.indexOf(before);
   if (index < 0) parent.children.push(child);
   else parent.children.splice(index, 0, child);
+  child.parent = parent;
 }
 function forget(child: Child) {
   if ("text" in child) return;
@@ -73,7 +91,7 @@ function serialize(node: Child): unknown {
 // the envelope keeps every non-screen root child in place while hidden screen subtrees are skipped
 // before serialization ever walks them. The live tree is not touched.
 function serializeRoot(root: Instance) {
-  const visible = root.children.findLast((child) => child.type === "_screen");
+  const visible = visibleScreen(root);
   return {
     id: root.id,
     type: root.type,
@@ -85,10 +103,11 @@ function serializeRoot(root: Instance) {
 
 let flushScheduled = false;
 function scheduleFlush() {
-  if (flushScheduled) return;
+  if (!dirty || flushScheduled) return;
   flushScheduled = true;
   setTimeout(() => {
     flushScheduled = false;
+    dirty = false;
     send({ type: "render", tree: serializeRoot(container) });
   }, 4);
 }
@@ -115,6 +134,7 @@ const reconciler = Reconciler({
   // Initial children are freshly created, never moves, so no removal scan is needed before pushing.
   appendInitialChild(parent, child) {
     parent.children.push(child);
+    child.parent = parent;
   },
   appendChild: append,
   appendChildToContainer: append,
@@ -129,12 +149,15 @@ const reconciler = Reconciler({
     forget(child);
   },
   commitUpdate(instance: Instance, _type: string, _oldProps: unknown, newProps: Record<string, unknown>) {
+    touch(instance);
     instance.props = newProps;
   },
   commitTextUpdate(instance: TextInstance, _oldText: string, newText: string) {
+    touch(instance.parent);
     instance.text = newText;
   },
   clearContainer(root: Instance) {
+    touch(root);
     root.children.forEach(forget);
     root.children = [];
   },
@@ -190,6 +213,8 @@ export function reportError(error: unknown, fatal = false) {
 }
 
 export function render(element: React.ReactElement) {
+  // A new root reports itself even when it renders nothing, as a menu bar command returning null does.
+  dirty = true;
   const root = reconciler.createContainer(
     container,
     ConcurrentRoot,

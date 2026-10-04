@@ -283,6 +283,93 @@ describe("visible screen projection", () => {
   });
 });
 
+// Two screens and a panel outside them. Each place keeps its own state, as real screens do, so a
+// lever re-renders that place alone and a test can count what it sends.
+const levers: Record<string, () => void> = {};
+function Place({ type, name }: { type: string; name: string }) {
+  const [count, setCount] = useState(0);
+  levers[name] = () => setCount((current) => current + 1);
+  return h(React.Fragment, null, h(type, { title: `${name} ${count}` }, `text ${count}`), count % 2 ? h("extra") : null);
+}
+function Stack() {
+  const [pushed, setPushed] = useState(true);
+  levers.pop = () => setPushed(false);
+  levers.push = () => setPushed(true);
+  return h(
+    React.Fragment,
+    null,
+    h("_screen", { key: 0 }, h(Place, { type: "row", name: "lower" })),
+    pushed ? h("_screen", { key: 1 }, h(Place, { type: "row", name: "upper" })) : null,
+    h(Place, { type: "panel", name: "outside" }),
+  );
+}
+
+describe("what a commit sends", () => {
+  // The renders one lever causes, and the tree the app is left with.
+  async function pull(...names: string[]): Promise<[number, TreeNode]> {
+    const before = renderCount();
+    for (const name of names) levers[name]();
+    const after = await settle();
+    return [renderCount() - before, after];
+  }
+
+  test("a change in a hidden screen sends nothing: props, text, added and removed children", async () => {
+    await show(h(Stack));
+    expect((await pull("lower"))[0]).toBe(0, "props, text and an added child");
+    expect((await pull("lower"))[0]).toBe(0, "props, text and a removed child");
+  });
+
+  test("a change in the visible screen sends one render", async () => {
+    await show(h(Stack));
+    const [renders, after] = await pull("upper");
+    expect(renders).toBe(1);
+    expect(find(after, "row").props.title).toBe("upper 1");
+    expect(text(find(after, "row"))).toBe("text 1");
+  });
+
+  test("a hidden and a visible change that land together send one render", async () => {
+    await show(h(Stack));
+    const [renders, after] = await pull("lower", "upper", "lower");
+    expect(renders).toBe(1);
+    expect(find(after, "row").props.title).toBe("upper 1");
+  });
+
+  test("a change outside the screens is sent while a screen is hidden", async () => {
+    await show(h(Stack));
+    const [renders, after] = await pull("outside");
+    expect(renders).toBe(1);
+    expect(find(after, "panel").props.title).toBe("outside 1");
+  });
+
+  test("removing the top screen sends the one under it as it now is, and it is then the visible one", async () => {
+    await show(h(Stack));
+    for (let update = 0; update < 3; update++) await pull("lower");
+    const [renders, popped] = await pull("pop");
+    expect(renders).toBe(1);
+    expect(find(popped, "row").props.title).toBe("lower 3");
+    expect(text(find(popped, "row"))).toBe("text 3");
+    expect(findAll(popped, "extra")).toHaveLength(1);
+
+    const [afterPop, updated] = await pull("lower");
+    expect(afterPop).toBe(1, "the screen that was hidden is on show now");
+    expect(find(updated, "row").props.title).toBe("lower 4");
+
+    const [pushes, pushed] = await pull("push");
+    expect(pushes).toBe(1);
+    expect(find(pushed, "row").props.title).toBe("upper 0");
+    expect((await pull("lower"))[0]).toBe(0, "and hidden again under the new screen");
+  });
+
+  test("a root with no screens, as a menu bar command has, sends every change", async () => {
+    const counter = find(await show(h(Counter)), "counter");
+    for (const expected of [1, 2, 3]) {
+      const before = renderCount();
+      expect(find(await fire(counter, "onIncrement"), "counter").props.count).toBe(expected);
+      expect(renderCount() - before).toBe(1);
+    }
+  });
+});
+
 describe("dispatchEvent", () => {
   test("passes the arguments to the handler", async () => {
     const calls: unknown[][] = [];
@@ -378,5 +465,17 @@ describe("errors", () => {
 
     const recovered = await show(h("row", { title: "back" }));
     expect(findAll(recovered, "row")).toHaveLength(1);
+  });
+
+  test("a new root that renders nothing still sends its empty tree", async () => {
+    function Broken(): React.ReactNode {
+      throw new Error("render broke");
+    }
+    await show(h(Broken));
+    resetStage();
+    const before = renderCount();
+    const tree = await show(null);
+    expect(renderCount() - before).toBe(1, "the first commit is sent though it changed nothing");
+    expect(tree.children).toEqual([]);
   });
 });

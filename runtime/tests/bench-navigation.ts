@@ -12,13 +12,13 @@
 // latest render is retained; parsed trees are released after their scalars are extracted, so memory
 // samples are not contaminated by harness history. Without --baseline the run also asserts the
 // visible-screen contract: one transmitted root screen, no hidden rows under a detail, equal payloads
-// at equal stack depths, and full restored root content after pop. React intentionally keeps the
+// at equal stack depths, no render for the hidden root update, and full restored root content after pop. React intentionally keeps the
 // hidden components mounted, so Bun's retained heap is expected, not a leak this workload can show.
 
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationRoot, useNavigation } from "../api/index";
 import { ctx, setSink } from "../bridge";
 import { dispatchEvent, render } from "../renderer";
@@ -112,9 +112,15 @@ async function nextRender(stage: string, matches?: (tree: Tree) => boolean): Pro
     process.exit(1);
 }
 
+const refreshCommitted = Promise.withResolvers<void>();
+
 function HiddenRoot() {
     const [refreshed, setRefreshed] = useState(0);
     const { push } = useNavigation();
+    // A refresh under a detail sends no render, so its commit is seen through this effect instead.
+    useEffect(() => {
+        if (refreshed > 0) refreshCommitted.resolve();
+    }, [refreshed]);
     return h(
         "list",
         null,
@@ -159,7 +165,12 @@ for (let depth = 2; depth <= stackedDetails + 1; depth++) {
 }
 
 dispatchEvent(refreshRow.id, "onRefresh", []);
-await nextRender("hidden root refresh");
+const beforeRefresh = latest.sequence;
+await refreshCommitted.promise;
+// Longer than the renderer's 4 ms flush, so a render the refresh did schedule would have arrived.
+await Bun.sleep(50);
+const hiddenRefreshRenders = latest.sequence - beforeRefresh;
+console.log(`[nav] stage=hidden-root-refresh renders=${hiddenRefreshRenders}`);
 
 // Pop back down the stack one detail at a time, then to the root.
 for (let depth = stackedDetails; depth >= 1; depth--) {
@@ -174,6 +185,7 @@ capture = await nextRender("restored root", (tree) => listRows(tree) === rowCoun
 const restoredStage = report("restored-root", capture);
 
 if (!baseline) {
+    if (hiddenRefreshRenders !== 0) throw new Error(`a hidden root refresh sent ${hiddenRefreshRenders} render(s)`);
     for (const stage of [rootStage, detailStage, ...stacked, restoredStage]) {
         if (stage.screens !== 1) throw new Error(`expected exactly one transmitted root screen, got ${stage.screens}`);
     }

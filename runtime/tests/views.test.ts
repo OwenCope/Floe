@@ -10,8 +10,8 @@ import fs from "node:fs";
 import path from "node:path";
 import React, { useState } from "react";
 import { handlePop, handlePopToRoot } from "../bridge";
-import { Action, ActionPanel, Color, Detail, Form, Grid, Icon, List, MenuBarExtra, useNavigation } from "../api/index";
-import { find, findAll, fire, installRuntime, sent, settle, show, showScreen, slot, type TreeNode } from "./support";
+import { Action, ActionPanel, Color, Detail, Form, Grid, Icon, List, MenuBarExtra, showToast, useNavigation } from "../api/index";
+import { find, findAll, fire, installRuntime, renderCount, sent, settle, show, showScreen, slot, type TreeNode } from "./support";
 
 const h = React.createElement;
 const runtime = installRuntime("views-tests");
@@ -348,5 +348,97 @@ describe("navigation", () => {
     const after = await fire(find(tree, "Detail"), "onDeeper");
     await fire(find(after, "Detail"), "onBack");
     expect(findAll(after, "Detail")).toHaveLength(1);
+  });
+});
+
+// A root that refreshes itself, as a timer or a finished fetch does, under the list it pushed.
+function Refreshing({ rows }: { rows: number }) {
+  const { push } = useNavigation();
+  const [refreshes, setRefreshes] = useState(0);
+  return h(Detail, {
+    markdown: `refreshed ${refreshes}`,
+    onRefresh: () => setRefreshes((current) => current + 1),
+    onToast: () => showToast({ title: "from below" }),
+    onOpen: () => push(h(Rows, { rows })),
+  });
+}
+function Rows({ rows }: { rows: number }) {
+  const { pop } = useNavigation();
+  const [state, setState] = useState({ isLoading: false, navigationTitle: "Rows", searchText: "", selectedItemId: "0" });
+  return h(
+    List,
+    { ...state, onChange: (change: object) => setState((current) => ({ ...current, ...change })), onBack: pop },
+    Array.from({ length: rows }, (_, index) => h(List.Item, { key: index, id: String(index), title: `Row ${index}` })),
+  );
+}
+
+describe("renders sent across a navigation stack", () => {
+  // The renders one event causes, and the tree the app is left with.
+  async function counted(node: TreeNode, prop: string, ...args: unknown[]): Promise<[number, TreeNode]> {
+    const before = renderCount();
+    const after = await fire(node, prop, ...args);
+    return [renderCount() - before, after];
+  }
+
+  test("twenty updates under a list of 1,000 rows send nothing, and Back shows the last of them", async () => {
+    const tree = await showScreen(h(Refreshing, { rows: 1000 }));
+    const root = find(tree, "Detail");
+    const [pushes, pushed] = await counted(root, "onOpen");
+    expect(pushes).toBe(1);
+    expect(findAll(pushed, "List.Item")).toHaveLength(1000);
+
+    const before = renderCount();
+    for (let update = 0; update < 20; update++) await fire(root, "onRefresh");
+    expect(renderCount() - before).toBe(0);
+
+    handlePop();
+    const popped = await settle();
+    expect(renderCount() - before).toBe(1);
+    expect(markdowns(popped)).toEqual(["refreshed 20"]);
+    expect(find(popped, "Detail").id).toBe(root.id);
+  });
+
+  test("each push and each pop sends one render", async () => {
+    const tree = await showScreen(h(PlanetDetail, { name: "Mars" }));
+    const [first, second] = await counted(find(tree, "Detail"), "onDeeper");
+    const [next, third] = await counted(find(second, "Detail"), "onDeeper");
+    const [back] = await counted(find(third, "Detail"), "onBack");
+    expect([first, next, back]).toEqual([1, 1, 1]);
+
+    const before = renderCount();
+    handlePop();
+    expect(markdowns(await settle())).toEqual(["# Mars (0)"]);
+    expect(renderCount() - before).toBe(1);
+  });
+
+  test("pop to root sends one render for the whole stack", async () => {
+    const tree = await showScreen(h(PlanetDetail, { name: "Mars" }));
+    const second = await fire(find(tree, "Detail"), "onDeeper");
+    await fire(find(second, "Detail"), "onDeeper");
+    const before = renderCount();
+    handlePopToRoot();
+    expect(markdowns(await settle())).toEqual(["# Mars (0)"]);
+    expect(renderCount() - before).toBe(1);
+  });
+
+  test("what the top screen's view carries still reaches the app: loading, title, search text, selection", async () => {
+    const tree = await showScreen(h(Refreshing, { rows: 3 }));
+    const pushed = await fire(find(tree, "Detail"), "onOpen");
+    const list = find(pushed, "List");
+    const changes = [{ isLoading: true }, { navigationTitle: "Three rows" }, { searchText: "row" }, { selectedItemId: "2" }];
+    for (const change of changes) {
+      const [renders, after] = await counted(list, "onChange", change);
+      expect(renders).toBe(1);
+      expect(find(after, "List").props).toMatchObject(change);
+    }
+  });
+
+  test("a toast from a hidden screen is sent, with no render", async () => {
+    const tree = await showScreen(h(Refreshing, { rows: 3 }));
+    const root = find(tree, "Detail");
+    await fire(root, "onOpen");
+    const [renders] = await counted(root, "onToast");
+    expect(renders).toBe(0);
+    expect(sent("toast")).toEqual([expect.objectContaining({ title: "from below", hidden: false })]);
   });
 });
