@@ -194,6 +194,13 @@ struct RootView: View {
                     KeyCapView(text: "⇧")
                     KeyCapView(text: "F")
                 }
+                ShortcutHintButton(title: "Actions…") { model.showActions() } hint: {
+                    KeyCapView(text: "⌘")
+                    Text(verbatim: "+")
+                    KeyCapView(text: "K")
+                }
+                // The actions menu hangs off this button, so it has to be reachable as an AppKit view.
+                .background { ActionsAnchor(model: model) { $0.selectedRootItem.map($0.rootActions) ?? [] } }
                 ShortcutHintButton(title: "Open") { model.activate(selected) } hint: {
                     KeyCapView(systemImage: "return")
                 }
@@ -263,22 +270,13 @@ struct RootIcon: View {
         case .settings:
             IconView(value: "icon:Gear", assetsPath: "", size: 24)
         case let .system(command):
-            Image(systemName: command.symbol)
-                .font(.system(size: 13, weight: .medium))
-                .frame(width: 24, height: 24)
-                .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+            SymbolTile(symbol: command.symbol)
+        case let .settingsPane(pane):
+            SymbolTile(symbol: pane.symbol)
         case .snippet:
-            Image(systemName: "text.quote")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.teal)
-                .frame(width: 24, height: 24)
-                .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+            SymbolTile(symbol: "text.quote", tint: .teal)
         case .event:
-            Image(systemName: "calendar")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.red)
-                .frame(width: 24, height: 24)
-                .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+            SymbolTile(symbol: "calendar", tint: .red)
         case .calculator:
             IconView(value: "icon:PlusForwardslashMinus", assetsPath: "", size: 24)
         case let .emoji(entry):
@@ -291,6 +289,20 @@ struct RootIcon: View {
                 .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
         }
+    }
+}
+
+/// A symbol on the rounded tile the built-in results use where an app has its icon.
+struct SymbolTile: View {
+    let symbol: String
+    var tint = Color.primary
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(tint)
+            .frame(width: 24, height: 24)
+            .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
     }
 }
 
@@ -669,12 +681,13 @@ struct FileSearchView: View {
                 KeyCapView(text: "⌘")
                 KeyCapView(systemImage: "return")
             }
-            ShortcutHintButton(title: "Copy Path") { model.copySelectedFilePath() } hint: {
+            // Copy Path keeps its shortcut and moves into the menu, with the rest of what a file can do.
+            ShortcutHintButton(title: "Actions…") { model.showActions() } hint: {
                 KeyCapView(text: "⌘")
                 Text(verbatim: "+")
-                KeyCapView(text: "⇧")
-                KeyCapView(text: "C")
+                KeyCapView(text: "K")
             }
+            .background { ActionsAnchor(model: model) { $0.selectedFile.map($0.fileActions) ?? [] } }
         }
         .buttonStyle(SearchPanelButtonStyle())
         .padding(.horizontal, ThawSpacing.inset)

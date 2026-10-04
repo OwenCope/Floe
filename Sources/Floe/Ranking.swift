@@ -62,11 +62,13 @@ enum Ranking {
     }
 
     /// No query: favourites, then recently used, then commands and applications.
-    static func browse(_ all: [RootItem], favorites: [String], frecency: (String) -> Double) -> [RootResult] {
-        let byID = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    /// `searchOnly` items are too many to list: they show here only as a favorite or a suggestion.
+    static func browse(_ all: [RootItem], searchOnly: [RootItem] = [], favorites: [String], frecency: (String) -> Double) -> [RootResult] {
+        let known = all + searchOnly
+        let byID = Dictionary(known.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let favoriteItems = favorites.compactMap { byID[$0] }
         let favoriteIDs = Set(favoriteItems.map(\.id))
-        let suggestions = all
+        let suggestions = known
             .filter { !favoriteIDs.contains($0.id) && frecency($0.id) > 0 }
             .sorted { frecency($0.id) > frecency($1.id) }
             .prefix(5)
@@ -88,7 +90,7 @@ enum Ranking {
         limit: Int = 40
     ) -> [RootResult] {
         all.compactMap { item -> (RootItem, Double)? in
-            let scores = [score(query: query, title: item.title, alias: alias(item))] + item.keywords.map { Fuzzy.score(query, $0) }
+            let scores = [score(query: query, title: item.title, alias: alias(item))] + item.keywords.map { keywordScore(query, $0) }
             guard let match = scores.compactMap(\.self).max() else { return nil }
             let boost = min(20, frecency(item.id) * 2) + (favorites.contains(item.id) ? 5 : 0)
             return (item, Double(match) + boost)
@@ -96,6 +98,12 @@ enum Ranking {
         // Equal scores keep the order they came in, which a plain sort does not promise.
         .min(count: limit) { $0.1 > $1.1 }
         .map { RootResult(item: $0.0, section: nil) }
+    }
+
+    /// A keyword counts for less than the title it stands in for, and scattered letters in one do
+    /// not count at all: an item with many keywords would otherwise answer to almost anything.
+    static func keywordScore(_ query: String, _ keyword: String) -> Int? {
+        Fuzzy.score(query, keyword).flatMap { $0 >= 55 ? $0 - 15 : nil }
     }
 
     /// A menu bar item matches on its name, or less strongly on the app that owns it.

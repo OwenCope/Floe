@@ -126,7 +126,13 @@ extension CatalogSnapshot {
     /// exit. The GUI never uses this: its model starts empty and fills from the worker.
     static func scanningNow(includeRaycast: Bool) -> CatalogSnapshot {
         let scripts = ScriptCommand.scan()
-        return CatalogSnapshot(apps: AppEntry.scan(), commands: ExtensionCommand.scan(includeRaycast: includeRaycast), scripts: scripts.commands, scriptFailures: scripts.failures)
+        return CatalogSnapshot(
+            apps: AppEntry.scan(),
+            commands: ExtensionCommand.scan(includeRaycast: includeRaycast),
+            scripts: scripts.commands,
+            scriptFailures: scripts.failures,
+            settingsPanes: SystemSettingsPane.scan()
+        )
     }
 }
 

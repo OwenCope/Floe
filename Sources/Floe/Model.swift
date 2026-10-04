@@ -42,6 +42,8 @@ final class LauncherModel: ObservableObject {
     @Published private(set) var allCommands: [ExtensionCommand] = []
     /// Every script command found in the Scripts folder.
     @Published private(set) var allScripts: [ScriptCommand] = []
+    /// System Settings' panes, found once at launch: they only change with the system.
+    private var settingsPanes: [SystemSettingsPane] = []
     /// Files in the Scripts folder that failed to parse, for the settings pane.
     @Published private(set) var scriptFailures: [ScriptFailure] = []
     /// True until the first apps and commands scans have both published, or a snapshot was injected.
@@ -94,8 +96,8 @@ final class LauncherModel: ObservableObject {
         // No settings window.
     }
 
-    /// Pops the Actions menu under its button in the menu bar search's bottom bar.
-    var showMenuBarActions: () -> Void = { /* set by the Actions button */ }
+    /// Pops the Actions menu of the search that is on screen: root, files or menu bar items.
+    var showActions: () -> Void = { /* set by the Actions button */ }
 
     private let settings: AppSettings
     private let usage: UsageStore
@@ -146,6 +148,7 @@ final class LauncherModel: ObservableObject {
             allCommands = snapshot.commands
             allScripts = snapshot.scripts
             scriptFailures = snapshot.scriptFailures
+            settingsPanes = snapshot.settingsPanes
             hasLoadedApps = true
             hasLoadedCommands = true
             hasLoadedScripts = true
@@ -162,6 +165,19 @@ final class LauncherModel: ObservableObject {
         reloadApps()
         reloadCommands()
         reloadScripts()
+        Task { [weak self, scanner] in
+            let panes = await scanner.scanSettingsPanes()
+            await self?.finishSettingsPanes(panes)
+        }
+    }
+
+    @MainActor
+    private func finishSettingsPanes(_ panes: [SystemSettingsPane]) {
+        settingsPanes = panes
+        // Nothing to redraw without a query: the panes are only searched for.
+        if !query.isEmpty {
+            refresh()
+        }
     }
 
     func reloadCommands() {
@@ -249,9 +265,11 @@ final class LauncherModel: ObservableObject {
         let frecency = { [usage] (id: String) in usage.frecency(of: id) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let links = QuicklinkStore.shared.links
+        let panes = settingsPanes.map(RootItem.settingsPane)
         if query.isEmpty {
-            results = Ranking.browse(all, favorites: settings.favorites, frecency: frecency)
+            results = Ranking.browse(all, searchOnly: panes, favorites: settings.favorites, frecency: frecency)
         } else {
+            all += panes
             // Quicklink names and keywords rank alongside everything else, through the keyword alias.
             if !trimmed.isEmpty {
                 all += links.map { RootItem.quicklink($0, queryText: trimmed, fallback: false, keywordSearch: false) }
@@ -377,9 +395,7 @@ final class LauncherModel: ObservableObject {
 
     func activate(_ item: RootItem) {
         if case let .calculator(answer) = item {
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(answer.copyText, forType: .string)
+            NSPasteboard.general.copy(answer.copyText)
             showHUD("Copied \(answer.copyText)")
             return
         }
@@ -424,6 +440,12 @@ final class LauncherModel: ObservableObject {
             reset()
         case let .system(command):
             runSystemCommand(command)
+        case let .settingsPane(pane):
+            if let url = pane.url {
+                NSWorkspace.shared.open(url)
+            }
+            hidePanel()
+            reset()
         case let .snippet(snippet):
             paste(text: SnippetStore.shared.expanded(snippet))
         case let .event(event):
@@ -442,13 +464,11 @@ final class LauncherModel: ObservableObject {
         hidePanel()
         reset()
         if let question = command.confirmation {
-            let alert = NSAlert()
-            alert.messageText = command.title
-            alert.informativeText = question
-            alert.addButton(withTitle: command.title).hasDestructiveAction = true
-            alert.addButton(withTitle: "Cancel")
-            NSApp.activate()
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            guard Confirm.destructive(command.title, detail: question, button: command.title) else { return }
+        }
+        if let flip = command.flip {
+            showHUD(flip())
+            return
         }
         command.perform()
     }
@@ -456,8 +476,7 @@ final class LauncherModel: ObservableObject {
     /// Copies an emoji without pasting; ⌘↵ on a result.
     func copyEmojiResult(_ entry: EmojiResult) {
         usage.recordUse(of: EmojiResult.id(for: entry.character))
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(entry.character, forType: .string)
+        NSPasteboard.general.copy(entry.character)
         showHUD("Copied \(entry.character)")
     }
 
@@ -465,8 +484,7 @@ final class LauncherModel: ObservableObject {
     /// gone, when Accessibility access is granted; otherwise the copy plus a "Copied" HUD.
     func pasteEmojiResult(_ entry: EmojiResult) {
         usage.recordUse(of: EmojiResult.id(for: entry.character))
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(entry.character, forType: .string)
+        NSPasteboard.general.copy(entry.character)
         guard AXIsProcessTrusted() else {
             showHUD("Copied")
             return
@@ -619,8 +637,7 @@ final class LauncherModel: ObservableObject {
 
     func copySelectedFilePath() {
         guard let file = selectedFile else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(file.url.path, forType: .string)
+        NSPasteboard.general.copy(file.url.path)
         showHUD("Copied")
     }
 
@@ -707,33 +724,32 @@ final class LauncherModel: ObservableObject {
     }
 
     /// Things Floe can do with an item; Thaw's moving between sections stays with Thaw.
-    func menuBarActions(for extra: MenuBarExtra) -> [(title: String, symbol: String, run: () -> Void)?] {
-        var actions: [(title: String, symbol: String, run: () -> Void)?] = [
-            ("Click Item", "cursorarrow.click", { [weak self] in self?.openMenuBarExtra(extra) }),
-            ("Edit Name", "pencil", { [weak self] in self?.beginRenamingSelection() }),
-            ("Copy Name", "doc.on.doc", { [weak self] in
+    func menuBarActions(for extra: MenuBarExtra) -> [ItemAction?] {
+        var actions: [ItemAction?] = [
+            ItemAction(title: "Click Item", symbol: "cursorarrow.click") { [weak self] in self?.openMenuBarExtra(extra) },
+            ItemAction(title: "Edit Name", symbol: "pencil") { [weak self] in self?.beginRenamingSelection() },
+            ItemAction(title: "Copy Name", symbol: "doc.on.doc") { [weak self] in
                 guard let self else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(displayName(for: extra), forType: .string)
+                NSPasteboard.general.copy(displayName(for: extra))
                 showHUD("Copied \(displayName(for: extra))")
-            }),
+            },
         ]
         if settings.menuBarItemNames[extra.id] != nil {
-            actions.append(("Restore Original Name", "arrow.uturn.backward", { [weak self] in
+            actions.append(ItemAction(title: "Restore Original Name", symbol: "arrow.uturn.backward") { [weak self] in
                 self?.settings.menuBarItemNames[extra.id] = nil
                 self?.refreshMenuBar()
-            }))
+            })
         }
         if let url = extra.ownerURL {
             actions.append(nil)
-            actions.append(("Open \(extra.ownerName)", "app", { [weak self] in
+            actions.append(ItemAction(title: "Open \(extra.ownerName)", symbol: "app") { [weak self] in
                 NSWorkspace.shared.open(url)
                 self?.hidePanel()
-            }))
-            actions.append(("Show \(extra.ownerName) in Finder", "folder", { [weak self] in
+            })
+            actions.append(ItemAction(title: "Show \(extra.ownerName) in Finder", symbol: "folder") { [weak self] in
                 NSWorkspace.shared.activateFileViewerSelecting([url])
                 self?.hidePanel()
-            }))
+            })
         }
         return actions
     }
@@ -1055,7 +1071,7 @@ final class LauncherModel: ObservableObject {
             return true
         }
         if isSearchingMenuBar, flags == .command, event.keyCode == 40 {
-            showMenuBarActions()
+            showActions()
             return true
         }
         if isSearchingMenuBar {
@@ -1129,6 +1145,8 @@ final class LauncherModel: ObservableObject {
                 }
             case 8 where flags == [.command, .shift]:
                 copySelectedFilePath()
+            case 40 where flags == .command:
+                showActions()
             default: return false
             }
             return true
@@ -1167,6 +1185,8 @@ final class LauncherModel: ObservableObject {
             if results.indices.contains(selection) {
                 toggleFavorite(results[selection].item)
             }
+        case 40 where flags == .command:
+            showActions()
         default: return false
         }
         return true

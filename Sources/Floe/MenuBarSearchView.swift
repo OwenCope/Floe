@@ -137,13 +137,13 @@ struct MenuBarSearchView: View {
                     Text(verbatim: "+")
                     KeyCapView(text: "E")
                 }
-                ShortcutHintButton(title: "Actions…") { model.showMenuBarActions() } hint: {
+                ShortcutHintButton(title: "Actions…") { model.showActions() } hint: {
                     KeyCapView(text: "⌘")
                     Text(verbatim: "+")
                     KeyCapView(text: "K")
                 }
                 // The actions menu hangs off this button, so it has to be reachable as an AppKit view.
-                .background { MenuBarActionsAnchor(model: model) }
+                .background { ActionsAnchor(model: model) { $0.selectedMenuBarExtra.map($0.menuBarActions) ?? [] } }
                 ShortcutHintButton(title: "Click Item") { model.openMenuBarExtra(extra) } hint: {
                     KeyCapView(systemImage: "return")
                 }
@@ -152,40 +152,5 @@ struct MenuBarSearchView: View {
         .buttonStyle(SearchPanelButtonStyle())
         .padding(ThawSpacing.compact)
         .padding(.horizontal, ThawSpacing.tight)
-    }
-}
-
-/// An empty AppKit view behind the Actions button, for NSMenu.popUp to position against.
-private struct MenuBarActionsAnchor: NSViewRepresentable {
-    let model: LauncherModel
-
-    func makeNSView(context _: Context) -> NSView {
-        let view = NSView()
-        register(view)
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context _: Context) {
-        register(nsView)
-    }
-
-    private func register(_ view: NSView) {
-        model.showMenuBarActions = { [weak view, weak model] in
-            guard let view, let model, let extra = model.selectedMenuBarExtra else { return }
-            let menu = NSMenu()
-            for action in model.menuBarActions(for: extra) {
-                guard let action else {
-                    menu.addItem(.separator())
-                    continue
-                }
-                let item = ClosureMenuItem(title: action.title, handler: action.run)
-                item.image = NSImage(systemSymbolName: action.symbol, accessibilityDescription: nil)
-                menu.addItem(item)
-            }
-            // The panel would read the menu's tracking as losing focus and close under it.
-            _ = ModalGuard.run {
-                menu.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.maxY + 4), in: view)
-            }
-        }
     }
 }

@@ -210,6 +210,7 @@ enum RootItem: Identifiable {
     case settings
     case calculator(CalculatorResult)
     case system(SystemCommand)
+    case settingsPane(SystemSettingsPane)
     case event(CalendarEvent)
     case snippet(Snippet)
     case emoji(EmojiResult)
@@ -235,6 +236,7 @@ enum RootItem: Identifiable {
         case .settings: "settings"
         case .calculator: "calculator"
         case let .system(command): "system:\(command.rawValue)"
+        case let .settingsPane(pane): "settings-pane:\(pane.identifier)"
         case let .event(event): "event:\(event.identifier)"
         case let .snippet(snippet): "snippet:\(snippet.id.uuidString)"
         case let .emoji(entry): entry.id
@@ -256,6 +258,7 @@ enum RootItem: Identifiable {
         case .settings: "Floe Settings"
         case let .calculator(result): result.value
         case let .system(command): command.title
+        case let .settingsPane(pane): pane.title
         case let .event(event): event.title
         case let .snippet(snippet): snippet.name
         case let .emoji(entry): entry.name
@@ -303,7 +306,7 @@ enum RootItem: Identifiable {
         case .fileSearch: Self.fileSearchKey
         case let .system(command): "system:\(command.rawValue)"
         case .snippet: id
-        case .settings, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
+        case .settings, .settingsPane, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
         }
     }
 
@@ -316,6 +319,7 @@ enum RootItem: Identifiable {
         case .fileSearch, .searchFiles: "Files"
         case .calculator: "Calculator"
         case .system: "System"
+        case .settingsPane: "System Settings"
         case .event: "Event"
         case .snippet: "Snippet"
         case .emoji: "Emoji"
@@ -327,6 +331,7 @@ enum RootItem: Identifiable {
     var keywords: [String] {
         switch self {
         case let .system(command): command.keywords
+        case let .settingsPane(pane): pane.keywords
         case let .snippet(snippet): [snippet.keyword]
         default: []
         }

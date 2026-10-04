@@ -18,6 +18,9 @@ enum SystemCommand: String, CaseIterable, Identifiable {
     case logOut
     case emptyTrash
     case toggleAppearance
+    case toggleWiFi
+    case toggleMute
+    case toggleKeepAwake
     case hideOtherApps
     case quitAllApps
 
@@ -35,6 +38,9 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         case .logOut: return "Log Out"
         case .emptyTrash: return "Empty Trash"
         case .toggleAppearance: return "Toggle Dark Mode"
+        case .toggleWiFi: return "Toggle Wi-Fi"
+        case .toggleMute: return "Toggle Mute"
+        case .toggleKeepAwake: return "Toggle Keep Awake"
         case .hideOtherApps: return "Hide Other Apps"
         case .quitAllApps: return "Quit All Apps"
         }
@@ -50,6 +56,9 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         case .logOut: return "rectangle.portrait.and.arrow.right"
         case .emptyTrash: return "trash"
         case .toggleAppearance: return "circle.lefthalf.filled"
+        case .toggleWiFi: return "wifi"
+        case .toggleMute: return "speaker.slash"
+        case .toggleKeepAwake: return "cup.and.saucer"
         case .hideOtherApps: return "eye.slash"
         case .quitAllApps: return "xmark.square"
         }
@@ -65,6 +74,9 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         case .logOut: return ["log out", "logout", "sign out"]
         case .emptyTrash: return ["empty trash", "trash", "delete trash"]
         case .toggleAppearance: return ["dark mode", "light mode", "appearance", "theme"]
+        case .toggleWiFi: return ["wifi", "wireless", "airport", "turn wi-fi off", "turn wi-fi on"]
+        case .toggleMute: return ["mute", "unmute", "sound", "volume", "silence"]
+        case .toggleKeepAwake: return ["caffeinate", "awake", "prevent sleep", "no sleep"]
         case .hideOtherApps: return ["hide", "hide other apps", "hide others"]
         case .quitAllApps: return ["quit all apps", "quit all", "close all apps"]
         }
@@ -81,7 +93,33 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         }
     }
 
+    /// What a command that flips a setting does, which answers with the line for the HUD.
+    var flip: (() -> String)? {
+        switch self {
+        case .toggleWiFi: SystemToggle.flipWiFi
+        case .toggleMute: SystemToggle.flipMute
+        case .toggleKeepAwake: SystemToggle.flipKeepAwake
+        default: nil
+        }
+    }
+
+    /// What the commands that go through System Events or Finder tell it.
+    private var appleScript: String? {
+        switch self {
+        case .restart: #"tell application "System Events" to restart"#
+        case .shutDown: #"tell application "System Events" to shut down"#
+        case .logOut: #"tell application "System Events" to log out"#
+        case .emptyTrash: #"tell application "Finder" to empty trash"#
+        case .toggleAppearance: #"tell application "System Events" to tell appearance preferences to set dark mode to not dark mode"#
+        default: nil
+        }
+    }
+
     func perform() {
+        if let appleScript {
+            runAppleScript(appleScript)
+            return
+        }
         switch self {
         case .lockScreen:
             lockScreen()
@@ -89,20 +127,12 @@ enum SystemCommand: String, CaseIterable, Identifiable {
             runPmset(arguments: ["sleepnow"])
         case .sleepDisplays:
             runPmset(arguments: ["displaysleepnow"])
-        case .restart:
-            runAppleScript(#"tell application "System Events" to restart"#)
-        case .shutDown:
-            runAppleScript(#"tell application "System Events" to shut down"#)
-        case .logOut:
-            runAppleScript(#"tell application "System Events" to log out"#)
-        case .emptyTrash:
-            runAppleScript(#"tell application "Finder" to empty trash"#)
-        case .toggleAppearance:
-            runAppleScript(#"tell application "System Events" to tell appearance preferences to set dark mode to not dark mode"#)
         case .hideOtherApps:
             hideOtherApps()
         case .quitAllApps:
             quitAllApps()
+        default:
+            _ = flip?()
         }
     }
 

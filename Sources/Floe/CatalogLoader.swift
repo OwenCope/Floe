@@ -12,11 +12,16 @@ protocol CatalogScanning: Sendable {
     func scanApps() async -> [AppEntry]
     func scanCommands(includeRaycast: Bool) async -> [ExtensionCommand]
     func scanScripts() async -> ScriptScan
+    func scanSettingsPanes() async -> [SystemSettingsPane]
 }
 
 extension CatalogScanning {
     func scanScripts() async -> ScriptScan {
         ScriptScan()
+    }
+
+    func scanSettingsPanes() async -> [SystemSettingsPane] {
+        []
     }
 }
 
@@ -26,6 +31,7 @@ struct CatalogSnapshot: Sendable {
     let commands: [ExtensionCommand]
     var scripts: [ScriptCommand] = []
     var scriptFailures: [ScriptFailure] = []
+    var settingsPanes: [SystemSettingsPane] = []
 }
 
 /// Runs the existing synchronous scanners away from the main actor. The actor only serializes the
@@ -42,5 +48,9 @@ actor CatalogLoader: CatalogScanning {
 
     func scanScripts() async -> ScriptScan {
         ScriptCommand.scan()
+    }
+
+    func scanSettingsPanes() async -> [SystemSettingsPane] {
+        SystemSettingsPane.scan()
     }
 }
