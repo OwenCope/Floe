@@ -1,0 +1,203 @@
+//
+//  OAuthBroker.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU AGPLv3
+
+// Extension sign-in over OAuth PKCE. Floe receives the provider's redirect at `floe://oauth`,
+// so a provider's OAuth app must allow that redirect address; sign-in only works with providers
+// whose app does. The host builds the S256 request (see runtime/api/oauth.ts) and the broker opens
+// it in the browser, matches the callback's `state` and `package_name` against the pending sign-in,
+// and keeps tokens in the Keychain per extension and provider.
+
+import AppKit
+import Foundation
+
+/// Why an `oauth.*` request failed, answered to the host as the request's error.
+enum OAuthError: LocalizedError {
+    case timedOut
+    case cancelled
+    case replaced
+    case unknownRequest
+    case invalidRedirect(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .timedOut:
+            "Sign-in timed out."
+        case .cancelled:
+            "Sign-in was cancelled."
+        case .replaced:
+            "Sign-in was replaced by a newer request."
+        case .unknownRequest:
+            "Floe can't answer that request."
+        case let .invalidRedirect(reason):
+            reason
+        }
+    }
+}
+
+/// Answers the host's `oauth.*` requests: interactive sign-in through the `floe://oauth` redirect
+/// plus per-extension token storage in the Keychain. Lock-guarded rather than main-actor bound so a
+/// session stopping on any thread can cancel its sign-ins.
+final class OAuthBroker: NSObject {
+    static let shared = OAuthBroker()
+
+    /// How long the browser has to come back before the sign-in fails.
+    static let timeout: TimeInterval = 600
+
+    private struct Pending {
+        let extensionName: String
+        let resume: (Result<String, Error>) -> Void
+        let timeout: DispatchWorkItem
+    }
+
+    /// Sign-ins waiting for the browser, keyed by extension name and state together.
+    private var pending: [String: Pending] = [:]
+    private let lock = NSLock()
+
+    func install() {
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleGetURLEvent(_:_:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL),
+        )
+    }
+
+    @objc private func handleGetURLEvent(_ event: NSAppleEventDescriptor?, _: NSAppleEventDescriptor?) {
+        guard let urlString = event?.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+              let url = URL(string: urlString)
+        else { return }
+        complete(url: url)
+    }
+
+    /// Answers one parsed OAuth request for the session's extension.
+    func perform(_ request: HostRequest, extensionName: String) async throws -> Any {
+        switch request {
+        case let .oauthAuthorize(urlString, state, _):
+            guard let url = URL(string: urlString) else { throw OAuthError.invalidRedirect("Missing or invalid param: url") }
+            let callback = try await authorize(extensionName: extensionName, url: url, state: state)
+            return ["url": callback]
+        case let .oauthGetTokens(providerId):
+            return tokens(extensionName: extensionName, providerId: providerId).map { $0 as Any } ?? NSNull()
+        case let .oauthSetTokens(providerId, tokens):
+            saveTokens(tokens, extensionName: extensionName, providerId: providerId)
+            return NSNull()
+        case let .oauthRemoveTokens(providerId):
+            deleteTokens(extensionName: extensionName, providerId: providerId)
+            return NSNull()
+        case .askAI, .selectedText, .selectedFinderItems, .clipboardRead:
+            throw OAuthError.unknownRequest
+        }
+    }
+
+    /// Opens the provider's page and waits for its `floe://oauth` callback. A newer sign-in from the
+    /// same extension replaces this one; cancelling the waiting task, the session stopping, or ten
+    /// minutes passing fails it instead.
+    func authorize(extensionName: String, url: URL, state: String) async throws -> String {
+        await MainActor.run { _ = NSWorkspace.shared.open(url) }
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                register(extensionName: extensionName, state: state) { result in
+                    continuation.resume(with: result)
+                }
+                if Task.isCancelled {
+                    cancel(extensionName: extensionName, state: state)
+                }
+            }
+        } onCancel: {
+            cancel(extensionName: extensionName, state: state)
+        }
+    }
+
+    /// Fails every sign-in of one extension, when its session stops.
+    func cancelAll(for extensionName: String) {
+        failPending(for: extensionName, error: OAuthError.cancelled)
+    }
+
+    private func pendingKey(extensionName: String, state: String) -> String {
+        "\(extensionName)\0\(state)"
+    }
+
+    private func register(extensionName: String, state: String, resume: @escaping (Result<String, Error>) -> Void) {
+        let key = pendingKey(extensionName: extensionName, state: state)
+        let timeout = DispatchWorkItem { [weak self] in
+            self?.fail(key: key, error: OAuthError.timedOut)
+        }
+        // One sign-in per extension: failing what is still waiting and recording the new one happen
+        // together, so two racing sign-ins cannot leave one recorded and never answered.
+        let replaced: [Pending] = lock.withLock {
+            let old = pending.filter { $0.value.extensionName == extensionName }.map(\.key)
+                .compactMap { pending.removeValue(forKey: $0) }
+            pending[key] = Pending(extensionName: extensionName, resume: resume, timeout: timeout)
+            return old
+        }
+        for entry in replaced {
+            entry.timeout.cancel()
+            entry.resume(.failure(OAuthError.replaced))
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.timeout, execute: timeout)
+    }
+
+    private func cancel(extensionName: String, state: String) {
+        fail(key: pendingKey(extensionName: extensionName, state: state), error: OAuthError.cancelled)
+    }
+
+    private func failPending(for extensionName: String, error: Error) {
+        let matching = lock.withLock { () -> [Pending] in
+            let keys = pending.filter { $0.value.extensionName == extensionName }.map(\.key)
+            return keys.compactMap { pending.removeValue(forKey: $0) }
+        }
+        for entry in matching {
+            entry.timeout.cancel()
+            entry.resume(.failure(error))
+        }
+    }
+
+    private func fail(key: String, error: Error) {
+        let entry = lock.withLock { pending.removeValue(forKey: key) }
+        guard let entry else { return }
+        entry.timeout.cancel()
+        entry.resume(.failure(error))
+    }
+
+    /// Answers the waiting sign-in whose extension and state the callback names; anything else is ignored.
+    private func complete(url: URL) {
+        guard url.scheme == "floe", url.host == "oauth",
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              let state = items.first(where: { $0.name == "state" })?.value,
+              let packageName = items.first(where: { $0.name == "package_name" })?.value
+        else { return }
+        let entry = lock.withLock { pending.removeValue(forKey: pendingKey(extensionName: packageName, state: state)) }
+        guard let entry else { return }
+        entry.timeout.cancel()
+        entry.resume(.success(url.absoluteString))
+    }
+
+    // MARK: Token storage
+
+    private func tokenAccount(extensionName: String, providerId: String) -> String {
+        "\(extensionName)/oauth/\(providerId)"
+    }
+
+    func tokens(extensionName: String, providerId: String) -> [String: Any]? {
+        guard let text = Keychain.read(account: tokenAccount(extensionName: extensionName, providerId: providerId)),
+              let data = text.data(using: .utf8),
+              let tokens = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return tokens
+    }
+
+    func saveTokens(_ tokens: [String: Any], extensionName: String, providerId: String) {
+        guard let data = try? JSONSerialization.data(withJSONObject: tokens),
+              let text = String(data: data, encoding: .utf8)
+        else { return }
+        Keychain.write(text, account: tokenAccount(extensionName: extensionName, providerId: providerId))
+    }
+
+    func deleteTokens(extensionName: String, providerId: String) {
+        Keychain.delete(account: tokenAccount(extensionName: extensionName, providerId: providerId))
+    }
+}

@@ -11,12 +11,21 @@ import Foundation
 protocol CatalogScanning: Sendable {
     func scanApps() async -> [AppEntry]
     func scanCommands(includeRaycast: Bool) async -> [ExtensionCommand]
+    func scanScripts() async -> ScriptScan
+}
+
+extension CatalogScanning {
+    func scanScripts() async -> ScriptScan {
+        ScriptScan()
+    }
 }
 
 /// An immutable catalog handed to a model that must be usable without waiting for a scan.
 struct CatalogSnapshot: Sendable {
     let apps: [AppEntry]
     let commands: [ExtensionCommand]
+    var scripts: [ScriptCommand] = []
+    var scriptFailures: [ScriptFailure] = []
 }
 
 /// Runs the existing synchronous scanners away from the main actor. The actor only serializes the
@@ -29,5 +38,9 @@ actor CatalogLoader: CatalogScanning {
 
     func scanCommands(includeRaycast: Bool) async -> [ExtensionCommand] {
         ExtensionCommand.scan(includeRaycast: includeRaycast)
+    }
+
+    func scanScripts() async -> ScriptScan {
+        ScriptCommand.scan()
     }
 }

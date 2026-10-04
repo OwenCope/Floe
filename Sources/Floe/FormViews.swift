@@ -40,6 +40,19 @@ struct PanelHeader: View {
 enum ModalGuard {
     private(set) static var isActive = false
 
+    /// Asks for one application, starting in /Applications.
+    static func chooseApp() -> String? {
+        run {
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.application]
+            panel.directoryURL = URL(fileURLWithPath: "/Applications")
+            panel.canChooseDirectories = false
+            panel.allowsMultipleSelection = false
+            panel.level = .modalPanel
+            return panel.runModal() == .OK ? panel.url?.path : nil
+        }
+    }
+
     static func run<T>(_ body: () -> T) -> T {
         isActive = true
         defer {
@@ -84,6 +97,8 @@ struct FieldEditor: View {
                 } label: { label }
             case "password":
                 SecureField(text: $value, prompt: field.placeholder.map { Text($0) }) { label }
+            case "appPicker":
+                AppPickerField(value: $value, required: field.required) { label }
             case "file", "directory":
                 LabeledContent {
                     HStack {
@@ -283,6 +298,59 @@ struct FormBody: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// An app picker: installed apps with icons, Other… for anything else, and None when it isn't required.
+/// The value is the app's path; a default given by bundle id or name shows as the app it names.
+struct AppPickerField<Title: View>: View {
+    @Binding var value: String
+    let required: Bool
+    @ViewBuilder let label: Title
+    @State private var apps: [AppPickerValue.App] = []
+
+    private var chosen: AppPickerValue.App? {
+        AppPickerValue.match(value, in: apps) ?? (value.hasSuffix(".app") ? AppPickerValue.App(
+            name: ((value as NSString).lastPathComponent as NSString).deletingPathExtension, path: value, bundleId: nil
+        ) : nil)
+    }
+
+    var body: some View {
+        LabeledContent {
+            Menu {
+                if !required {
+                    Button("None") { value = "" }
+                    Divider()
+                }
+                ForEach(apps, id: \.path) { app in
+                    Button {
+                        value = app.path
+                    } label: {
+                        Label { Text(app.name) } icon: { Image(nsImage: NSWorkspace.shared.icon(forFile: app.path)) }
+                    }
+                }
+                Divider()
+                Button("Other…") {
+                    if let path = ModalGuard.chooseApp() { value = path }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if let chosen {
+                        AppIconView(path: chosen.path, size: 16)
+                        Text(chosen.name)
+                    } else {
+                        Text("Choose an App").foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .fixedSize()
+            .accessibilityLabel("\(chosen?.name ?? "not set")")
+        } label: { label }
+        .task {
+            apps = InstalledApps.list()
+            // Show a default given by bundle id or name as the app's path, so it saves the same way.
+            if let match = AppPickerValue.match(value, in: apps), match.path != value { value = match.path }
         }
     }
 }

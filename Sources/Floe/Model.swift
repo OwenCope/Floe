@@ -6,6 +6,7 @@
 //  Licensed under the GNU AGPLv3
 
 import AppKit
+import ApplicationServices
 
 struct MenuBarResult: Identifiable {
     let extra: MenuBarExtra
@@ -39,11 +40,34 @@ final class LauncherModel: ObservableObject {
     @Published var focusToken = 0
     /// Every command found, including those of disabled extensions; the settings window lists these.
     @Published private(set) var allCommands: [ExtensionCommand] = []
+    /// Every script command found in the Scripts folder.
+    @Published private(set) var allScripts: [ScriptCommand] = []
+    /// Files in the Scripts folder that failed to parse, for the settings pane.
+    @Published private(set) var scriptFailures: [ScriptFailure] = []
     /// True until the first apps and commands scans have both published, or a snapshot was injected.
     @Published private(set) var isLoadingCatalog = true
 
+    /// True while the panel shows the file search instead of the root search.
+    @Published private(set) var isSearchingFiles = false
+    @Published var fileSearchQuery = "" {
+        didSet {
+            fileSearchSelection = 0
+            fileSearch.search(fileSearchQuery)
+        }
+    }
+
+    @Published var fileSearchSelection = 0
+    let fileSearch = FileSearch()
+
     /// True while the panel shows the menu bar item search instead of the root search.
     @Published private(set) var isSearchingMenuBar = false
+    /// True while the panel shows the clipboard history instead of the root search.
+    @Published private(set) var isShowingClipboardHistory = false
+    @Published var clipboardQuery = "" {
+        didSet { clipboardSelection = 0 }
+    }
+
+    @Published var clipboardSelection = 0
     @Published var menuBarQuery = "" {
         didSet { refreshMenuBar() }
     }
@@ -79,10 +103,13 @@ final class LauncherModel: ObservableObject {
     /// Bumped per request, so a result can tell whether its request is still the newest one.
     private var appsGeneration = 0
     private var commandsGeneration = 0
+    private var scriptsGeneration = 0
     private var appsTask: Task<Void, Never>?
     private var commandsTask: Task<Void, Never>?
+    private var scriptsTask: Task<Void, Never>?
     private var hasLoadedApps = false
     private var hasLoadedCommands = false
+    private var hasLoadedScripts = false
     private var didAutorun = false
     private var pendingReset: DispatchWorkItem?
     /// Watches the open command's extension while it is one being developed (see HotReload.swift).
@@ -90,6 +117,15 @@ final class LauncherModel: ObservableObject {
     @Published private(set) var apps: [AppEntry] = []
     private var commands: [ExtensionCommand] {
         allCommands.filter { !settings.disabledExtensions.contains($0.extensionName) }
+    }
+
+    /// Every enabled command, including menu-bar commands; controllers read this and filter by mode.
+    var enabledCommands: [ExtensionCommand] { commands }
+
+    /// True when a command can run unattended: no missing required preferences or arguments.
+    func canRunUnattended(_ command: ExtensionCommand) -> Bool {
+        PreferenceStore.missingRequired(for: command).isEmpty
+            && command.arguments.allSatisfy { !$0.required }
     }
 
     /// Construction never scans: without a snapshot the model starts with the built-in entries only,
@@ -106,10 +142,15 @@ final class LauncherModel: ObservableObject {
         if let snapshot {
             apps = snapshot.apps
             allCommands = snapshot.commands
+            allScripts = snapshot.scripts
+            scriptFailures = snapshot.scriptFailures
             hasLoadedApps = true
             hasLoadedCommands = true
+            hasLoadedScripts = true
             isLoadingCatalog = false
         }
+        EmojiCatalog.preload()
+        CalendarAgenda.shared.onChange = { [weak self] in self?.refresh() }
         refresh()
     }
 
@@ -118,6 +159,7 @@ final class LauncherModel: ObservableObject {
     func startCatalogLoading() {
         reloadApps()
         reloadCommands()
+        reloadScripts()
     }
 
     func reloadCommands() {
@@ -132,6 +174,38 @@ final class LauncherModel: ObservableObject {
         }
     }
 
+    func reloadScripts() {
+        scriptsGeneration += 1
+        let generation = scriptsGeneration
+        isLoadingCatalog = true
+        scriptsTask = Task { [weak self, scanner] in
+            let scan = await scanner.scanScripts()
+            await self?.finishScripts(generation: generation, scan: scan)
+        }
+    }
+
+    /// Publication happens on the main actor; a stale generation is dropped without touching state,
+    /// so rescans keep the previous results visible while they run.
+    @MainActor
+    private func finishScripts(generation: Int, scan: ScriptScan) {
+        guard generation == scriptsGeneration else { return }
+        scriptsTask = nil
+        hasLoadedScripts = true
+        isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands || !hasLoadedScripts
+        allScripts = scan.commands
+        scriptFailures = scan.failures
+        refresh()
+    }
+
+    /// Joins the script scan in flight, following any newer request that replaces it while the
+    /// caller waits.
+    @MainActor
+    func waitForScripts() async {
+        while let task = scriptsTask {
+            await task.value
+        }
+    }
+
     /// Publication happens on the main actor; a stale generation is dropped without touching state,
     /// so rescans keep the previous results visible while they run.
     @MainActor
@@ -139,7 +213,7 @@ final class LauncherModel: ObservableObject {
         guard generation == appsGeneration else { return }
         appsTask = nil
         hasLoadedApps = true
-        isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands
+        isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands || !hasLoadedScripts
         apps = newApps
         refresh()
     }
@@ -149,7 +223,7 @@ final class LauncherModel: ObservableObject {
         guard generation == commandsGeneration else { return }
         commandsTask = nil
         hasLoadedCommands = true
-        isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands
+        isLoadingCatalog = !hasLoadedApps || !hasLoadedCommands || !hasLoadedScripts
         allCommands = newCommands
         refresh()
     }
@@ -166,15 +240,78 @@ final class LauncherModel: ObservableObject {
 
     private func refresh() {
         selection = 0
-        let all = commands.map(RootItem.command) + apps.map(RootItem.app) + [RootItem.menuBarSearch, RootItem.settings]
+        let menuBarFree = commands.filter { $0.mode != "menu-bar" }
+        var all = menuBarFree.map(RootItem.command) + allScripts.map(RootItem.script) + apps.map(RootItem.app)
+            + [RootItem.menuBarSearch, RootItem.emojiSearch, RootItem.clipboardHistory, RootItem.fileSearch, RootItem.settings]
+            + SystemCommand.allCases.map(RootItem.system) + SnippetStore.shared.snippets.map(RootItem.snippet)
         let frecency = { [usage] (id: String) in usage.frecency(of: id) }
-        results = query.isEmpty
-            ? Ranking.browse(all, favorites: settings.favorites, frecency: frecency)
-            : Ranking.search(all, query: query, favorites: settings.favorites, alias: alias(for:), frecency: frecency)
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let links = QuicklinkStore.shared.links
+        if query.isEmpty {
+            results = Ranking.browse(all, favorites: settings.favorites, frecency: frecency)
+        } else {
+            // Quicklink names and keywords rank alongside everything else, through the keyword alias.
+            if !trimmed.isEmpty {
+                all += links.map { RootItem.quicklink($0, queryText: trimmed, fallback: false, keywordSearch: false) }
+            }
+            // A script matches when the query starts with its title and the rest is its arguments.
+            let scriptHits = allScripts.compactMap { script -> RootItem? in
+                guard script.argumentsText(in: query) != nil else { return nil }
+                return .script(script)
+            }
+            let searched = Ranking.search(all, query: query, favorites: settings.favorites, alias: alias(for:), frecency: frecency)
+            let hitIDs = Set(scriptHits.map(\.id))
+            results = scriptHits.map { RootResult(item: $0, section: nil) } + searched.filter { !hitIDs.contains($0.item.id) }
+            if let answer = Calculator.evaluate(query) {
+                results.insert(RootResult(item: .calculator(answer), section: "Calculator"), at: 0)
+            }
+            // `keyword rest` searches that link first: `gh floe` offers Search GitHub for "floe" first.
+            if !trimmed.isEmpty, let keywordResult = Self.keywordSearchResult(query: trimmed, links: links) {
+                results.removeAll { $0.id == keywordResult.id }
+                results.insert(keywordResult, at: 0)
+            }
+            // Enabled fallbacks in user order at the bottom.
+            if !trimmed.isEmpty {
+                results += links.filter(\.isFallback).map { link in
+                    RootResult(item: .quicklink(link, queryText: trimmed, fallback: true, keywordSearch: false), section: "Fallbacks")
+                }
+            }
+        }
+        let agenda = CalendarAgenda.shared.events(matching: query)
+        if !agenda.isEmpty {
+            let today = agenda.filter { Calendar.current.isDateInToday($0.startDate) }
+            let tomorrow = agenda.filter { !Calendar.current.isDateInToday($0.startDate) }
+            let rows = today.map { RootResult(item: .event($0), section: "Today") }
+                + tomorrow.map { RootResult(item: .event($0), section: "Tomorrow") }
+            results.insert(contentsOf: rows, at: 0)
+        }
+        if query.hasPrefix(":") {
+            let matches = EmojiCatalog.search(
+                term: String(query.dropFirst()),
+                frecency: { [usage] in usage.frecency(of: EmojiResult.id(for: $0)) }
+            )
+            results.insert(
+                contentsOf: matches.map { RootResult(item: .emoji($0), section: "Emoji & Symbols") },
+                at: 0
+            )
+        }
+        if !query.isEmpty {
+            results.append(RootResult(item: .searchFiles(query), section: nil))
+        }
+    }
+
+    /// The `keyword rest` row for a query starting with a quicklink's keyword and a space, if any.
+    private static func keywordSearchResult(query: String, links: [Quicklink]) -> RootResult? {
+        guard let match = links.first(where: { query.hasPrefix($0.keyword + " ") }) else { return nil }
+        let rest = String(query.dropFirst(match.keyword.count + 1))
+        return RootResult(item: .quicklink(match, queryText: rest, fallback: false, keywordSearch: true), section: nil)
     }
 
     func alias(for item: RootItem) -> String? {
-        item.settingsKey.flatMap { settings.aliases[$0] }.flatMap { $0.isEmpty ? nil : $0 }
+        if case let .quicklink(link, _, _, _) = item {
+            return link.keyword
+        }
+        return item.settingsKey.flatMap { settings.aliases[$0] }.flatMap { $0.isEmpty ? nil : $0 }
     }
 
     func isFavorite(_ item: RootItem) -> Bool {
@@ -182,6 +319,10 @@ final class LauncherModel: ObservableObject {
     }
 
     func toggleFavorite(_ item: RootItem) {
+        if case .searchFiles = item {
+            // The fallback row names a query, not a thing: it has no favorites entry.
+            return
+        }
         if let index = settings.favorites.firstIndex(of: item.id) {
             settings.favorites.remove(at: index)
             showHUD("Removed from Favorites")
@@ -233,7 +374,22 @@ final class LauncherModel: ObservableObject {
     }
 
     func activate(_ item: RootItem) {
-        usage.recordUse(of: item.id)
+        if case let .calculator(answer) = item {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(answer.copyText, forType: .string)
+            showHUD("Copied \(answer.copyText)")
+            return
+        }
+        if case let .emoji(entry) = item {
+            pasteEmojiResult(entry)
+            return
+        }
+        if case .searchFiles = item {
+            // A transient row for the query text: opening it records no frecency entry.
+        } else {
+            usage.recordUse(of: item.id)
+        }
         switch item {
         case let .app(app):
             NSWorkspace.shared.open(app.url)
@@ -241,11 +397,89 @@ final class LauncherModel: ObservableObject {
             reset()
         case let .command(command):
             run(command)
+        case let .script(script):
+            let text = script.argumentsText(in: query) ?? ""
+            run(script, argumentStrings: ScriptRunner.splitArguments(text))
         case .menuBarSearch:
             openMenuBarSearch()
+        case .emojiSearch:
+            query = ":"
+            focusToken += 1
+        case .clipboardHistory:
+            openClipboardHistory()
+        case .fileSearch:
+            openFileSearch(with: query)
+        case let .searchFiles(searchQuery):
+            openFileSearch(with: searchQuery)
         case .settings:
             hidePanel()
             openSettings(nil)
+        case let .quicklink(link, queryText, _, _):
+            if let destination = url(for: link, query: queryText) {
+                NSWorkspace.shared.open(destination)
+            }
+            hidePanel()
+            reset()
+        case let .system(command):
+            runSystemCommand(command)
+        case let .snippet(snippet):
+            paste(text: SnippetStore.shared.expanded(snippet))
+        case let .event(event):
+            if let destination = event.meetingURL ?? event.calendarURL {
+                NSWorkspace.shared.open(destination)
+            }
+            hidePanel()
+            reset()
+        case .calculator, .emoji:
+            break
+        }
+    }
+
+    /// Risky commands ask first; the panel goes away before anything runs.
+    private func runSystemCommand(_ command: SystemCommand) {
+        hidePanel()
+        reset()
+        if let question = command.confirmation {
+            let alert = NSAlert()
+            alert.messageText = command.title
+            alert.informativeText = question
+            alert.addButton(withTitle: command.title).hasDestructiveAction = true
+            alert.addButton(withTitle: "Cancel")
+            NSApp.activate()
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        command.perform()
+    }
+
+    /// Copies an emoji without pasting; ⌘↵ on a result.
+    func copyEmojiResult(_ entry: EmojiResult) {
+        usage.recordUse(of: EmojiResult.id(for: entry.character))
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(entry.character, forType: .string)
+        showHUD("Copied \(entry.character)")
+    }
+
+    /// Pastes an emoji into the frontmost app: onto the clipboard plus a ⌘V once the panel is
+    /// gone, when Accessibility access is granted; otherwise the copy plus a "Copied" HUD.
+    func pasteEmojiResult(_ entry: EmojiResult) {
+        usage.recordUse(of: EmojiResult.id(for: entry.character))
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(entry.character, forType: .string)
+        guard AXIsProcessTrusted() else {
+            showHUD("Copied")
+            return
+        }
+        hidePanel()
+        reset()
+        // Pressed once the panel is gone, so the keystroke lands in the app the user came from.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            let source = CGEventSource(stateID: .hidSystemState)
+            let down = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
+            down?.flags = .maskCommand
+            let up = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
+            up?.flags = .maskCommand
+            down?.post(tap: .cghidEventTap)
+            up?.post(tap: .cghidEventTap)
         }
     }
 
@@ -257,6 +491,7 @@ final class LauncherModel: ObservableObject {
             end(session)
         }
         setup = nil
+        isShowingClipboardHistory = false
         isSearchingMenuBar = true
         if !settings.rememberMenuBarQuery {
             menuBarQuery = ""
@@ -269,6 +504,121 @@ final class LauncherModel: ObservableObject {
     func closeMenuBarSearch() {
         isSearchingMenuBar = false
         focusToken += 1
+    }
+
+    // MARK: Clipboard history
+
+    /// Switches the panel to the clipboard history.
+    func openClipboardHistory() {
+        if let session {
+            end(session)
+        }
+        setup = nil
+        isSearchingMenuBar = false
+        isShowingClipboardHistory = true
+        clipboardQuery = ""
+        clipboardSelection = 0
+        showPanel()
+        focusToken += 1
+    }
+
+    func closeClipboardHistory() {
+        isShowingClipboardHistory = false
+        focusToken += 1
+    }
+
+    /// History entries matching the clipboard query, pins first, then newest first.
+    func filteredClipboardEntries() -> [ClipboardEntry] {
+        let entries = ClipboardHistoryStore.shared.entries
+        let tokens = clipboardQuery.lowercased().split(separator: " ")
+        let matching = tokens.isEmpty ? entries : entries.filter { entry in
+            let haystack = "\(entry.title) \(entry.text ?? "") \((entry.filePaths ?? []).joined(separator: " ")) \(entry.sourceApp ?? "")".lowercased()
+            return tokens.allSatisfy { haystack.contains($0) }
+        }
+        return matching.sorted { lhs, rhs in
+            if lhs.pinned != rhs.pinned { return lhs.pinned }
+            return lhs.date > rhs.date
+        }
+    }
+
+    var selectedClipboardEntry: ClipboardEntry? {
+        let entries = filteredClipboardEntries()
+        return entries.indices.contains(clipboardSelection) ? entries[clipboardSelection] : nil
+    }
+
+    /// Copies the entry, then pastes with Command-V when Accessibility allows it.
+    func pasteClipboardEntry(_ entry: ClipboardEntry) {
+        usage.recordUse(of: RootItem.clipboardHistory.id)
+        guard ClipboardHistoryStore.writeToPasteboard(entry) else { return }
+        hidePanel()
+        reset()
+        if ClipboardHistoryStore.canPasteDirectly {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                ClipboardHistoryStore.simulatePaste()
+            }
+        } else {
+            showHUD("Copied. Press ⌘V to paste.")
+        }
+    }
+
+    func copyClipboardEntry(_ entry: ClipboardEntry) {
+        guard ClipboardHistoryStore.writeToPasteboard(entry) else { return }
+        showHUD("Copied")
+    }
+
+    func deleteClipboardEntry(_ entry: ClipboardEntry) {
+        ClipboardHistoryStore.shared.delete(entry)
+        clipboardSelection = max(0, min(clipboardSelection, filteredClipboardEntries().count - 1))
+    }
+
+    func toggleClipboardPin(_ entry: ClipboardEntry) {
+        ClipboardHistoryStore.shared.togglePin(entry)
+    }
+
+
+    // MARK: File search
+
+    /// Switches the panel to the file search, starting with the given text.
+    func openFileSearch(with text: String) {
+        if let session {
+            end(session)
+        }
+        setup = nil
+        isSearchingFiles = true
+        fileSearchQuery = text
+        showPanel()
+        focusToken += 1
+    }
+
+    func closeFileSearch() {
+        isSearchingFiles = false
+        fileSearch.cancel()
+        focusToken += 1
+    }
+
+    var selectedFile: FileResult? {
+        fileSearch.results.indices.contains(fileSearchSelection) ? fileSearch.results[fileSearchSelection] : nil
+    }
+
+    func openSelectedFile() {
+        guard let file = selectedFile else { return }
+        fileSearch.open(file)
+        hidePanel()
+        reset()
+    }
+
+    func revealSelectedFile() {
+        guard let file = selectedFile else { return }
+        fileSearch.reveal(file)
+        hidePanel()
+        reset()
+    }
+
+    func copySelectedFilePath() {
+        guard let file = selectedFile else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(file.url.path, forType: .string)
+        showHUD("Copied")
     }
 
     private func scanMenuBar() {
@@ -393,6 +743,52 @@ final class LauncherModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { MenuBarExtras.open(extra) }
     }
 
+    /// Runs a script command with the given argv. Arguments come from the text typed after its
+    /// title; output follows its mode: a window for fullOutput, a HUD for compact and inline,
+    /// nothing for silent. Failures show a HUD with the last stderr line.
+    func run(_ script: ScriptCommand, argumentStrings: [String] = []) {
+        if script.needsConfirmation {
+            let alert = NSAlert()
+            alert.messageText = "Run \(script.title)?"
+            alert.informativeText = script.displayPackage
+            alert.addButton(withTitle: "Run")
+            alert.addButton(withTitle: "Cancel")
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        usage.recordUse(of: RootItem.script(script).id)
+        hidePanel()
+        reset()
+        Task { [weak self] in
+            let result: ShellResult
+            do {
+                result = try await ScriptRunner.run(script, arguments: argumentStrings)
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.showHUD("\(script.title) failed: \(error.localizedDescription)")
+                }
+                return
+            }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                guard result.succeeded else {
+                    let line = ScriptRunner.lastLine(result.errorOutput) ?? ScriptRunner.lastLine(result.output)
+                        ?? "exit code \(result.status)"
+                    showHUD("\(script.title) failed: \(line)")
+                    return
+                }
+                switch script.mode {
+                case .silent:
+                    break
+                case .inline, .compact:
+                    let line = ScriptRunner.lastLine(result.output) ?? "Done"
+                    showHUD(line)
+                case .fullOutput:
+                    ScriptOutputWindow.show(title: script.title, output: result.trimmedOutput)
+                }
+            }
+        }
+    }
+
     /// Runs a command, first asking for missing required preferences and then for its arguments.
     func run(_ command: ExtensionCommand, arguments: [String: Any]? = nil) {
         if let session {
@@ -502,12 +898,9 @@ final class LauncherModel: ObservableObject {
             showHUD(message["title"] as? String ?? "")
             hidePanel()
         case "copy":
-            copy(message["text"] as? String ?? "")
+            copy(text: message["text"] as? String ?? "", html: message["html"] as? String, file: message["file"] as? String)
         case "paste":
-            // Pasting into the frontmost app needs Accessibility access, so for now this only copies.
-            copy(message["text"] as? String ?? "")
-            showHUD("Copied. Press ⌘V to paste.")
-            hidePanel()
+            paste(text: message["text"] as? String ?? "", html: message["html"] as? String, file: message["file"] as? String)
         case "open":
             open(message["target"] as? String ?? "", application: message["application"] as? String)
         case "openPreferences":
@@ -544,6 +937,7 @@ final class LauncherModel: ObservableObject {
     func panelWillShow() {
         pendingReset?.cancel()
         pendingReset = nil
+        reloadScripts()
     }
 
     /// Runs the command that failed again, with the same arguments.
@@ -557,7 +951,7 @@ final class LauncherModel: ObservableObject {
 
     func copyFailure() {
         guard let session, let failure = session.failure else { return }
-        copy("\(session.command.extensionTitle) › \(session.command.title)\n\(failure.message)\n\n\(failure.details)")
+        copy(text: "\(session.command.extensionTitle) › \(session.command.title)\n\(failure.message)\n\n\(failure.details)")
         showHUD("Copied error details")
     }
 
@@ -570,12 +964,46 @@ final class LauncherModel: ObservableObject {
         }
         setup = nil
         isSearchingMenuBar = false
+        isShowingClipboardHistory = false
+        isSearchingFiles = false
+        fileSearch.cancel()
         query = ""
     }
 
-    private func copy(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+    private func copy(text: String, html: String? = nil, file: String? = nil) {
+        PasteboardContent.write(text: text, html: html, file: file)
+    }
+
+    private func paste(text: String, html: String? = nil, file: String? = nil) {
+        PasteboardContent.write(text: text, html: html, file: file)
+        if AXIsProcessTrusted() {
+            hidePanel()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                KeySimulation.paste()
+            }
+        } else {
+            showHUD("Copied. Press ⌘V to paste.")
+            hidePanel()
+        }
+    }
+
+    /// Handles `open`, `copy`, `paste` and `hud` from sessions the panel doesn't own (menu-bar extras,
+    /// background runs). Background runs never open the panel.
+    func handleBackgroundMessage(_ message: [String: Any]) {
+        switch message["type"] as? String {
+        case "hud":
+            showHUD(message["title"] as? String ?? "")
+        case "copy":
+            copy(text: message["text"] as? String ?? "", html: message["html"] as? String, file: message["file"] as? String)
+        case "paste":
+            // A background run never takes the keyboard from the user; it only copies.
+            copy(text: message["text"] as? String ?? "", html: message["html"] as? String, file: message["file"] as? String)
+            showHUD("Copied. Press ⌘V to paste.")
+        case "open":
+            open(message["target"] as? String ?? "", application: message["application"] as? String)
+        default:
+            break
+        }
     }
 
     private func open(_ target: String, application: String?) {
@@ -651,6 +1079,61 @@ final class LauncherModel: ObservableObject {
             }
             return true
         }
+        if let session, session.command.mode == "view", session.alert != nil {
+            switch event.keyCode {
+            case 36, 76: session.resolveAlert(true)
+            case 53: session.resolveAlert(false)
+            default: return false
+            }
+            return true
+        }
+        if isShowingClipboardHistory {
+            if let delta = Shortcuts.navigationDelta(event.keyCode) {
+                let count = filteredClipboardEntries().count
+                clipboardSelection = max(0, min(clipboardSelection + delta, count - 1))
+                return true
+            }
+            switch event.keyCode {
+            case 36, 76:
+                if let entry = selectedClipboardEntry {
+                    pasteClipboardEntry(entry)
+                }
+            case 51:
+                if let entry = selectedClipboardEntry {
+                    deleteClipboardEntry(entry)
+                }
+            case 53:
+                if clipboardQuery.isEmpty {
+                    closeClipboardHistory()
+                } else {
+                    clipboardQuery = ""
+                }
+            default: return false
+            }
+            return true
+        }
+        if isSearchingFiles {
+            if let delta = Shortcuts.navigationDelta(event.keyCode) {
+                fileSearchSelection = max(0, min(fileSearchSelection + delta, fileSearch.results.count - 1))
+                return true
+            }
+            switch event.keyCode {
+            case 36, 76 where flags == .command:
+                revealSelectedFile()
+            case 36, 76:
+                openSelectedFile()
+            case 53:
+                if fileSearchQuery.isEmpty {
+                    closeFileSearch()
+                } else {
+                    fileSearchQuery = ""
+                }
+            case 8 where flags == [.command, .shift]:
+                copySelectedFilePath()
+            default: return false
+            }
+            return true
+        }
         if let session, session.command.mode == "view", session.failure != nil {
             switch event.keyCode {
             case 36: retry()
@@ -669,7 +1152,12 @@ final class LauncherModel: ObservableObject {
         }
         switch event.keyCode {
         case 36: if results.indices.contains(selection) {
-                activate(results[selection].item)
+                let item = results[selection].item
+                if case let .emoji(entry) = item, flags == .command {
+                    copyEmojiResult(entry)
+                } else {
+                    activate(item)
+                }
             }
         case 53: if query.isEmpty {
                 hidePanel()

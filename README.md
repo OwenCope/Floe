@@ -41,38 +41,38 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 
 ### Extensions
 
-- [ ] OAuth sign-in (GitHub, Notion, Linear, Spotify, Todoist)
-- [ ] Menu bar commands
-- [ ] Background and interval commands
-- [ ] Selected text and the Finder selection
-- [ ] Pasting into the frontmost app
-- [ ] Confirmation dialogs inside the panel
+- [x] OAuth sign-in (GitHub, Notion, Linear, Spotify, Todoist)
+- [x] Menu bar commands
+- [x] Background and interval commands
+- [x] Selected text and the Finder selection
+- [x] Pasting into the frontmost app
+- [x] Confirmation dialogs inside the panel
 - [ ] `launchCommand` and deeplinks
 - [x] `AI.ask`, answered by the `claude` or `codex` tool you are signed in to, or streamed from an OpenAI-compatible API with your key
 - [ ] AI tools
 - [ ] Grid layout and full detail metadata
-- [ ] App picker for preferences
-- [ ] Toast actions
+- [x] App picker for preferences
+- [x] Toast actions
 - [ ] Swift and Rust helpers in extensions built from source
 
 ### Built in
 
-- [ ] Clipboard history
-- [ ] Snippets with text expansion
-- [ ] Quicklinks and fallback commands
+- [x] Clipboard history
+- [x] Snippets with text expansion
+- [x] Quicklinks and fallback commands
 - [ ] Calculator, with unit and currency conversion
-- [ ] Emoji and symbols
-- [ ] File search
-- [ ] System commands (sleep, lock, empty Trash)
-- [ ] Calendar
+- [x] Emoji and symbols
+- [x] File search
+- [x] System commands (sleep, lock, empty Trash)
+- [x] Calendar
 - [ ] Floating notes
 - [ ] Search an app's menus
-- [ ] Script commands
+- [x] Script commands
 - [ ] AI chat
 
 ### App
 
-- [ ] Browse, install and update extensions
+- [x] Browse, install and update extensions
 - [x] Hot reload for extension development
 - [ ] Settings sync, import and export
 - [ ] App icon

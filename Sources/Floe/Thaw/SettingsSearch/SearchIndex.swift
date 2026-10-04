@@ -85,7 +85,7 @@ enum SearchIndex {
     ///
     /// Resolved once, since search reads it per keystroke. A pane adds its controls by declaring
     /// a static list in an extension of SearchIndex and appending it here.
-    static let staticEntries: [SearchEntry] = paneEntries + appearanceEntries + generalEntries
+    static let staticEntries: [SearchEntry] = paneEntries + appearanceEntries + generalEntries + quicklinksEntries
 
     /// Every entry: Floe's own panes, then one group per installed extension.
     static func entries(commands: [ExtensionCommand]) -> [SearchEntry] {

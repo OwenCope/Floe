@@ -10,6 +10,9 @@ import Foundation
 extension SearchPaneLabel {
     static let general = SearchPaneLabel(title: "General", symbol: "gearshape")
     static let applications = SearchPaneLabel(title: "Applications", symbol: "square.grid.2x2")
+    static let quicklinks = SearchPaneLabel(title: "Quicklinks", symbol: "link")
+    static let snippets = SearchPaneLabel(title: "Snippets", symbol: "text.quote")
+    static let extensionStore = SearchPaneLabel(title: "Extension Store", symbol: "bag")
     static let appearance = SearchPaneLabel(title: "Appearance", symbol: "paintbrush")
     static let about = SearchPaneLabel(title: "About", symbol: "info.circle")
 }
@@ -29,6 +32,25 @@ extension SearchEntry {
             descriptionText: description,
             pane: .appearance,
             paneLabel: .appearance,
+            section: section,
+            keywords: keywords
+        )
+    }
+
+    /// An entry on the Quicklinks pane.
+    static func quicklinks(
+        _ id: String,
+        _ title: String,
+        description: String? = nil,
+        section: String? = nil,
+        keywords: [String]
+    ) -> SearchEntry {
+        SearchEntry(
+            id: "quicklinks.\(id)",
+            title: title,
+            descriptionText: description,
+            pane: .quicklinks,
+            paneLabel: .quicklinks,
             section: section,
             keywords: keywords
         )
@@ -85,6 +107,30 @@ extension SearchIndex {
             pane: .applications,
             paneLabel: .applications,
             keywords: ["apps", "alias", "hotkey", "shortcut", "keyboard", "filter"]
+        ),
+        SearchEntry(
+            id: "pane.quicklinks",
+            title: "Quicklinks",
+            descriptionText: "Keywords and fallbacks for web search.",
+            pane: .quicklinks,
+            paneLabel: .quicklinks,
+            keywords: ["quicklink", "quicklinks", "keyword", "search", "web", "fallback", "link", "url"]
+        ),
+        SearchEntry(
+            id: "pane.snippets",
+            title: "Snippets",
+            descriptionText: "Text you paste or type by keyword.",
+            pane: .snippets,
+            paneLabel: .snippets,
+            keywords: ["snippet", "snippets", "text", "expansion", "expand", "keyword", "abbreviation", "template"]
+        ),
+        SearchEntry(
+            id: "pane.extensionStore",
+            title: "Extension Store",
+            descriptionText: "Install, update and remove extensions from the Raycast store.",
+            pane: .extensionStore,
+            paneLabel: .extensionStore,
+            keywords: ["store", "install", "update", "remove", "download", "extensions", "browse", "raycast"]
         ),
         SearchEntry(
             id: "pane.about",
@@ -160,6 +206,27 @@ extension SearchIndex {
             keywords: ["menu bar", "keyword", "abbreviation", "short name"]
         ),
         .general(
+            "clipboardHistory",
+            "Save clipboard history",
+            description: "Keeps text, links, images and files you copy.",
+            section: "Clipboard",
+            keywords: ["clipboard", "history", "copy", "paste", "copies", "pin", "clear"]
+        ),
+        .general(
+            "clearClipboardHistory",
+            "Clear clipboard history",
+            description: "Removes every copy except pinned ones.",
+            section: "Clipboard",
+            keywords: ["clipboard", "history", "clear", "delete", "remove", "copies"]
+        ),
+        .general(
+            "transferSettings",
+            "Export or import settings",
+            description: "Moves aliases, hotkeys, favorites, appearance and extension preferences to another Mac.",
+            section: "Your Settings",
+            keywords: ["export", "import", "backup", "transfer", "move", "file", "restore"]
+        ),
+        .general(
             "permissions",
             "Permissions",
             section: "Permissions",
@@ -191,6 +258,12 @@ extension SearchIndex {
             keywords: ["bun", "javascript", "node", "engine"]
         ),
         .general(
+            "scriptsFolder",
+            "Scripts folder",
+            section: "Script Commands",
+            keywords: ["script", "scripts", "script commands", "raycast", "finder", "directory", "new script"]
+        ),
+        .general(
             "aiSource",
             "Answer AI requests with",
             description: "Extensions that ask AI a question get their answer from here.",
@@ -214,6 +287,58 @@ extension SearchIndex {
             "API key",
             section: "AI",
             keywords: ["ai", "api", "key", "token", "secret", "keychain", "openai"]
+        ),
+    ]
+
+    static let quicklinksEntries: [SearchEntry] = [
+        .quicklinks(
+            "list",
+            "Quicklinks",
+            section: "Quicklinks",
+            keywords: ["quicklink", "keyword", "link", "name", "url", "list", "edit", "delete"]
+        ),
+        .quicklinks(
+            "new",
+            "New Quicklink",
+            section: "Quicklinks",
+            keywords: ["new", "add", "create", "quicklink"]
+        ),
+        .quicklinks(
+            "name",
+            "Name",
+            section: "Quicklink",
+            keywords: ["name", "title", "label"]
+        ),
+        .quicklinks(
+            "keyword",
+            "Keyword",
+            section: "Quicklink",
+            keywords: ["keyword", "abbreviation", "prefix", "trigger"]
+        ),
+        .quicklinks(
+            "url",
+            "URL",
+            section: "Quicklink",
+            keywords: ["url", "link", "address", "query", "template"]
+        ),
+        .quicklinks(
+            "symbol",
+            "Symbol",
+            section: "Quicklink",
+            keywords: ["symbol", "icon", "glyph"]
+        ),
+        .quicklinks(
+            "fallback",
+            "Use as fallback",
+            section: "Quicklink",
+            keywords: ["fallback", "default", "search", "results"]
+        ),
+        .quicklinks(
+            "fallbacks",
+            "Fallbacks",
+            description: "Shown under your results when you search.",
+            section: "Fallbacks",
+            keywords: ["fallback", "fallbacks", "order", "reorder", "default", "results", "bottom"]
         ),
     ]
 

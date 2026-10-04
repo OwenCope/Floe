@@ -64,6 +64,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 enum SettingsPage: Hashable {
     case general
     case applications
+    case quicklinks
+    case snippets
+    case extensionStore
     case appearance
     case about
     case extensionPage(String)
@@ -115,6 +118,12 @@ struct SettingsView: View {
             GeneralSettingsView(model: model, settings: settings)
         case .applications:
             ApplicationSettingsView(model: model, settings: settings)
+        case .quicklinks:
+            QuicklinksSettingsPage()
+        case .snippets:
+            SnippetsSettingsPage()
+        case .extensionStore:
+            ExtensionStoreSettingsPage()
         case .appearance:
             AppearanceSettingsPane(settings: settings)
         case .about:
@@ -135,6 +144,9 @@ struct SettingsView: View {
         switch selection.page {
         case .general: return "Startup, hotkeys and permissions"
         case .applications: return "Aliases and hotkeys for apps"
+        case .quicklinks: return "Keywords and fallbacks for web search"
+        case .snippets: return "Text you paste or type by keyword"
+        case .extensionStore: return "Install extensions from the Raycast store"
         case .appearance: return "Tint, border and shadow for the launcher"
         case .about: return "Version, updates and credits"
         case let .extensionPage(name):
@@ -201,6 +213,9 @@ private struct SettingsSidebarPaneList: View {
         return [
             Row(page: .general, title: "General", symbol: "gearshape", icon: nil, assetsPath: ""),
             Row(page: .applications, title: "Applications", symbol: "square.grid.2x2", icon: nil, assetsPath: ""),
+            Row(page: .quicklinks, title: "Quicklinks", symbol: "link", icon: nil, assetsPath: ""),
+            Row(page: .snippets, title: "Snippets", symbol: "text.quote", icon: nil, assetsPath: ""),
+            Row(page: .extensionStore, title: "Extension Store", symbol: "bag", icon: nil, assetsPath: ""),
             Row(page: .appearance, title: "Appearance", symbol: "paintbrush", icon: nil, assetsPath: ""),
         ] + extensions + [
             Row(page: .about, title: "About", symbol: "info.circle", icon: nil, assetsPath: ""),
@@ -260,6 +275,76 @@ struct GeneralSettingsView: View {
     @ObservedObject var model: LauncherModel
     @ObservedObject var settings: AppSettings
 
+    /// Writes a starter script into the Scripts folder and reveals it, so it can be edited.
+    static func makeScript(model: LauncherModel) {
+        Paths.prepareSupportFolders()
+        var index = model.allScripts.count + 1
+        var file = Paths.scripts.appendingPathComponent("script-\(index).sh")
+        while FileManager.default.fileExists(atPath: file.path) {
+            index += 1
+            file = Paths.scripts.appendingPathComponent("script-\(index).sh")
+        }
+        try? ScriptRunner.template().write(to: file, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.path)
+        model.reloadScripts()
+        NSWorkspace.shared.activateFileViewerSelecting([file])
+    }
+
+    private func exportSettings() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "Floe Settings.json"
+        panel.allowedContentTypes = [.json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let archive = SettingsTransfer.Archive(
+                settings: try settings.exportedJSON(),
+                preferences: PreferenceStore.allStoredValues(),
+                secretKeys: PreferenceStore.secretKeys(for: model.allCommands)
+            )
+            try SettingsTransfer.encode(archive).write(to: url, options: .atomic)
+        } catch {
+            Self.show(error)
+        }
+    }
+
+    private func importSettings() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let archive = try SettingsTransfer.decode(Data(contentsOf: url))
+            let confirm = NSAlert()
+            confirm.messageText = "Replace your settings?"
+            confirm.informativeText = "Aliases, hotkeys, favorites and appearance are replaced by the file's. Passwords aren't included in exports."
+            confirm.addButton(withTitle: "Replace").hasDestructiveAction = true
+            confirm.addButton(withTitle: "Cancel")
+            guard confirm.runModal() == .alertFirstButtonReturn else { return }
+            try settings.importJSON(archive.settings)
+            for (name, values) in archive.preferences {
+                PreferenceStore.merge(values, extensionName: name)
+            }
+            let summary = SettingsTransfer.summary(of: archive) { Keychain.read(account: "\($0)/\($1)") != nil }
+            let done = NSAlert()
+            done.messageText = "Settings imported"
+            var lines = ["\(summary.aliases) aliases, \(summary.hotkeys) hotkeys, \(summary.favorites) favorites, preferences for \(summary.extensions) extensions."]
+            if !summary.missingSecrets.isEmpty {
+                lines.append("Enter these again:\n" + summary.missingSecrets.joined(separator: "\n"))
+            }
+            done.informativeText = lines.joined(separator: "\n\n")
+            done.runModal()
+        } catch {
+            Self.show(error)
+        }
+    }
+
+    private static func show(_ error: Error) {
+        let alert = NSAlert()
+        alert.messageText = "Couldn't transfer settings"
+        alert.informativeText = error.localizedDescription
+        alert.runModal()
+    }
+
     var body: some View {
         Form {
             ThawSection("Floe") {
@@ -305,7 +390,27 @@ struct GeneralSettingsView: View {
                 )
             }
             PermissionsSettingsSection()
+            ThawSection("Clipboard") {
+                Toggle(isOn: $settings.clipboardHistoryEnabled) {
+                    Text("Save clipboard history")
+                    Text("Keeps text, links, images and files you copy. Pins survive Clear.")
+                }
+                LabeledContent("History") {
+                    Button("Clear History") { ClipboardHistoryStore.shared.clear() }
+                }
+            }
             AISettingsSection(settings: settings)
+            ThawSection("Your Settings") {
+                LabeledContent {
+                    HStack {
+                        Button("Export…") { exportSettings() }
+                        Button("Import…") { importSettings() }
+                    }
+                } label: {
+                    Text("Settings file")
+                    Text("Aliases, hotkeys, favorites, appearance and extension preferences. Passwords stay out.")
+                }
+            }
             ThawSection("Extensions") {
                 Toggle(isOn: $settings.includeRaycastExtensions) {
                     Text("Include extensions installed in Raycast")
@@ -321,6 +426,27 @@ struct GeneralSettingsView: View {
                         Text(bun).foregroundStyle(.secondary).textSelection(.enabled)
                     } else {
                         Text("Bun not found. Install it with brew install bun.").foregroundStyle(.red)
+                    }
+                }
+            }
+            ThawSection("Script Commands") {
+                LabeledContent("Scripts folder") {
+                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([Paths.scripts]) }
+                }
+                LabeledContent("New") {
+                    Button("New Script") { Self.makeScript(model: model) }
+                }
+                if model.allScripts.isEmpty, model.scriptFailures.isEmpty {
+                    Text("No script commands yet. Scripts are executable files with @raycast metadata.").foregroundStyle(.secondary)
+                }
+                ForEach(model.allScripts) { script in
+                    LabeledContent(script.title) {
+                        Text(script.mode.rawValue).foregroundStyle(.secondary)
+                    }
+                }
+                ForEach(model.scriptFailures) { failure in
+                    LabeledContent(failure.file) {
+                        Text(failure.error.localizedDescription).foregroundStyle(.red)
                     }
                 }
             }

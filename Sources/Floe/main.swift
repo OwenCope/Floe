@@ -28,6 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem?
     private var showItem: NSMenuItem?
     private var appWatcher: AppFolderWatcher?
+    private var menuBarCommands: MenuBarCommands!
+    private var backgroundScheduler: BackgroundScheduler!
 
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(settings.showInDock ? .regular : .accessory)
@@ -77,6 +79,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settings.$toggleHotkey.combineLatest(settings.$commandHotkeys, model.$allCommands, model.$apps)
             .sink { [weak self] _, _, _, _ in DispatchQueue.main.async { self?.registerHotkeys() } }
             .store(in: &cancellables)
+        model.$allScripts
+            .sink { [weak self] _ in DispatchQueue.main.async { self?.registerHotkeys() } }
+            .store(in: &cancellables)
         // Thaw's inspector panel is 600 × 400; the launcher needs room for extension detail panes.
         model.$isSearchingMenuBar.removeDuplicates()
             .sink { [weak self] inspector in self?.resizePanel(to: LauncherView.windowSize(menuBarSearch: inspector)) }
@@ -98,10 +103,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.$allCommands
             .sink { _ in DispatchQueue.main.async { FloeShortcuts.updateAppShortcutParameters() } }
             .store(in: &cancellables)
+        menuBarCommands = MenuBarCommands(model: model)
+        backgroundScheduler = BackgroundScheduler(model: model, menuBarCommands: menuBarCommands)
+        model.$allCommands.combineLatest(settings.$disabledExtensions)
+            .sink { [weak self] _, _ in
+                // After the publishers' willSet, so enabledCommands reads the new values.
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.menuBarCommands.sync(self.model.enabledCommands)
+                    self.backgroundScheduler.sync(self.model.enabledCommands)
+                }
+            }
+            .store(in: &cancellables)
         // Everything the panel needs is wired up: the catalog can fill in behind it now.
         model.startCatalogLoading()
 
         UpdatesManager.shared.performSetup()
+        // Handles the browser coming back to floe://oauth after an extension's sign-in.
+        OAuthBroker.shared.install()
+        TextExpander.shared.start()
+        ExtensionStore.shared.onInstalled = { [weak self] in self?.model.reloadCommands() }
 
         // The first launch opens the welcome window; the launcher follows when it is finished.
         OnboardingWindowController.shared.openLauncher = { [weak self] in self?.show() }
@@ -124,6 +145,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 guard let self, !settings.disabledExtensions.contains(command.extensionName) else { return }
                 UsageStore.shared.recordUse(of: RootItem.command(command).id)
                 model.run(command)
+            }
+        }
+        for script in model.allScripts {
+            guard let keyCombination = settings.commandHotkeys[script.id] else { continue }
+            _ = hotkeys.register(keyCombination) { [weak self] in
+                UsageStore.shared.recordUse(of: RootItem.script(script).id)
+                self?.model.run(script)
             }
         }
         if let keyCombination = settings.commandHotkeys[RootItem.menuBarSearchKey] {
@@ -153,6 +181,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationWillTerminate(_: Notification) {
         model.session?.forceStop()
+        menuBarCommands?.stopAll()
+        backgroundScheduler?.stopAll()
     }
 
     /// Keeps the panel's top edge and horizontal center where they are.

@@ -22,6 +22,7 @@ export const ctx = {
   extDir: "",
   commandName: "",
   commandMode: "view",
+  launchType: "userInitiated" as "userInitiated" | "background",
   supportPath: "",
   manifest: { name: "" } as Manifest,
 };

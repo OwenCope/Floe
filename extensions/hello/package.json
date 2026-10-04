@@ -57,6 +57,20 @@
           ]
         }
       ]
+    },
+    {
+      "name": "menu-bar-clock",
+      "title": "Clock",
+      "description": "Clock in the menu bar",
+      "mode": "menu-bar",
+      "interval": "1m"
+    },
+    {
+      "name": "count-ticks",
+      "title": "Count Ticks",
+      "description": "Counts background ticks",
+      "mode": "no-view",
+      "interval": "1m"
     }
   ],
   "preferences": [

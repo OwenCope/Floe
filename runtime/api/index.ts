@@ -232,16 +232,20 @@ function unsupported(feature: string) {
 }
 
 let nextToastId = 1;
+const liveToasts = new Map<number, Toast>();
 export class Toast {
   static readonly Style = { Success: "success", Failure: "failure", Animated: "animated" } as const;
   private readonly id = nextToastId++;
-  private readonly options: Props;
+  private options: Props;
   constructor(options: Props) {
     this.options = { ...options };
+    liveToasts.set(this.id, this);
   }
   private sync(hidden = false) {
-    const { style, title, message } = this.options;
-    send({ type: "toast", id: this.id, style: style ?? "success", title: title ?? "", message, hidden });
+    const { style, title, message, primaryAction, secondaryAction } = this.options;
+    send({ type: "toast", id: this.id, style: style ?? "success", title: title ?? "", message, hidden,
+      primaryTitle: (primaryAction as Props | undefined)?.title,
+      secondaryTitle: (secondaryAction as Props | undefined)?.title });
   }
   get title() { return this.options.title; }
   set title(value: string) { this.options.title = value; this.sync(); }
@@ -250,11 +254,18 @@ export class Toast {
   get style() { return this.options.style; }
   set style(value: string) { this.options.style = value; this.sync(); }
   get primaryAction() { return this.options.primaryAction; }
-  set primaryAction(value: unknown) { this.options.primaryAction = value; }
+  set primaryAction(value: unknown) { this.options.primaryAction = value; this.sync(); }
   get secondaryAction() { return this.options.secondaryAction; }
-  set secondaryAction(value: unknown) { this.options.secondaryAction = value; }
+  set secondaryAction(value: unknown) { this.options.secondaryAction = value; this.sync(); }
   show(): Promise<void> { this.sync(); return done; }
-  hide(): Promise<void> { this.sync(true); return done; }
+  hide(): Promise<void> { liveToasts.delete(this.id); this.sync(true); return done; }
+}
+
+// Runs a toast action callback when the app reports it was clicked.
+export function handleToastAction(id: number, which: "primary" | "secondary") {
+  const toast = liveToasts.get(id);
+  const action = (which === "primary" ? toast?.options.primaryAction : toast?.options.secondaryAction) as Props | undefined;
+  return action?.onAction?.(toast);
 }
 
 export async function showToast(optionsOrStyle: Props | string, title?: string, message?: string) {
@@ -271,15 +282,25 @@ export function showHUD(title: string, _options?: Props): Promise<void> {
 
 export const Alert = { ActionStyle: { Default: "default", Cancel: "cancel", Destructive: "destructive" } };
 export async function confirmAlert(options: Props) {
-  const escape = (text: string) => String(text ?? "").replaceAll("\\", String.raw`\\`).replaceAll('"', String.raw`\"`);
-  const confirm = options.primaryAction?.title ?? "OK";
-  const cancel = options.dismissAction?.title ?? "Cancel";
-  const script = `display alert "${escape(options.title)}" message "${escape(options.message)}" buttons {"${escape(cancel)}", "${escape(confirm)}"} default button 2`;
-  const result = Bun.spawnSync(["osascript", "-e", script]);
-  const confirmed = result.stdout.toString().includes(`button returned:${confirm}`);
-  if (confirmed) await options.primaryAction?.onAction?.();
-  else await options.dismissAction?.onAction?.();
-  return confirmed;
+  const primaryTitle = options.primaryAction?.title ?? "OK";
+  const dismissTitle = options.dismissAction?.title ?? "Cancel";
+  const storageKey = `__floe_alert_${options.title}`;
+  if (options.rememberUserChoice && (await LocalStorage.getItem(storageKey)) === true) {
+    await options.primaryAction?.onAction?.();
+    return true;
+  }
+  const confirmed = await request("alert.confirm", {
+    title: options.title, message: options.message,
+    primaryTitle, primaryStyle: options.primaryAction?.style ?? "default", dismissTitle,
+  });
+  const result = confirmed === true;
+  if (result) {
+    if (options.rememberUserChoice) await LocalStorage.setItem(storageKey, true);
+    await options.primaryAction?.onAction?.();
+  } else {
+    await options.dismissAction?.onAction?.();
+  }
+  return result;
 }
 
 // Window and system
@@ -315,23 +336,31 @@ export function trash(paths: string | string[]): Promise<void> {
   return done;
 }
 
+type ClipboardContent = string | number | Props;
+function clipboardParams(content: ClipboardContent): { text?: string; html?: string; file?: string } {
+  if (typeof content === "object" && content !== null) {
+    return { text: content.text, html: content.html, file: content.file };
+  }
+  return { text: String(content) };
+}
+
 export const Clipboard = {
-  copy(content: string | number | Props, _options?: Props): Promise<void> {
-    const text = typeof content === "object" ? (content.text ?? content.file ?? content.html ?? "") : String(content);
-    send({ type: "copy", text });
+  copy(content: ClipboardContent, _options?: Props): Promise<void> {
+    const params = clipboardParams(content);
+    send({ type: "copy", text: params.text ?? "", html: params.html, file: params.file });
     return done;
   },
-  paste(content: string | number | Props): Promise<void> {
-    const text = typeof content === "object" ? (content.text ?? content.file ?? "") : String(content);
-    send({ type: "paste", text });
+  paste(content: ClipboardContent): Promise<void> {
+    const params = clipboardParams(content);
+    send({ type: "paste", text: params.text ?? "", html: params.html, file: params.file });
     return done;
   },
-  readText(_options?: Props): Promise<string | undefined> {
-    const text = Bun.spawnSync(["pbpaste"]).stdout.toString();
-    return Promise.resolve(text.length ? text : undefined);
+  async readText(_options?: Props): Promise<string | undefined> {
+    const result = await request<{ text: string; html?: string; file?: string }>("clipboard.read");
+    return result.text || undefined;
   },
-  async read(_options?: Props) {
-    return { text: (await Clipboard.readText()) ?? "" };
+  async read(_options?: Props): Promise<{ text: string; html?: string; file?: string }> {
+    return request("clipboard.read");
   },
   clear(): Promise<void> {
     send({ type: "copy", text: "" });
@@ -340,10 +369,10 @@ export const Clipboard = {
 };
 
 export function getSelectedText(): Promise<string> {
-  return Promise.reject(new Error("Reading the selected text isn't supported yet"));
+  return request("selectedText");
 }
 export function getSelectedFinderItems(): Promise<{ path: string }[]> {
-  return Promise.reject(new Error("Reading the Finder selection isn't supported yet"));
+  return request("selectedFinderItems");
 }
 type Application = { name: string; path: string; bundleId?: string };
 let applications: Application[] | undefined;
@@ -439,7 +468,7 @@ export const environment = {
   appearance: "dark",
   theme: "dark",
   textSize: "medium",
-  launchType: "userInitiated",
+  get launchType() { return ctx.launchType; },
   // The app sets FLOE_AI when AI.ask has something to answer it: an installed tool or a filled-in API.
   canAccess: (api: unknown) => api === AI && process.env.FLOE_AI === "1",
 };
@@ -484,50 +513,7 @@ export const AI = {
     });
   },
 };
-// A preference that takes a token or key, which most extensions accept in place of signing in.
-function tokenPreference() {
-  const command = ctx.manifest.commands?.find((candidate) => candidate.name === ctx.commandName);
-  const declared = [...(ctx.manifest.preferences ?? []), ...(command?.preferences ?? [])];
-  const secrets = declared.filter((preference) => preference.type === "password");
-  const named = (preference: { name: string; title?: string }) => /token|api[ _-]?key|secret/i.test(`${preference.name} ${preference.title ?? ""}`);
-  return secrets.find(named) ?? secrets[0] ?? declared.find(named);
-}
-// Floe has no sign-in of its own, and doesn't borrow Raycast's: say so, and name the way that does work.
-function signInUnavailable(provider?: string) {
-  const preference = tokenPreference();
-  const service = provider ? ` to ${provider}` : "";
-  const instead = preference
-    ? `Add "${preference.title ?? preference.name}" in this extension's preferences instead.`
-    : "This extension has no token preference to use instead.";
-  return new Error(`Floe can't sign in${service} yet. ${instead}`);
-}
-
-export const OAuth = {
-  RedirectMethod: { Web: "web", App: "app", AppURI: "appURI" },
-  // Creating a client works, because extensions create one even when a token preference makes it unnecessary.
-  // Only starting a sign-in fails.
-  PKCEClient: class {
-    private readonly providerName?: string;
-    constructor(options?: Props) {
-      this.providerName = options?.providerName;
-    }
-    authorizationRequest(_options: Props): Promise<never> {
-      return Promise.reject(signInUnavailable(this.providerName));
-    }
-    authorize(_request: Props): Promise<never> {
-      return Promise.reject(signInUnavailable(this.providerName));
-    }
-    setTokens(_tokens: Props): Promise<never> {
-      return Promise.reject(signInUnavailable(this.providerName));
-    }
-    getTokens(): Promise<undefined> {
-      return Promise.resolve(undefined);
-    }
-    removeTokens(): Promise<void> {
-      return done;
-    }
-  },
-};
+export { OAuth } from "./oauth";
 
 // Constants
 

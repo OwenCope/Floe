@@ -103,10 +103,10 @@ struct ExtensionCommandTests {
         ],
     ]
 
-    @Test func listsViewAndNoViewCommandsOnly() {
+    @Test func listsViewNoViewAndMenuBarCommands() {
         let commands = ExtensionCommand.commands(inManifest: Fixture.manifest(manifest), folder: folder, source: .raycast)
-        #expect(commands.map(\.name) == ["forecast", "refresh", "plain"], "menu-bar commands and nameless entries are skipped")
-        #expect(commands.map(\.mode) == ["view", "no-view", "view"], "a command without a mode is a view")
+        #expect(commands.map(\.name) == ["forecast", "refresh", "status", "plain"], "nameless entries are skipped")
+        #expect(commands.map(\.mode) == ["view", "no-view", "menu-bar", "view"], "a command without a mode is a view")
     }
 
     @Test func commandsCarryExtensionAndCommandDetails() throws {

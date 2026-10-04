@@ -20,16 +20,30 @@ struct ToastState: Equatable {
     let style: String
     let title: String
     let message: String?
+    var primaryTitle: String? = nil
+    var secondaryTitle: String? = nil
+}
+
+/// An in-panel confirmation dialog from `confirmAlert`. The id is the host request it answers.
+struct AlertState: Equatable {
+    let id: Int
+    let title: String
+    let message: String?
+    let primaryTitle: String
+    let isDestructive: Bool
+    let dismissTitle: String
 }
 
 /// One running extension command: a Bun process speaking NDJSON over stdin/stdout.
 final class ExtensionSession: ObservableObject {
     let command: ExtensionCommand
     let arguments: [String: Any]
+    let launchType: String
     @Published private(set) var root: Node?
     /// Form field values by field id. Dates are kept as ISO 8601 strings.
     @Published var formValues: [String: Any] = [:]
     @Published var toast: ToastState?
+    @Published var alert: AlertState?
     @Published var failure: SessionFailure?
     @Published var selection = 0
     @Published var actionMenuOpen = false {
@@ -80,16 +94,20 @@ final class ExtensionSession: ObservableObject {
     var isStopping = false
     var watchdog: Timer?
     /// Answers what the extension asks the app for; tests replace it.
-    var answer: @Sendable (HostRequest, @Sendable (String) async -> Void) async throws -> String = HostRequest.answer
+    var answer: @Sendable (HostRequest, @Sendable (String) async -> Void) async throws -> Any = HostRequest.answer
     /// Requests still being answered, by the id the host gave them (see Session+Requests.swift).
     var pendingRequests: [Int: Task<Void, Never>] = [:]
     private(set) var pingSentAt: Date?
     private var suppressSearchEvent = false
 
-    init(command: ExtensionCommand, arguments: [String: Any] = [:]) {
+    init(command: ExtensionCommand, arguments: [String: Any] = [:], launchType: String = "userInitiated") {
         self.command = command
         self.arguments = arguments
+        self.launchType = launchType
     }
+
+    /// Set while the host is running.
+    var isRunning: Bool { processID != nil }
 
     func send(_ message: [String: Any]) {
         transport(message)
@@ -138,10 +156,13 @@ final class ExtensionSession: ObservableObject {
                     id: id,
                     style: fields["style"] as? String ?? "success",
                     title: fields["title"] as? String ?? "",
-                    message: fields["message"] as? String
+                    message: fields["message"] as? String,
+                    primaryTitle: fields["primaryTitle"] as? String,
+                    secondaryTitle: fields["secondaryTitle"] as? String
                 )
                 toast = state
-                guard state.style != "animated" else { return }
+                // A toast with an action stays until it is dismissed or acted on.
+                guard state.style != "animated", state.primaryTitle == nil, state.secondaryTitle == nil else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
                     if self?.toast == state {
                         self?.toast = nil

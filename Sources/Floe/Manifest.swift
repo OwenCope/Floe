@@ -115,6 +115,7 @@ struct ExtensionCommand: Identifiable, Sendable {
     let name: String
     let title: String
     let mode: String
+    let interval: TimeInterval?
     let icon: String?
     let arguments: [FieldSpec]
     let extensionPreferences: [FieldSpec]
@@ -144,17 +145,27 @@ struct ExtensionCommand: Identifiable, Sendable {
         let name: String
         let title: String?
         let mode: String?
+        let interval: String?
         let icon: String?
         let arguments: Lossy<FieldSpec>?
         let preferences: Lossy<FieldSpec>?
     }
 
-    /// The commands a package.json declares that Floe can run: view and no-view, not menu-bar.
+    /// Parses Raycast `interval` strings (`90s`, `10m`, `1h`, `1d`); clamps to at least 10 seconds.
+    static func parseInterval(_ raw: String?) -> TimeInterval? {
+        guard let raw, !raw.isEmpty else { return nil }
+        let multipliers: [Character: Double] = ["s": 1, "m": 60, "h": 3600, "d": 86400]
+        guard let unit = raw.last, let factor = multipliers[unit],
+              let value = Double(raw.dropLast()), value.isFinite else { return nil }
+        return max(value * factor, 10)
+    }
+
+    /// The commands a package.json declares that Floe can run: view, no-view and menu-bar.
     static func commands(inManifest data: Data, folder: URL, source: Source) -> [ExtensionCommand] {
         guard let manifest = try? JSONDecoder().decode(Manifest.self, from: data) else { return [] }
         return manifest.commands.elements.compactMap { command in
             let mode = command.mode ?? "view"
-            guard mode == "view" || mode == "no-view" else { return nil }
+            guard mode == "view" || mode == "no-view" || mode == "menu-bar" else { return nil }
             return ExtensionCommand(
                 extensionDir: folder,
                 extensionName: manifest.name,
@@ -163,6 +174,7 @@ struct ExtensionCommand: Identifiable, Sendable {
                 name: command.name,
                 title: command.title ?? command.name,
                 mode: mode,
+                interval: parseInterval(command.interval),
                 icon: command.icon ?? manifest.icon,
                 arguments: command.arguments?.elements ?? [],
                 extensionPreferences: manifest.preferences?.elements ?? [],
@@ -189,17 +201,45 @@ struct RootResult: Identifiable {
 enum RootItem: Identifiable {
     case app(AppEntry)
     case command(ExtensionCommand)
+    case script(ScriptCommand)
     case menuBarSearch
+    case emojiSearch
+    case clipboardHistory
+    case fileSearch
+    case searchFiles(String)
     case settings
+    case calculator(CalculatorResult)
+    case system(SystemCommand)
+    case event(CalendarEvent)
+    case snippet(Snippet)
+    case emoji(EmojiResult)
+    /// A quicklink matched against the query: `queryText` is the text put into the URL,
+    /// and `fallback`/`keywordSearch` rows read as Search … for "…" instead of the link's name.
+    case quicklink(Quicklink, queryText: String, fallback: Bool, keywordSearch: Bool)
 
     static let menuBarSearchKey = "builtin:menubar-search"
+    static let emojiSearchKey = "builtin:emoji-search"
+    static let clipboardHistoryKey = "builtin:clipboard-history"
+    static let fileSearchKey = "builtin:file-search"
 
     var id: String {
         switch self {
         case let .app(app): "app:\(app.url.path)"
         case let .command(command): "command:\(command.id)"
+        case let .script(script): "script:\(script.file.lastPathComponent)"
         case .menuBarSearch: Self.menuBarSearchKey
+        case .emojiSearch: Self.emojiSearchKey
+        case .clipboardHistory: Self.clipboardHistoryKey
+        case .fileSearch: Self.fileSearchKey
+        case let .searchFiles(query): "files-for:\(query)"
         case .settings: "settings"
+        case .calculator: "calculator"
+        case let .system(command): "system:\(command.rawValue)"
+        case let .event(event): "event:\(event.identifier)"
+        case let .snippet(snippet): "snippet:\(snippet.id.uuidString)"
+        case let .emoji(entry): entry.id
+        case let .quicklink(link, _, fallback, _):
+            (fallback ? "quicklink-fallback:" : "quicklink:") + link.id.uuidString
         }
     }
 
@@ -207,16 +247,48 @@ enum RootItem: Identifiable {
         switch self {
         case let .app(app): app.name
         case let .command(command): command.title
+        case let .script(script): script.title
         case .menuBarSearch: "Search Menu Bar Items"
+        case .emojiSearch: "Search Emoji & Symbols"
+        case .clipboardHistory: "Clipboard History"
+        case .fileSearch: "Search Files"
+        case let .searchFiles(query): "Search Files for \"\(query)\""
         case .settings: "Floe Settings"
+        case let .calculator(result): result.value
+        case let .system(command): command.title
+        case let .event(event): event.title
+        case let .snippet(snippet): snippet.name
+        case let .emoji(entry): entry.name
+        case let .quicklink(link, queryText, fallback, keywordSearch):
+            if fallback || keywordSearch {
+                "Search \(link.name) for \u{201C}\(queryText)\u{201D}"
+            } else {
+                link.name
+            }
         }
     }
 
     var subtitle: String? {
-        if case let .command(command) = self {
+        switch self {
+        case let .command(command):
             return command.extensionTitle
+        case let .script(script):
+            return script.displayPackage
+        case let .calculator(result):
+            return result.detail.map { "\(result.expression) · \($0)" } ?? result.expression
+        case let .emoji(entry):
+            return entry.character
+        case let .quicklink(link, _, _, _):
+            return link.keyword
+        case .system:
+            return "System"
+        case let .event(event):
+            return event.subtitle
+        case let .snippet(snippet):
+            return snippet.firstLine
+        default:
+            return nil
         }
-        return nil
     }
 
     /// Key for aliases and hotkeys; commands keep their historical "extension/command" key.
@@ -224,8 +296,14 @@ enum RootItem: Identifiable {
         switch self {
         case .app: id
         case let .command(command): command.id
+        case let .script(script): script.id
         case .menuBarSearch: Self.menuBarSearchKey
-        case .settings: nil
+        case .emojiSearch: Self.emojiSearchKey
+        case .clipboardHistory: Self.clipboardHistoryKey
+        case .fileSearch: Self.fileSearchKey
+        case let .system(command): "system:\(command.rawValue)"
+        case .snippet: id
+        case .settings, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
         }
     }
 
@@ -233,7 +311,24 @@ enum RootItem: Identifiable {
         switch self {
         case .app: "Application"
         case .command: "Command"
-        case .menuBarSearch, .settings: "Floe"
+        case .script: "Script"
+        case .menuBarSearch, .emojiSearch, .clipboardHistory, .settings: "Floe"
+        case .fileSearch, .searchFiles: "Files"
+        case .calculator: "Calculator"
+        case .system: "System"
+        case .event: "Event"
+        case .snippet: "Snippet"
+        case .emoji: "Emoji"
+        case .quicklink: "Quicklink"
+        }
+    }
+
+    /// Other words a result answers to, matched like its title.
+    var keywords: [String] {
+        switch self {
+        case let .system(command): command.keywords
+        case let .snippet(snippet): [snippet.keyword]
+        default: []
         }
     }
 

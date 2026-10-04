@@ -43,6 +43,8 @@ enum Paths {
     static let extensions = support.appendingPathComponent("Extensions")
     /// Per-extension storage, preferences and build cache, by extension name.
     static let data = support.appendingPathComponent("Data")
+    /// Raycast-compatible script commands.
+    static let scripts = support.appendingPathComponent("Scripts")
 
     /// Creates the support folders. Earlier builds kept per-extension data in "extensions", which on a
     /// case-insensitive volume is the same folder as "Extensions", so that data moves to "Data" first.
@@ -57,6 +59,7 @@ enum Paths {
         }
         try? fileManager.createDirectory(at: data, withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: extensions, withIntermediateDirectories: true)
+        try? fileManager.createDirectory(at: scripts, withIntermediateDirectories: true)
     }
 
     /// The checkout's sample extensions, listed only while developing.
@@ -126,7 +129,8 @@ extension CatalogSnapshot {
     /// A catalog scanned on the spot, for the diagnostic modes that print or render one state and
     /// exit. The GUI never uses this: its model starts empty and fills from the worker.
     static func scanningNow(includeRaycast: Bool) -> CatalogSnapshot {
-        CatalogSnapshot(apps: AppEntry.scan(), commands: ExtensionCommand.scan(includeRaycast: includeRaycast))
+        let scripts = ScriptCommand.scan()
+        return CatalogSnapshot(apps: AppEntry.scan(), commands: ExtensionCommand.scan(includeRaycast: includeRaycast), scripts: scripts.commands, scriptFailures: scripts.failures)
     }
 }
 

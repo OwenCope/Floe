@@ -116,12 +116,18 @@ targets:
         GitCommitSHA: unknown
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
+        CFBundleURLTypes:
+          - CFBundleURLName: com.thaw.floe
+            CFBundleURLSchemes: [floe]
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSUIElement: true
         # AI.ask can be pointed at a model server on this Mac or the local network (Ollama, LM Studio),
         # which answers over plain http.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        NSAppleEventsUsageDescription: Floe uses AppleScript to read the Finder selection and to run system commands such as Empty Trash and Toggle Dark Mode.
+        NSCalendarsFullAccessUsageDescription: Floe shows your upcoming events and meeting links when you search for them.
+        NSCalendarsUsageDescription: Floe shows your upcoming events and meeting links when you search for them.
         NSHighResolutionCapable: true
         # Sparkle updates. The appcast is published to this repository's gh-pages branch by
         # .github/workflows/release.yml.

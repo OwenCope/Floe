@@ -13,7 +13,7 @@ import path from "node:path";
 import React from "react";
 import { ctx, handlePop, handlePopToRoot, handleReply, handleReplyChunk, send, type Manifest } from "./bridge";
 import { dispatchEvent, render, toError } from "./renderer";
-import { NavigationRoot } from "./api/index";
+import { NavigationRoot, handleToastAction } from "./api/index";
 import { bundle, findEntry } from "./build";
 
 const log = (...parts: unknown[]) =>
@@ -36,6 +36,7 @@ if (!command) {
 ctx.extDir = path.resolve(extDir);
 ctx.commandName = commandName;
 ctx.commandMode = command.mode ?? "view";
+ctx.launchType = process.env.FLOE_LAUNCH_TYPE === "background" ? "background" : "userInitiated";
 ctx.manifest = manifest;
 ctx.supportPath = path.join(os.homedir(), "Library/Application Support/Floe/Data", manifest.name);
 fs.mkdirSync(ctx.supportPath, { recursive: true });
@@ -63,6 +64,7 @@ process.stdin.on("data", (chunk: Buffer) => {
     else if (message.type === "popToRoot") handlePopToRoot();
     else if (message.type === "replyChunk") handleReplyChunk(message);
     else if (message.type === "reply") handleReply(message);
+    else if (message.type === "toastAction") handleToastAction(message.id, message.which);
     // The app's watchdog: a host stuck in synchronous code cannot answer.
     else if (message.type === "ping") send({ type: "pong" });
   }
@@ -70,7 +72,7 @@ process.stdin.on("data", (chunk: Buffer) => {
 process.stdin.on("end", () => process.exit(0));
 
 const launchProps = {
-  launchType: "userInitiated",
+  launchType: ctx.launchType,
   arguments: argumentsJSON ? JSON.parse(argumentsJSON) : {},
   fallbackText: undefined,
 };
@@ -81,7 +83,10 @@ try {
   const exported = module.default;
   const Command = typeof exported === "object" && exported !== null && "default" in exported ? exported.default : exported;
   if (typeof Command !== "function") throw new Error("command has no default export");
-  if (ctx.commandMode === "view") {
+  if (ctx.commandMode === "menu-bar") {
+    // No NavigationRoot here; the process stays alive so menu item onAction events can be dispatched.
+    render(React.createElement(Command, launchProps));
+  } else if (ctx.commandMode === "view") {
     render(React.createElement(NavigationRoot, null, React.createElement(Command, launchProps)));
   } else {
     await Command(launchProps);

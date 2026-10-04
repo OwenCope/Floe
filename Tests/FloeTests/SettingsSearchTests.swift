@@ -134,13 +134,16 @@ struct SearchIndexTests {
             case .general: #expect(entry.paneLabel == .general)
             case .applications: #expect(entry.paneLabel == .applications)
             case .appearance: #expect(entry.paneLabel == .appearance)
+            case .quicklinks: #expect(entry.paneLabel == .quicklinks)
+            case .snippets: #expect(entry.paneLabel == .snippets)
+            case .extensionStore: #expect(entry.paneLabel == .extensionStore)
             case .about: #expect(entry.paneLabel == .about)
             case .extensionPage: Issue.record("\(entry.id) is a static entry on an extension's pane")
             }
         }
     }
 
-    @Test(arguments: [SettingsPage.general, .applications, .appearance, .about])
+    @Test(arguments: [SettingsPage.general, .applications, .quicklinks, .snippets, .extensionStore, .appearance, .about])
     func everyPaneOfFloeCanBeFoundByName(pane: SettingsPage) {
         #expect(SearchIndex.paneEntries.contains { $0.pane == pane })
     }
