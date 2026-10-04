@@ -33,4 +33,31 @@ struct ExtensionStoreTests {
     func iconsThatAreNotFilesInTheRepositoryHaveNoURL(icon: String) {
         #expect(ExtensionStore.iconURL(for: "weather-test", icon: icon) == nil)
     }
+
+    @Test func aToolThatSucceedsHandsBackWhatItPrinted() async throws {
+        let output = try await ExtensionStore.runTool(executable: "/bin/sh", arguments: ["-c", "pwd; echo note >&2"], workingDirectory: URL(fileURLWithPath: "/usr"), context: "Listing failed")
+        #expect(output.stdout == "/usr\n")
+        #expect(output.stderr == "note\n")
+    }
+
+    @Test func aToolThatFailsReportsItsLastErrorLine() async {
+        let failure = await #expect(throws: ExtensionStore.StoreFailure.self) {
+            try await ExtensionStore.runTool(executable: "/bin/sh", arguments: ["-c", "echo out; echo first >&2; echo last >&2; echo >&2; exit 3"], context: "Clone failed")
+        }
+        #expect(failure?.message == "Clone failed: last")
+    }
+
+    @Test func aToolThatFailsQuietlyOnStderrReportsItsOutput() async {
+        let failure = await #expect(throws: ExtensionStore.StoreFailure.self) {
+            try await ExtensionStore.runTool(executable: "/bin/sh", arguments: ["-c", "echo said; exit 1"], context: "Clone failed")
+        }
+        #expect(failure?.message == "Clone failed: said")
+    }
+
+    @Test func aToolThatCannotStartFailsWithItsContext() async {
+        let failure = await #expect(throws: ExtensionStore.StoreFailure.self) {
+            try await ExtensionStore.runTool(executable: "/nonexistent/floe-tool", arguments: [], context: "Bun install failed")
+        }
+        #expect(failure?.message.hasPrefix("Bun install failed: ") == true)
+    }
 }

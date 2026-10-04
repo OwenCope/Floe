@@ -51,12 +51,20 @@
 		<string>https://sparkle-project.org</string>
 		<key>sponsor</key>
 		<string>https://github.com/sponsors/diazdesandi</string>
+		<key>swiftAlgorithms</key>
+		<string>https://github.com/apple/swift-algorithms</string>
 		<key>swiftArgumentParser</key>
 		<string>https://github.com/apple/swift-argument-parser</string>
+		<key>swiftAsyncAlgorithms</key>
+		<string>https://github.com/apple/swift-async-algorithms</string>
 		<key>swiftCmark</key>
 		<string>https://github.com/swiftlang/swift-cmark</string>
+		<key>swiftCollections</key>
+		<string>https://github.com/apple/swift-collections</string>
 		<key>swiftMarkdown</key>
 		<string>https://github.com/swiftlang/swift-markdown</string>
+		<key>swiftNumerics</key>
+		<string>https://github.com/apple/swift-numerics</string>
 		<key>swiftSubprocess</key>
 		<string>https://github.com/swiftlang/swift-subprocess</string>
 		<key>swiftSystem</key>

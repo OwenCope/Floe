@@ -6,6 +6,7 @@
 //  Licensed under the GNU AGPLv3
 
 import Foundation
+import Synchronization
 
 /// One emoji or symbol: the character to paste and its display name.
 struct EmojiResult: Sendable {
@@ -32,36 +33,38 @@ enum EmojiCatalog {
         let keywords: [String]
     }
 
-    private static let lock = NSLock()
-    private static var cached: [Entry]?
-    private static var preloadStarted = false
+    private struct Cache {
+        var entries: [Entry]?
+        var preloadStarted = false
+    }
+
+    private static let cache = Mutex(Cache())
 
     /// Starts building the table off the caller's thread; safe to call more than once.
     static func preload() {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !preloadStarted else { return }
-        preloadStarted = true
+        let isFirst = cache.withLock { cache in
+            defer { cache.preloadStarted = true }
+            return !cache.preloadStarted
+        }
+        guard isFirst else { return }
         DispatchQueue.global(qos: .utility).async {
             _ = entries()
         }
     }
 
     static func entries() -> [Entry] {
-        lock.lock()
-        if let cached {
-            lock.unlock()
+        if let cached = cache.withLock({ $0.entries }) {
             return cached
         }
-        lock.unlock()
+        // Built outside the lock: two callers may both build, and the first to finish is kept.
         let built = build()
-        lock.lock()
-        defer { lock.unlock() }
-        if let cached {
-            return cached
+        return cache.withLock { cache in
+            if let cached = cache.entries {
+                return cached
+            }
+            cache.entries = built
+            return built
         }
-        cached = built
-        return built
     }
 
     /// With an empty term: recent picks first, then common standbys. Otherwise the best

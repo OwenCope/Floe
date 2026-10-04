@@ -43,6 +43,7 @@
 		5D4CE2F66CECA7B125BE0738 /* Manifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9282FBD75C06A6410E879C91 /* Manifest.swift */; };
 		62233FAC9FE04DFB2C994F79 /* ThawHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604318B576A5FA49A67E10A4 /* ThawHUD.swift */; };
 		6308D23D5AD1980A9769F22A /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 626DCE858313EE5652C68E19 /* ClipboardHistory.swift */; };
+		63306AA3252F2A2A9842CF02 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 620405AD1BB424142F8C61B3 /* AsyncAlgorithms */; };
 		65A41DB863188626B29BDE82 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F1EF334F357FB298D0DD9F /* Settings.swift */; };
 		6958B0B9E6D87E2783CFD57A /* GlassSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A48EE7BCE3DB6DB75403FC86 /* GlassSupport.swift */; };
 		69FA09CF14D792E717C7D569 /* Permission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44808651241F3E3186FE6311 /* Permission.swift */; };
@@ -97,6 +98,7 @@
 		E90B7E506C03D9DD853A1C04 /* ChatCompletionStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3403F2FFC4C6AC53013ACA55 /* ChatCompletionStream.swift */; };
 		EB149923CB5A04D5012DD6B5 /* HotReload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7998806F2EEFDB2C0D99FC0 /* HotReload.swift */; };
 		EDB220A71026548DB214E898 /* MenuBarLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2207765089964A4BDDF2F7B4 /* MenuBarLogic.swift */; };
+		EEEE4BAA3CEB92F8ECAACBB7 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 1F43772FB45D60218EFCAC8B /* Algorithms */; };
 		EF2879CD5E1B9A3841ED1869 /* BackgroundScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB1649B146F0F20464E0BB5 /* BackgroundScheduler.swift */; };
 		EF336ED0ABEE5F7045163631 /* FloeIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE33B90505045A8A2B0BEA4 /* FloeIntents.swift */; };
 		F03B98E4A5FA6F7B8C4893D5 /* Quicklinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB65908F87D1376EBC7FA28D /* Quicklinks.swift */; };
@@ -228,6 +230,8 @@
 				E4F2BF5C06A34F0C81C63ACD /* Subprocess in Frameworks */,
 				5C14B2AB67F03EDC01B4D0A1 /* Markdown in Frameworks */,
 				B46FB365D377BDA4D17AEBAC /* ArgumentParser in Frameworks */,
+				EEEE4BAA3CEB92F8ECAACBB7 /* Algorithms in Frameworks */,
+				63306AA3252F2A2A9842CF02 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -457,6 +461,8 @@
 				A5734F6D7F1BB261482C7608 /* Subprocess */,
 				8E538ACEFE6F0ECA7743C39C /* Markdown */,
 				DCB8704B102A04F10A7ABBEA /* ArgumentParser */,
+				1F43772FB45D60218EFCAC8B /* Algorithms */,
+				620405AD1BB424142F8C61B3 /* AsyncAlgorithms */,
 			);
 			productName = Floe;
 			productReference = AE77F4EE054A6C520DC7476B /* Floe.app */;
@@ -488,7 +494,10 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				604B9A7DCE5E3815BB580A2A /* XCRemoteSwiftPackageReference "Sparkle" */,
+				6BFBD1E3602E04FE085AFB58 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 				CF0B87BBBDD04DCE39106ADB /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
+				429B82AE91E275656C5172B1 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				F68F2A94F6327C74C97742E7 /* XCRemoteSwiftPackageReference "swift-collections" */,
 				97B74537E25C64909369E406 /* XCRemoteSwiftPackageReference "swift-markdown" */,
 				6F2C0D39465C2E214623284A /* XCRemoteSwiftPackageReference "swift-subprocess" */,
 				B5F8706EBF1ACF2C7B5190E0 /* XCLocalSwiftPackageReference "Vendor/ThawConcurrency" */,
@@ -839,12 +848,28 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		429B82AE91E275656C5172B1 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms";
+			requirement = {
+				kind = exactVersion;
+				version = 1.1.3;
+			};
+		};
 		604B9A7DCE5E3815BB580A2A /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
 				kind = exactVersion;
 				version = 2.10.0;
+			};
+		};
+		6BFBD1E3602E04FE085AFB58 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-algorithms";
+			requirement = {
+				kind = exactVersion;
+				version = 1.2.1;
 			};
 		};
 		6F2C0D39465C2E214623284A /* XCRemoteSwiftPackageReference "swift-subprocess" */ = {
@@ -871,6 +896,14 @@
 				version = 1.8.2;
 			};
 		};
+		F68F2A94F6327C74C97742E7 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-collections";
+			requirement = {
+				kind = exactVersion;
+				version = 1.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -881,6 +914,16 @@
 		173A0A05D7E3A728FA4139D5 /* ThawConcurrency */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ThawConcurrency;
+		};
+		1F43772FB45D60218EFCAC8B /* Algorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6BFBD1E3602E04FE085AFB58 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
+			productName = Algorithms;
+		};
+		620405AD1BB424142F8C61B3 /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 429B82AE91E275656C5172B1 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
 		};
 		6472032988506CF0BF94BAC1 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;

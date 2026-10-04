@@ -12,6 +12,10 @@ change the script and run it again instead of editing the list.
 - [swift-markdown](https://github.com/swiftlang/swift-markdown) `0.9.0`: Reads the Markdown in detail views. Apache-2.0.
 - [swift-cmark](https://github.com/swiftlang/swift-cmark) `0.9.0`: Used by swift-markdown. BSD-2-Clause.
 - [swift-argument-parser](https://github.com/apple/swift-argument-parser) `1.8.2`: Reads the command line options. Apache-2.0.
+- [swift-algorithms](https://github.com/apple/swift-algorithms) `1.2.1`: Picks the best matches and drops repeats in lists. Apache-2.0.
+- [swift-numerics](https://github.com/apple/swift-numerics) `1.1.1`: Used by swift-algorithms. Apache-2.0.
+- [swift-async-algorithms](https://github.com/apple/swift-async-algorithms) `1.1.3`: Waits for typing and folder changes to settle. Apache-2.0.
+- [swift-collections](https://github.com/apple/swift-collections) `1.6.0`: Used by swift-async-algorithms. Apache-2.0.
 - [Bun](https://bun.sh): Runs extensions. MIT.
 - [React](https://react.dev) `^19.3.0`: Renders extensions. MIT.
 - [react-reconciler](https://react.dev) `^0.34.0`: Turns what an extension renders into Floe's views. MIT.

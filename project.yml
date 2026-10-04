@@ -15,7 +15,7 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.10.0
-  # Keep these three in step with Package.swift.
+  # Keep these six in step with Package.swift.
   swift-subprocess:
     url: https://github.com/swiftlang/swift-subprocess
     exactVersion: 1.0.0
@@ -25,6 +25,16 @@ packages:
   swift-argument-parser:
     url: https://github.com/apple/swift-argument-parser
     exactVersion: 1.8.2
+  swift-algorithms:
+    url: https://github.com/apple/swift-algorithms
+    exactVersion: 1.2.1
+  swift-async-algorithms:
+    url: https://github.com/apple/swift-async-algorithms
+    exactVersion: 1.1.3
+  # Only swift-async-algorithms uses this. Held back because 1.7 does not build with the Xcode 27 beta.
+  swift-collections:
+    url: https://github.com/apple/swift-collections
+    exactVersion: 1.6.0
 
 settings:
   base:
@@ -56,6 +66,10 @@ targets:
         product: Markdown
       - package: swift-argument-parser
         product: ArgumentParser
+      - package: swift-algorithms
+        product: Algorithms
+      - package: swift-async-algorithms
+        product: AsyncAlgorithms
     postBuildScripts:
       - name: Embed Runtime
         basedOnDependencyAnalysis: false
@@ -110,6 +124,10 @@ targets:
           swiftMarkdown: https://github.com/swiftlang/swift-markdown
           swiftArgumentParser: https://github.com/apple/swift-argument-parser
           swiftCmark: https://github.com/swiftlang/swift-cmark
+          swiftAlgorithms: https://github.com/apple/swift-algorithms
+          swiftNumerics: https://github.com/apple/swift-numerics
+          swiftAsyncAlgorithms: https://github.com/apple/swift-async-algorithms
+          swiftCollections: https://github.com/apple/swift-collections
           swiftSystem: https://github.com/apple/swift-system
         # Filled in from git by the Embed Runtime step.
         GitCommitSHA: unknown

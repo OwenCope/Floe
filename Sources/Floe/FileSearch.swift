@@ -6,6 +6,7 @@
 //  Licensed under the GNU AGPLv3
 
 import AppKit
+import AsyncAlgorithms
 import Combine
 
 struct FileResult: Identifiable, Equatable {
@@ -24,19 +25,29 @@ final class FileSearch: ObservableObject {
     @Published private(set) var isSearching = false
 
     private var metadataQuery: NSMetadataQuery?
-    private var pending: DispatchWorkItem?
+    /// Queries wait here until typing pauses. Each carries the round it was typed in, so one that
+    /// settles after `cancel()` is dropped.
+    private let queries = AsyncStream.makeStream(of: (round: Int, text: String).self, bufferingPolicy: .bufferingNewest(1))
+    private var round = 0
+    private var settling: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
 
+    init() {
+        let stream = queries.stream
+        settling = Task { @MainActor [weak self] in
+            for await query in stream.debounce(for: .milliseconds(150)) {
+                guard let self, query.round == round else { continue }
+                start(query.text)
+            }
+        }
+    }
+
     func search(_ query: String) {
-        pending?.cancel()
-        let work = DispatchWorkItem { [weak self] in self?.start(query) }
-        pending = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
+        queries.continuation.yield((round, query))
     }
 
     func cancel() {
-        pending?.cancel()
-        pending = nil
+        round += 1
         stopQuery()
         results = []
         isSearching = false
@@ -123,6 +134,8 @@ final class FileSearch: ObservableObject {
     }
 
     deinit {
+        settling?.cancel()
+        queries.continuation.finish()
         for observer in observers {
             NotificationCenter.default.removeObserver(observer)
         }

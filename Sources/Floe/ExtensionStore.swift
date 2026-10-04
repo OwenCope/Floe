@@ -6,6 +6,8 @@
 //  Licensed under the GNU AGPLv3
 
 import Foundation
+import Subprocess
+import System
 
 struct StoreListing: Identifiable, Hashable {
     let name: String
@@ -358,12 +360,12 @@ final class ExtensionStore: ObservableObject {
         return "/usr/bin/git"
     }
 
-    private struct ToolOutput {
+    struct ToolOutput {
         let stdout: String
         let stderr: String
     }
 
-    private struct StoreFailure: Error {
+    struct StoreFailure: Error {
         let message: String
     }
 
@@ -372,42 +374,35 @@ final class ExtensionStore: ObservableObject {
             ?? "Unknown error"
     }
 
+    /// How much of a tool's output is kept; git and bun say far less than this.
+    private static let outputLimit = 4 * 1024 * 1024
+
     /// Runs a tool off the main thread. Failures carry the last stderr line.
     @discardableResult
-    private static nonisolated func runTool(
+    static nonisolated func runTool(
         executable: String,
         arguments: [String],
         workingDirectory: URL? = nil,
         context: String
     ) async throws -> ToolOutput {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolOutput, Error>) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: executable)
-                process.arguments = arguments
-                if let workingDirectory {
-                    process.currentDirectoryURL = workingDirectory
-                }
-                let stdoutPipe = Pipe()
-                let stderrPipe = Pipe()
-                process.standardOutput = stdoutPipe
-                process.standardError = stderrPipe
-                process.standardInput = nil
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: StoreFailure(message: "\(context): \(error.localizedDescription)"))
-                    return
-                }
-                process.waitUntilExit()
-                let stdout = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                if process.terminationStatus == 0 {
-                    continuation.resume(returning: ToolOutput(stdout: stdout, stderr: stderr))
-                } else {
-                    continuation.resume(throwing: StoreFailure(message: "\(context): \(lastLine(stderr.isEmpty ? stdout : stderr))"))
-                }
+        do {
+            let result = try await Subprocess.run(
+                .path(FilePath(executable)),
+                arguments: Arguments(arguments),
+                workingDirectory: workingDirectory.map { FilePath($0.path) },
+                output: .string(limit: outputLimit),
+                error: .string(limit: outputLimit)
+            )
+            let stdout = result.standardOutput
+            let stderr = result.standardError
+            guard result.terminationStatus.isSuccess else {
+                throw StoreFailure(message: "\(context): \(lastLine(stderr.isEmpty ? stdout : stderr))")
             }
+            return ToolOutput(stdout: stdout, stderr: stderr)
+        } catch let failure as StoreFailure {
+            throw failure
+        } catch {
+            throw StoreFailure(message: "\(context): \(error.localizedDescription)")
         }
     }
 }

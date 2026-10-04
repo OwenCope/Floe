@@ -13,6 +13,7 @@
 
 import AppKit
 import Foundation
+import Synchronization
 
 /// Why an `oauth.*` request failed, answered to the host as the request's error.
 enum OAuthError: LocalizedError {
@@ -54,8 +55,7 @@ final class OAuthBroker: NSObject {
     }
 
     /// Sign-ins waiting for the browser, keyed by extension name and state together.
-    private var pending: [String: Pending] = [:]
-    private let lock = NSLock()
+    private let pending = Mutex<[String: Pending]>([:])
 
     func install() {
         NSAppleEventManager.shared().setEventHandler(
@@ -128,7 +128,7 @@ final class OAuthBroker: NSObject {
         }
         // One sign-in per extension: failing what is still waiting and recording the new one happen
         // together, so two racing sign-ins cannot leave one recorded and never answered.
-        let replaced: [Pending] = lock.withLock {
+        let replaced: [Pending] = pending.withLock { pending in
             let old = pending.filter { $0.value.extensionName == extensionName }.map(\.key)
                 .compactMap { pending.removeValue(forKey: $0) }
             pending[key] = Pending(extensionName: extensionName, resume: resume, timeout: timeout)
@@ -146,7 +146,7 @@ final class OAuthBroker: NSObject {
     }
 
     private func failPending(for extensionName: String, error: Error) {
-        let matching = lock.withLock { () -> [Pending] in
+        let matching = pending.withLock { pending -> [Pending] in
             let keys = pending.filter { $0.value.extensionName == extensionName }.map(\.key)
             return keys.compactMap { pending.removeValue(forKey: $0) }
         }
@@ -157,7 +157,7 @@ final class OAuthBroker: NSObject {
     }
 
     private func fail(key: String, error: Error) {
-        let entry = lock.withLock { pending.removeValue(forKey: key) }
+        let entry = pending.withLock { $0.removeValue(forKey: key) }
         guard let entry else { return }
         entry.timeout.cancel()
         entry.resume(.failure(error))
@@ -170,7 +170,8 @@ final class OAuthBroker: NSObject {
               let state = items.first(where: { $0.name == "state" })?.value,
               let packageName = items.first(where: { $0.name == "package_name" })?.value
         else { return }
-        let entry = lock.withLock { pending.removeValue(forKey: pendingKey(extensionName: packageName, state: state)) }
+        let key = pendingKey(extensionName: packageName, state: state)
+        let entry = pending.withLock { $0.removeValue(forKey: key) }
         guard let entry else { return }
         entry.timeout.cancel()
         entry.resume(.success(url.absoluteString))

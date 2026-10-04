@@ -5,6 +5,7 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU AGPLv3
 
+import Algorithms
 import AppKit
 import SwiftUI
 import ThawUI
@@ -195,9 +196,8 @@ private struct SettingsSidebarPaneList: View {
 
     /// General and Applications first, then each extension, About last, as in Thaw.
     private var rows: [Row] {
-        var seen = Set<String>()
         let extensions = model.allCommands
-            .filter { seen.insert($0.extensionName).inserted }
+            .uniqued(on: \.extensionName)
             .sorted { $0.extensionTitle.localizedCaseInsensitiveCompare($1.extensionTitle) == .orderedAscending }
             .map { command in
                 Row(

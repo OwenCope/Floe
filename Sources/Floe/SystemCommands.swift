@@ -6,6 +6,8 @@
 //  Licensed under the GNU AGPLv3
 
 import AppKit
+import Subprocess
+import System
 
 enum SystemCommand: String, CaseIterable, Identifiable {
     case lockScreen
@@ -112,10 +114,9 @@ enum SystemCommand: String, CaseIterable, Identifiable {
     }
 
     private func runPmset(arguments: [String]) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        process.arguments = arguments
-        try? process.run()
+        Task {
+            _ = try? await Subprocess.run(.path("/usr/bin/pmset"), arguments: Arguments(arguments), output: .discarded)
+        }
     }
 
     private func runAppleScript(_ source: String) {

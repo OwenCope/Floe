@@ -5,7 +5,9 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU AGPLv3
 
+import Algorithms
 import AppKit
+import AsyncAlgorithms
 
 enum Paths {
     /// The checkout this binary was built from, or `FLOE_ROOT`. Only used when running unbundled (`swift run`)
@@ -87,32 +89,26 @@ extension AppEntry {
         .flatMap { [$0.path, $0.appendingPathComponent("Utilities").path] }
 
     static func scan() -> [AppEntry] {
-        var seen = Set<String>()
-        var apps: [AppEntry] = []
-        for folder in folders {
+        let found = folders.flatMap { folder -> [AppEntry] in
             let entries = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
-            for entry in entries where entry.hasSuffix(".app") {
+            return entries.filter { $0.hasSuffix(".app") }.map { entry in
                 let url = URL(fileURLWithPath: folder).appendingPathComponent(entry)
-                let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
-                // Safari lives in the cryptex and shows up again in /Applications; one entry per app name.
-                if seen.insert(name).inserted {
-                    apps.append(AppEntry(name: name, url: url))
-                }
+                return AppEntry(name: FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: ""), url: url)
             }
         }
-        return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        // Safari lives in the cryptex and shows up again in /Applications; one entry per app name.
+        return found.uniqued(on: \.name).sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 }
 
 extension ExtensionCommand {
     /// Local extensions first, then Raycast's; an extension found in both is taken from the local copy.
     static func scan(includeRaycast: Bool = true) -> [ExtensionCommand] {
-        var seen = Set<String>()
         Paths.prepareSupportFolders()
         let roots: [(URL, Source)] = [(Paths.extensions, .local)]
             + (Paths.developmentExtensions.map { [($0, .local)] } ?? [])
             + (includeRaycast ? [(Paths.raycastExtensions, .raycast)] : [])
-        return roots.flatMap { scan(root: $0.0, source: $0.1) }.filter { seen.insert($0.id).inserted }
+        return Array(roots.flatMap { scan(root: $0.0, source: $0.1) }.uniqued(on: \.id))
     }
 
     /// Every runnable command under a folder of extensions, one subfolder per extension.
@@ -137,19 +133,23 @@ extension CatalogSnapshot {
 /// Watches the application folders and reports changes, so newly installed apps show up without a restart.
 final class AppFolderWatcher {
     private var sources: [DispatchSourceFileSystemObject] = []
-    private var pending: DispatchWorkItem?
+    private let changes = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
+    private var settling: Task<Void, Never>?
 
-    init(onChange: @escaping () -> Void) {
+    init(onChange: @escaping @MainActor () -> Void) {
+        let stream = changes.stream
+        // Installers touch the folder several times; react once things settle.
+        settling = Task { @MainActor in
+            for await _ in stream.debounce(for: .seconds(1)) {
+                onChange()
+            }
+        }
         for folder in AppEntry.folders {
             let descriptor = open(folder, O_EVTONLY)
             guard descriptor >= 0 else { continue }
             let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .rename, .delete], queue: .main)
-            source.setEventHandler { [weak self] in
-                // Installers touch the folder several times; react once things settle.
-                self?.pending?.cancel()
-                let work = DispatchWorkItem(block: onChange)
-                self?.pending = work
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+            source.setEventHandler { [continuation = changes.continuation] in
+                continuation.yield()
             }
             source.setCancelHandler { close(descriptor) }
             source.resume()
@@ -158,6 +158,8 @@ final class AppFolderWatcher {
     }
 
     deinit {
+        settling?.cancel()
+        changes.continuation.finish()
         sources.forEach { $0.cancel() }
     }
 }

@@ -5,6 +5,7 @@
 //  Copyright (Floe) © 2026 René Jiménez
 //  Licensed under the GNU AGPLv3
 
+import Algorithms
 import Foundation
 
 enum Fuzzy {
@@ -92,8 +93,8 @@ enum Ranking {
             let boost = min(20, frecency(item.id) * 2) + (favorites.contains(item.id) ? 5 : 0)
             return (item, Double(match) + boost)
         }
-        .sorted { $0.1 > $1.1 }
-        .prefix(limit)
+        // Equal scores keep the order they came in, which a plain sort does not promise.
+        .min(count: limit) { $0.1 > $1.1 }
         .map { RootResult(item: $0.0, section: nil) }
     }
 
