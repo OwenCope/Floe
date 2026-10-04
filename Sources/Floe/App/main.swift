@@ -47,7 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var panel: LauncherPanel!
     private let hotkeys = HotkeyRegistry()
     private let settings = AppSettings.shared
-    private lazy var settingsWindow = SettingsWindowController(model: model)
+    /// Settings is a process of its own; this starts it and keeps the two in step.
+    private lazy var settingsLink = LauncherSettingsLink(model: model, hotkeys: hotkeys)
     private var cancellables = Set<AnyCancellable>()
     private var statusItem: NSStatusItem?
     private var showItem: NSMenuItem?
@@ -69,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.hidePanel = { [weak self] in self?.hide() }
         model.showPanel = { [weak self] in self?.show() }
         model.showHUD = { ThawHUD.show(text: $0) }
-        model.openSettings = { [weak self] in self?.settingsWindow.show(extensionName: $0) }
+        model.openSettings = { [weak self] in self?.settingsLink.show(page: $0.map { SettingsPage.extensionPage($0).id }) }
         model.canAskAI = AskAI.availabilityCheck { AIAnswer.isAvailable }
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -92,10 +93,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "q")
         item.menu = menu
         statusItem = item
-        NSApp.mainMenu = makeMainMenu()
+        NSApp.mainMenu = MainMenu.make(target: self, about: #selector(openAbout), settings: #selector(openSettings))
 
         appWatcher = AppFolderWatcher { [weak self] in self?.model.reloadApps() }
-        settings.$toggleHotkey.combineLatest(settings.$commandHotkeys, model.$allCommands, model.$apps)
+        // Without duplicates: a reload of the settings saved by the settings process sends every value again.
+        settings.$toggleHotkey.removeDuplicates().combineLatest(settings.$commandHotkeys.removeDuplicates(), model.$allCommands, model.$apps)
             .sink { [weak self] _, _, _, _ in DispatchQueue.main.async { self?.registerHotkeys() } }
             .store(in: &cancellables)
         model.$allScripts
@@ -104,17 +106,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.panelWindowSizes(settings: settings)
             .sink { [weak self] size in self?.panel.resizeKeepingTop(to: size) }
             .store(in: &cancellables)
-        settings.$isRecordingHotkey
-            .sink { [weak self] in self?.hotkeys.isSuspended = $0 }
+        // The switch is in the settings process, which stays in front: the launcher only changes its own policy.
+        settings.$showInDock.removeDuplicates().dropFirst()
+            .sink { NSApp.setActivationPolicy($0 ? .regular : .accessory) }
             .store(in: &cancellables)
-        settings.$showInDock.dropFirst().removeDuplicates()
-            .sink {
-                NSApp.setActivationPolicy($0 ? .regular : .accessory)
-                // Changing the policy drops the app to the background, which would hide the settings window.
-                NSApp.activate()
-            }
-            .store(in: &cancellables)
-        settings.$includeRaycastExtensions.dropFirst()
+        settings.$includeRaycastExtensions.removeDuplicates().dropFirst()
             .sink { [weak self] _ in DispatchQueue.main.async { self?.model.reloadCommands() } }
             .store(in: &cancellables)
         // Shortcuts and Spotlight list the commands by name, so they hear about every rescan.
@@ -125,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let backgroundScheduler = BackgroundScheduler(model: model, menuBarCommands: menuBarCommands)
         self.menuBarCommands = menuBarCommands
         self.backgroundScheduler = backgroundScheduler
-        model.$allCommands.combineLatest(settings.$disabledExtensions, settings.$menuBarCommands)
+        model.$allCommands.combineLatest(settings.$disabledExtensions.removeDuplicates(), settings.$menuBarCommands.removeDuplicates())
             .sink { [weak self] _, _, _ in
                 // After the publishers' willSet, so enabledCommands reads the new values.
                 DispatchQueue.main.async {
@@ -143,7 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Takes floe:// links: Thaw's answer about its appearance, and the browser's return once sign-in is back.
         IncomingURLRouter.shared.install()
         TextExpander.shared.start()
-        ExtensionStore.shared.onInstalled = { [weak self] in self?.model.reloadCommands() }
+        settingsLink.start()
 
         // The first launch opens the welcome window; the launcher follows when it is finished.
         OnboardingWindowController.shared.openLauncher = { [weak self] in self?.show() }
@@ -151,6 +147,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             show()
         }
         model.autorun()
+        // FLOE_OPEN_SETTINGS=<seconds>[,<seconds>] opens Settings that long after launch, to check the settings process.
+        for delay in (ProcessInfo.processInfo.environment["FLOE_OPEN_SETTINGS"] ?? "").split(separator: ",").compactMap({ Double($0) }) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.settingsLink.show() }
+        }
     }
 
     /// The launcher hotkey plus one per command that has a hotkey assigned.
@@ -186,12 +186,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc func openAbout() {
         hide()
-        settingsWindow.show(page: .about)
+        settingsLink.show(page: SettingsPage.about.id)
     }
 
     @objc func openSettings() {
         hide()
-        settingsWindow.show()
+        settingsLink.show()
     }
 
     /// A click on the Dock icon opens the launcher.
@@ -204,6 +204,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.session?.forceStop()
         menuBarCommands?.stopAll()
         backgroundScheduler?.stopAll()
+        settingsLink.terminate()
     }
 
     private func toggle() {
@@ -310,6 +311,10 @@ if options.pick {
     PickerMode.run(options)
 }
 
+if options.settings {
+    SettingsMode.run(options)
+}
+
 if let query = options.search {
     // No sources: the process exits before they answer, and a tab read must not start from here.
     let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions), sources: [])
@@ -328,10 +333,10 @@ if options.benchSearch {
 // Catches slow page switches.
 if options.benchSettings {
     _ = NSApplication.shared
-    let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
+    let catalog = SettingsCatalog(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
     let selection = SettingsSelection()
     let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 820, height: 560), styleMask: [.titled], backing: .buffered, defer: false)
-    window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: .shared, selection: selection))
+    window.contentView = NSHostingView(rootView: SettingsView(catalog: catalog, settings: .shared, selection: selection))
     window.orderFrontRegardless()
     let pages: [(String, SettingsPage)] = [("general", .general), ("applications", .applications), ("privacy", .privacy), ("about", .about), ("extension", .extensionPage("kill-process"))]
     for (name, page) in pages {

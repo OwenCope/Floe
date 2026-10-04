@@ -123,17 +123,85 @@ final class AppSettings: ObservableObject {
     private static let defaultsKey = "settings"
     private let defaults: UserDefaults
     private var cancellable: AnyCancellable?
+    /// Called after a save that changed what is stored. The process link sets it, to tell the other process.
+    var onSaved: (() -> Void)?
+    /// What the defaults held when this process last read or wrote them, to tell when another process has saved.
+    private var seen: Data?
+    /// This process's own settings as they were at that moment: what each side's changes are measured from.
+    private var base: Data?
+    private var isCapturingBase = false
+    /// True while stored values are being taken in, so that is not mistaken for an edit to save.
+    private var isReloading = false
+    /// True from an edit until it is saved.
+    private(set) var hasUnsavedChanges = false
 
-    init(defaults: UserDefaults = .standard) {
+    /// A test passes false for `savesAfterEdits`, so the moment of each save is its own to choose.
+    init(defaults: UserDefaults = .standard, savesAfterEdits: Bool = true) {
         self.defaults = defaults
         if let data = defaults.data(forKey: Self.defaultsKey),
            let stored = try? JSONDecoder().decode(Stored.self, from: data)
         {
             apply(stored)
+            seen = data
         }
-        cancellable = objectWillChange
-            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
-            .sink { [weak self] in self?.save() }
+        captureBase()
+        let edits = objectWillChange
+            .filter { [weak self] in self?.isReloading == false }
+            .handleEvents(receiveOutput: { [weak self] in self?.hasUnsavedChanges = true })
+        cancellable = savesAfterEdits
+            ? edits.debounce(for: .milliseconds(200), scheduler: RunLoop.main).sink { [weak self] in self?.save() }
+            : edits.sink { /* saved by hand */ }
+    }
+
+    /// Takes what another process saved. Nothing is written back, so the other process hears no echo.
+    func reload() {
+        // Asked of the defaults server: this process's cached copy can trail another process's save.
+        defaults.synchronize()
+        guard let theirs = defaults.data(forKey: Self.defaultsKey), !SettingsMerge.isSame(theirs, seen) else { return }
+        if hasUnsavedChanges {
+            // The edit waiting here goes out now, on top of what the other process wrote.
+            save()
+        } else {
+            take(theirs)
+            seen = theirs
+            captureBase()
+        }
+    }
+
+    private func take(_ data: Data) {
+        guard let stored = try? JSONDecoder().decode(Stored.self, from: data) else { return }
+        isReloading = true
+        apply(stored)
+        isReloading = false
+    }
+
+    /// Runs `save()` as far as the encoding and keeps the result, so the list of settings stays in one place.
+    private func captureBase() {
+        isCapturingBase = true
+        save()
+        isCapturingBase = false
+    }
+
+    /// Stores this process's settings, with whatever another process changed since the last look kept.
+    private func write(_ mine: Data) {
+        guard !isCapturingBase else {
+            base = mine
+            return
+        }
+        hasUnsavedChanges = false
+        let stored = defaults.data(forKey: Self.defaultsKey)
+        var data = mine
+        if let stored, !SettingsMerge.isSame(stored, seen) {
+            data = SettingsMerge.merged(base: base, mine: mine, theirs: stored)
+            take(data)
+            captureBase()
+        } else {
+            base = mine
+        }
+        seen = data
+        guard !SettingsMerge.isSame(data, stored) else { return }
+        defaults.set(data, forKey: Self.defaultsKey)
+        onSaved?()
     }
 
     private func apply(_ stored: Stored) {
@@ -223,7 +291,7 @@ final class AppSettings: ObservableObject {
             aiSourceByExtension: aiSourceByExtension
         )
         if let data = try? JSONEncoder().encode(stored) {
-            defaults.set(data, forKey: Self.defaultsKey)
+            write(data)
         }
     }
 }

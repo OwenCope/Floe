@@ -12,6 +12,8 @@
 //  A scheduled update is announced in the status menu item instead of a user notification, and
 //  Sparkle shows its own release notes, because Floe has no What's New window. UpdateChannel
 //  and the consent and wording logic live in UpdateChannel.swift and UpdateLogic.swift.
+//  In the settings process no updater is built: the controls show what the launcher's updater
+//  reports and send their changes to it (see UpdatesLink.swift).
 
 import AppKit
 import Combine
@@ -55,13 +57,20 @@ final class UpdatesManager: NSObject {
     private weak var menuItem: NSMenuItem?
 
     @ObservationIgnored
-    private lazy var updaterController: SPUStandardUpdaterController? = isAvailable
+    private lazy var updaterController: SPUStandardUpdaterController? = isAvailable && sendToLauncher == nil
         ? SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: self, userDriverDelegate: self)
         : nil
 
     private var updater: SPUUpdater? {
         updaterController?.updater
     }
+
+    /// Set in the settings process before anything reads the manager: sends a request to the launcher's updater.
+    @ObservationIgnored
+    var sendToLauncher: ((UpdateRequest) -> Void)?
+
+    /// In the settings process, what the launcher's updater last reported.
+    var reported = UpdatesState()
 
     init(
         configuration: UpdateConfiguration = UpdateConfiguration(info: Bundle.main.infoDictionary),
@@ -76,7 +85,10 @@ final class UpdatesManager: NSObject {
 
     /// Whether a manual check can begin now.
     var canCheckNow: Bool {
-        isAvailable && UpdateText.canCheckNow(updaterStarted: hasStartedUpdater, updaterCanCheck: canCheckForUpdates)
+        if sendToLauncher != nil {
+            return isAvailable && reported.canCheckNow
+        }
+        return isAvailable && UpdateText.canCheckNow(updaterStarted: hasStartedUpdater, updaterCanCheck: canCheckForUpdates)
     }
 
     /// The channel the user is subscribed to.
@@ -85,9 +97,17 @@ final class UpdatesManager: NSObject {
             // Backed by UserDefaults, so Observation is registered by hand,
             // like the Sparkle-backed properties below.
             access(keyPath: \.updateChannel)
+            if sendToLauncher != nil {
+                return UpdateChannel(rawValue: reported.channel) ?? .stable
+            }
             return UpdateChannel.stored(in: defaults)
         }
         set {
+            if let sendToLauncher {
+                reported.channel = newValue.rawValue
+                sendToLauncher(.setChannel(newValue))
+                return
+            }
             withMutation(keyPath: \.updateChannel) {
                 newValue.store(in: defaults)
             }
@@ -100,9 +120,17 @@ final class UpdatesManager: NSObject {
     var automaticallyChecksForUpdates: Bool {
         get {
             access(keyPath: \.automaticallyChecksForUpdates)
+            if sendToLauncher != nil {
+                return reported.checks
+            }
             return updater?.automaticallyChecksForUpdates ?? false
         }
         set {
+            if let sendToLauncher {
+                reported.checks = newValue
+                sendToLauncher(.setChecks(newValue))
+                return
+            }
             guard let updater else { return }
             withMutation(keyPath: \.automaticallyChecksForUpdates) {
                 updater.automaticallyChecksForUpdates = newValue
@@ -119,9 +147,17 @@ final class UpdatesManager: NSObject {
     var automaticallyDownloadsUpdates: Bool {
         get {
             access(keyPath: \.automaticallyDownloadsUpdates)
+            if sendToLauncher != nil {
+                return reported.downloads
+            }
             return updater?.automaticallyDownloadsUpdates ?? false
         }
         set {
+            if let sendToLauncher {
+                reported.downloads = newValue
+                sendToLauncher(.setDownloads(newValue))
+                return
+            }
             guard let updater else { return }
             withMutation(keyPath: \.automaticallyDownloadsUpdates) {
                 updater.automaticallyDownloadsUpdates = newValue
@@ -163,6 +199,10 @@ final class UpdatesManager: NSObject {
     }
 
     @objc func checkForUpdates() {
+        if let sendToLauncher {
+            sendToLauncher(.check)
+            return
+        }
         guard let updater else { return }
         #if DEBUG
             // Checking for updates hangs in debug mode, except against a local
@@ -199,6 +239,12 @@ final class UpdatesManager: NSObject {
     /// Same write order as Thaw: the flag, Sparkle's switches, then the updater start.
     func answerConsent(_ choice: AutomaticUpdates) {
         isConsentPresented = false
+        if let sendToLauncher {
+            reported.checks = choice.checks
+            reported.downloads = choice.downloads
+            sendToLauncher(.consent(choice))
+            return
+        }
         consent.hasAnswered = true
         automaticallyChecksForUpdates = choice.checks
         automaticallyDownloadsUpdates = choice.downloads

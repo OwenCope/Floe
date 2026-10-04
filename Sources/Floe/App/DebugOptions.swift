@@ -41,6 +41,15 @@ struct DebugOptions: ParsableCommand {
     @Flag(help: "With --pick, print the chosen line's position in the input, counting from 0, instead of its text.")
     var index = false
 
+    @Flag(help: "Show the settings window in a process of its own, which ends when the window closes. The app starts it this way. FLOE_SETTINGS_CLOSE_AFTER=<seconds> closes the window by itself.")
+    var settings = false
+
+    @Option(help: ArgumentHelp("With --settings, the page to open: general, applications, quicklinks, snippets, store, appearance, privacy or about.", valueName: "page"))
+    var page: String?
+
+    @Option(name: .customLong("extension"), help: ArgumentHelp("With --settings, the extension whose page to open.", valueName: "name"))
+    var extensionName: String?
+
     @Option(parsing: .upToNextOption, help: ArgumentHelp("Run a command without UI and report the first view it renders.", valueName: "extension> <command"))
     var selftest: [String] = []
 
@@ -55,5 +64,22 @@ struct DebugOptions: ParsableCommand {
         guard pick || (prompt == nil && query == nil && !index) else {
             throw ValidationError("--prompt, --query and --index only go with --pick.")
         }
+        guard settings || (page == nil && extensionName == nil) else {
+            throw ValidationError("--page and --extension only go with --settings.")
+        }
+        guard page == nil || extensionName == nil else {
+            throw ValidationError("--page and --extension name two pages; give one.")
+        }
+        if let page, SettingsPage(id: page) == nil {
+            throw ValidationError("Settings has no page called \(page).")
+        }
+    }
+
+    /// The page --settings opens; nil is the page Settings starts on.
+    var settingsPage: SettingsPage? {
+        if let extensionName {
+            return .extensionPage(extensionName)
+        }
+        return page.flatMap(SettingsPage.init(id:))
     }
 }

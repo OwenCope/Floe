@@ -35,18 +35,26 @@ final class QuicklinkStore: ObservableObject {
         didSet { save() }
     }
 
-    private static var fileURL: URL {
-        Paths.support.appendingPathComponent("quicklinks.json")
+    private let file: URL
+    private var isLoading = false
+    /// Called after each save. The process link sets it, to tell the other process.
+    var onSaved: (() -> Void)?
+
+    init(file: URL = Paths.support.appendingPathComponent("quicklinks.json")) {
+        self.file = file
+        links = Self.stored(in: file) ?? Self.defaults
     }
 
-    init() {
-        if let data = try? Data(contentsOf: Self.fileURL),
-           let decoded = try? JSONDecoder().decode([Quicklink].self, from: data)
-        {
-            links = decoded
-        } else {
-            links = Self.defaults
-        }
+    private static func stored(in file: URL) -> [Quicklink]? {
+        (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([Quicklink].self, from: $0) }
+    }
+
+    /// Reads the file again, after another process saved it. Nothing is written back.
+    func reload() {
+        guard let stored = Self.stored(in: file) else { return }
+        isLoading = true
+        links = stored
+        isLoading = false
     }
 
     static let defaults: [Quicklink] = [
@@ -127,9 +135,11 @@ final class QuicklinkStore: ObservableObject {
     }
 
     private func save() {
-        try? FileManager.default.createDirectory(at: Paths.support, withIntermediateDirectories: true)
+        guard !isLoading else { return }
+        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
         if let data = try? JSONEncoder().encode(links) {
-            try? data.write(to: Self.fileURL, options: .atomic)
+            try? data.write(to: file, options: .atomic)
+            onSaved?()
         }
     }
 }

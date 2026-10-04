@@ -13,6 +13,12 @@ import SwiftUI
 enum ReleaseNotesWindow {
     private static var window: NSWindow?
     private static var closeObserver: NSObjectProtocol?
+    /// Called after the window has closed. The settings process sets it: it stays alive while the notes are open.
+    static var onClose: (() -> Void)?
+
+    static var isOpen: Bool {
+        window != nil
+    }
 
     static func show() {
         if let window {
@@ -34,6 +40,7 @@ enum ReleaseNotesWindow {
                 window = nil
                 closeObserver.map(NotificationCenter.default.removeObserver)
                 closeObserver = nil
+                onClose?()
             }
         }
         window = created

@@ -7,14 +7,15 @@
 
 import AppKit
 
-extension AppDelegate {
+enum MainMenu {
     /// Floe has no menu bar of its own unless it is in the Dock, but the main menu is still where
     /// AppKit looks up key equivalents: without it ⌘Q, ⌘W and the editing keys do nothing.
-    func makeMainMenu() -> NSMenu {
+    /// The launcher and the settings process each make one, with their own About and Settings actions.
+    static func make(target: AnyObject, about: Selector, settings: Selector) -> NSMenu {
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About Floe", action: #selector(openAbout), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: "About Floe", action: about, keyEquivalent: "").target = target
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        appMenu.addItem(withTitle: "Settings…", action: settings, keyEquivalent: ",").target = target
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide Floe", action: #selector(NSApplication.hide), keyEquivalent: "h")
         appMenu.addItem(withTitle: "Quit Floe", action: #selector(NSApplication.terminate), keyEquivalent: "q")

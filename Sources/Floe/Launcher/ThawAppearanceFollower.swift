@@ -21,7 +21,7 @@ final class ThawAppearanceFollower: ObservableObject {
     /// How long Thaw has to answer. It answers at once when it answers at all.
     static let timeout: TimeInterval = 5
 
-    enum Status: Equatable {
+    enum Status: String, Equatable {
         case idle
         case following
         /// Thaw was asked and stayed silent: it lacks the operation, or does not trust this build of Floe.
@@ -74,10 +74,20 @@ final class ThawAppearanceFollower: ObservableObject {
         self.defaults = defaults
         self.environment = environment
         // The last answers come back at launch, so the panel opens in Thaw's look before Thaw is asked again.
+        loadSaved()
+    }
+
+    private func loadSaved() {
         let saved = defaults.data(forKey: Self.defaultsKey).flatMap { try? JSONDecoder().decode([ThawAppearance].self, from: $0) }
         for appearance in saved ?? [] where appearance.version == ThawAppearance.supportedVersion {
             settings.thawAppearances[appearance.colorScheme] = appearance
         }
+    }
+
+    /// In the settings process, which never asks Thaw itself: shows what the launcher's follower reports.
+    func mirror(_ status: Status) {
+        loadSaved()
+        self.status = status
     }
 
     static func requestURL(requestId: String) -> URL? {
@@ -94,7 +104,8 @@ final class ThawAppearanceFollower: ObservableObject {
     /// Fetches now if the switch is on, and again on every reason the look may have changed.
     func start() {
         let refresh: (Any) -> Void = { [weak self] _ in self?.refresh() }
-        settings.$followsThawAppearance.dropFirst().removeDuplicates()
+        // Duplicates go first: a reload of settings saved by the settings process sends the same value again.
+        settings.$followsThawAppearance.removeDuplicates().dropFirst()
             // After the publisher's willSet, so the switch reads its new value.
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isOn in

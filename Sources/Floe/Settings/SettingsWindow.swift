@@ -1,0 +1,116 @@
+//
+//  SettingsWindow.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU AGPLv3
+
+import AppKit
+import SwiftUI
+
+/// The settings window. Only the settings process makes one (see SettingsMode.swift).
+final class SettingsWindowController: NSObject, NSWindowDelegate {
+    private var window: NSWindow?
+    private let catalog: SettingsCatalog
+    let selection = SettingsSelection()
+    /// Called once the window has closed.
+    var onClose: () -> Void = { /* set by the settings process */ }
+
+    /// Room for the sidebar, a readable pane and the toolbar's search field.
+    private static let minimumSize = NSSize(width: 720, height: 460)
+
+    init(catalog: SettingsCatalog) {
+        self.catalog = catalog
+    }
+
+    var isOpen: Bool {
+        window != nil
+    }
+
+    func show(page: SettingsPage? = nil) {
+        selection.page = page ?? selection.page
+        if window == nil {
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            window.title = "Floe Settings"
+            window.toolbarStyle = .unified
+            window.isReleasedWhenClosed = false
+            window.contentMinSize = Self.minimumSize
+            // As Thaw's windows: not a workspace, so the green button zooms, and nothing worth restoring.
+            window.collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenNone])
+            window.isRestorable = false
+            let content = NSHostingView(rootView: SettingsView(catalog: catalog, settings: .shared, selection: selection))
+            // The panes name the window and fill its toolbar: title, subtitle and the search field.
+            content.sceneBridgingOptions = [.title, .toolbars]
+            window.contentView = content
+            window.center()
+            window.delegate = self
+            self.window = window
+        }
+        UpdatesManager.settingsWillShow()
+        NSApp.activate()
+        window?.makeKeyAndOrderFront(nil)
+    }
+
+    func close() {
+        window?.close()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard notification.object as? NSWindow === window else { return }
+        window = nil
+        // A turn later, so the window finishes closing before the process may end.
+        DispatchQueue.main.async { [onClose] in onClose() }
+    }
+}
+
+enum SettingsPage: Hashable {
+    case general
+    case applications
+    case quicklinks
+    case snippets
+    case extensionStore
+    case appearance
+    case privacy
+    case about
+    case extensionPage(String)
+
+    private static let extensionPrefix = "extension:"
+    private static let fixed: [String: SettingsPage] = [
+        "general": .general,
+        "applications": .applications,
+        "quicklinks": .quicklinks,
+        "snippets": .snippets,
+        "store": .extensionStore,
+        "appearance": .appearance,
+        "privacy": .privacy,
+        "about": .about,
+    ]
+
+    /// The page's name on the command line and between the two processes.
+    var id: String {
+        if case let .extensionPage(name) = self {
+            return Self.extensionPrefix + name
+        }
+        return Self.fixed.first { $0.value == self }?.key ?? "general"
+    }
+
+    /// Nil for a name that is no page, which leaves the window on the page it has.
+    init?(id: String) {
+        if id.hasPrefix(Self.extensionPrefix), id.count > Self.extensionPrefix.count {
+            self = .extensionPage(String(id.dropFirst(Self.extensionPrefix.count)))
+        } else if let page = Self.fixed[id] {
+            self = page
+        } else {
+            return nil
+        }
+    }
+}
+
+final class SettingsSelection: ObservableObject {
+    @Published var page: SettingsPage = .general
+}

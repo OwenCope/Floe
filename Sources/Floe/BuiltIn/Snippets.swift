@@ -71,9 +71,16 @@ final class SnippetStore: ObservableObject {
 
     private let file: URL
     private var isLoading = false
+    /// Called after each save. The process link sets it, to tell the other process.
+    var onSaved: (() -> Void)?
 
     init(file: URL = Paths.support.appendingPathComponent("snippets.json")) {
         self.file = file
+        reload()
+    }
+
+    /// Reads the file again, after another process saved it. Nothing is written back.
+    func reload() {
         isLoading = true
         if let data = try? Data(contentsOf: file), let saved = try? JSONDecoder().decode(Saved.self, from: data) {
             snippets = saved.snippets
@@ -102,5 +109,6 @@ final class SnippetStore: ObservableObject {
         guard !isLoading, let data = try? JSONEncoder().encode(Saved(snippets: snippets, expansionEnabled: expansionEnabled)) else { return }
         try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? data.write(to: file, options: .atomic)
+        onSaved?()
     }
 }

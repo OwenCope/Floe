@@ -21,6 +21,13 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     /// Shows the launcher once a first-launch flow ends. Set by the app delegate.
     var openLauncher: (() -> Void)?
 
+    /// Called after the window has closed. The settings process sets it: it stays alive while the welcome is open.
+    var onClose: (() -> Void)?
+
+    var isOpen: Bool {
+        window != nil
+    }
+
     private var window: NSWindow?
     private let settings = AppSettings.shared
     private let permissions = AppPermissions.shared
@@ -82,6 +89,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard notification.object as? NSWindow === window else { return }
         window = nil
+        defer { onClose?() }
         guard !settings.hasSeenOnboarding else { return }
         settings.hasSeenOnboarding = true
         settings.save()

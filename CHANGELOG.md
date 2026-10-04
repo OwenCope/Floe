@@ -37,6 +37,7 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 
 - Menu bar commands are added to the menu bar by hand, from the search or from Settings. None starts on its own at launch.
 - Browser sign-in (OAuth) for extensions is parked. Extensions use a token preference until it has been tested against real providers.
+- Settings opens in a process of its own, which ends when the window closes and gives its memory back. It has its own Dock icon while it is open.
 
 ### Fixed
 
@@ -52,4 +53,5 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 - The root search is built from providers, scopes and sources that each answer a query on their own.
 - swift-subprocess, swift-algorithms, swift-async-algorithms, swift-markdown and swift-argument-parser replace hand-written code.
 - `Floe --bench-search` times the catalog scan and each keystroke; `--bench-settings` times each settings page.
+- `Floe --settings` is the settings process. The launcher starts it and the two keep in step over distributed notifications, all listed in `ProcessLink.swift`.
 - A watchdog writes a report to `~/Library/Logs/Floe` when the main thread stops answering.

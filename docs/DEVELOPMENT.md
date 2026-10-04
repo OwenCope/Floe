@@ -31,12 +31,22 @@ macOS asks again after each rebuild, so set a signing identity in `project.yml` 
 
 Commands with required preferences or arguments ask for them in the panel before they run.
 
+Settings is a process of its own. The launcher starts this same executable again with `--settings`
+(`SettingsProcess.swift`), one at a time, and that process ends when its window closes, which gives back the memory
+the settings pages took. The launcher builds no settings view. Being the same executable, the settings process
+has the app's defaults, Keychain items and permissions. The two keep in step with a few distributed notifications,
+all listed in `ProcessLink.swift`: whichever saves the settings, the snippets or the quicklinks says so and the
+other reads them again, and the launcher does for Settings what only it can: the updater, the clipboard history,
+rescans of scripts and extensions, and quitting. A message is acted on only when it names the other process of the
+pair as its sender. The welcome window at first launch is still the launcher's.
+
 ## Layout
 
 - `Sources/Floe`: the app: panel, hotkey, app index, and a renderer for the JSON tree the host sends. One folder per
   area, and no Swift file outside a folder:
   - `App`: the entry point and app delegate (`main.swift`), the main menu, the `floe://` link router, the debug
-    options, the update rules and the generated credits.
+    options, the update rules and the generated credits. Also the launcher's side of Settings: the process handle
+    (`SettingsProcess.swift`), the messages (`ProcessLink.swift`) and what the launcher does with them.
   - `Launcher`: the panel's model (`Model.swift`, with one `Model+….swift` per view it drives and one for the keys)
     and its root views (`Views.swift`, `IconView.swift`), its layout and appearance, the Actions menus, the catalog
     of apps and commands with its scans (`Catalog.swift`, which also holds `Paths`), and Markdown.
@@ -49,7 +59,8 @@ Commands with required preferences or arguments ask for them in the panel before
     (`HostRequest.swift`), the manifest, the store, menu bar commands, the background scheduler, OAuth, hot reload,
     and the views an extension's forms and errors are drawn with.
   - `Settings`: the settings model (`Settings.swift`), its window, pages and sections, settings search entries,
-    import and export, and the Keychain and preference stores.
+    import and export, and the Keychain and preference stores. `SettingsMode.swift` is the settings process, and
+    `SettingsCatalog.swift` the commands, scripts and apps it lists.
   - `Picker`: `Floe --pick`.
   - `PreferredApps`, `Thaw` and `DroppyCode` are described below. `Tests/FloeTests` has the same folders.
 - `runtime/host.ts`: bundles a command, renders it with a custom React reconciler, speaks NDJSON on stdio.
@@ -205,6 +216,8 @@ ignore that key, and without it a Debug build refuses to check.
     .build/debug/Floe --panel-snapshot /tmp/p           # root and menu bar views, drawn off screen
     FLOE_BENCH_DUMP=/tmp/s .build/debug/Floe --bench-settings  # settings page timings and snapshots
     bun runtime/survey.ts ~/.config/raycast/extensions      # compatibility across many extensions
+    FLOE_SETTINGS_CLOSE_AFTER=3 .build/debug/Floe --settings --page about  # the settings process alone; exits 0 when its window closes
+    FLOE_OPEN_SETTINGS=5,20 swift run                   # the launcher opens Settings by itself after 5 and 20 seconds
     printf 'a\nb\n' | FLOE_PICK_AUTO=1 .build/debug/Floe --pick --query b  # the picker, without its panel
     FLOE_AUTORUN=hacker-news/frontpage swift run        # open straight into a command
 

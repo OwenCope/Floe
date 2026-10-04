@@ -11,11 +11,11 @@ import ThawUI
 /// The menu-bar commands of the enabled extensions, each with the switch that gives it a status item.
 /// Left out when no extension has one.
 struct MenuBarCommandsSettingsSection: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var catalog: SettingsCatalog
     @ObservedObject var settings: AppSettings
 
     private var commands: [ExtensionCommand] {
-        model.allCommands
+        catalog.allCommands
             .filter { $0.mode == "menu-bar" && !settings.disabledExtensions.contains($0.extensionName) }
             .sorted { ($0.extensionTitle, $0.title) < ($1.extensionTitle, $1.title) }
     }

@@ -27,8 +27,8 @@ struct DiagnosticsSettingsSection: View {
             }
         }
         .task(id: settings.diagnosticLogging) {
-            // The file opens a moment after the switch flips.
-            try? await Task.sleep(for: .milliseconds(100))
+            // The launcher opens the file once it hears of the switch, a moment after it flips here.
+            try? await Task.sleep(for: .milliseconds(600))
             logFileName = (DiagnosticLogger.shared.currentLogFile ?? DiagnosticLogger.shared.latestLogFile)?.lastPathComponent
         }
     }

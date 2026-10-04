@@ -10,82 +10,15 @@ import AppKit
 import SwiftUI
 import ThawUI
 
-final class SettingsWindowController: NSObject, NSWindowDelegate {
-    private var window: NSWindow?
-    private let model: LauncherModel
-    private let selection = SettingsSelection()
-
-    /// Room for the sidebar, a readable pane and the toolbar's search field.
-    private static let minimumSize = NSSize(width: 720, height: 460)
-
-    init(model: LauncherModel) {
-        self.model = model
-    }
-
-    func show(extensionName: String? = nil, page: SettingsPage? = nil) {
-        selection.page = page ?? extensionName.map(SettingsPage.extensionPage) ?? selection.page
-        if window == nil {
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
-            window.title = "Floe Settings"
-            window.toolbarStyle = .unified
-            window.isReleasedWhenClosed = false
-            window.contentMinSize = Self.minimumSize
-            // As Thaw's windows: not a workspace, so the green button zooms, and nothing worth restoring.
-            window.collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenNone])
-            window.isRestorable = false
-            let content = NSHostingView(rootView: SettingsView(model: model, settings: .shared, selection: selection))
-            // The panes name the window and fill its toolbar: title, subtitle and the search field.
-            content.sceneBridgingOptions = [.title, .toolbars]
-            window.contentView = content
-            window.center()
-            window.delegate = self
-            self.window = window
-        }
-        UpdatesManager.settingsWillShow()
-        NSApp.activate()
-        window?.makeKeyAndOrderFront(nil)
-    }
-
-    /// The settings hierarchy is the app's biggest throwaway SwiftUI tree. Closing the window
-    /// releases it instead of caching it for the app's lifetime; the chosen page survives in
-    /// `selection`, and the next show rebuilds the window fresh — the same teardown Thaw's
-    /// onboarding window applies to itself.
-    func windowWillClose(_ notification: Notification) {
-        guard notification.object as? NSWindow === window else { return }
-        window = nil
-    }
-}
-
-enum SettingsPage: Hashable {
-    case general
-    case applications
-    case quicklinks
-    case snippets
-    case extensionStore
-    case appearance
-    case privacy
-    case about
-    case extensionPage(String)
-}
-
-final class SettingsSelection: ObservableObject {
-    @Published var page: SettingsPage = .general
-}
-
 struct SettingsView: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var catalog: SettingsCatalog
     @ObservedObject var settings: AppSettings
     @ObservedObject var selection: SettingsSelection
     @State private var search = SearchModel()
 
     var body: some View {
         NavigationSplitView {
-            SettingsSidebarPaneList(model: model, settings: settings, selection: selection)
+            SettingsSidebarPaneList(catalog: catalog, settings: settings, selection: selection)
                 .navigationSplitViewColumnWidth(min: SettingsSidebarPaneList.listWidth, ideal: SettingsSidebarPaneList.listWidth, max: 250)
         } detail: {
             detail
@@ -106,7 +39,7 @@ struct SettingsView: View {
     private var detail: some View {
         if search.isSearching {
             // Results take over the detail column until one is chosen or the query is cleared.
-            SettingsSearchResults(selection: selection, commands: model.allCommands)
+            SettingsSearchResults(selection: selection, commands: catalog.allCommands)
         } else {
             pane
         }
@@ -116,9 +49,9 @@ struct SettingsView: View {
     private var pane: some View {
         switch selection.page {
         case .general:
-            GeneralSettingsView(model: model, settings: settings)
+            GeneralSettingsView(catalog: catalog, settings: settings)
         case .applications:
-            ApplicationSettingsView(model: model, settings: settings)
+            ApplicationSettingsView(catalog: catalog, settings: settings)
         case .quicklinks:
             QuicklinksSettingsPage()
         case .snippets:
@@ -133,9 +66,9 @@ struct SettingsView: View {
             AboutSettingsPane()
         case let .extensionPage(name):
             ExtensionSettingsView(
-                model: model,
+                catalog: catalog,
                 settings: settings,
-                commands: model.allCommands.filter { $0.extensionName == name }
+                commands: catalog.allCommands.filter { $0.extensionName == name }
             )
             .id(name)
         }
@@ -154,8 +87,8 @@ struct SettingsView: View {
         case .privacy: return "Permissions and what Floe contacts"
         case .about: return "Version, updates and credits"
         case let .extensionPage(name):
-            guard let command = model.allCommands.first(where: { $0.extensionName == name }) else { return "" }
-            let count = model.allCommands.filter { $0.extensionName == name }.count
+            guard let command = catalog.allCommands.first(where: { $0.extensionName == name }) else { return "" }
+            let count = catalog.allCommands.filter { $0.extensionName == name }.count
             let commands = count == 1 ? "1 command" : "\(count) commands"
             return command.source == .raycast ? "From Raycast · \(commands)" : commands
         }
@@ -167,7 +100,7 @@ struct SettingsView: View {
 /// Thaw 3's settings sidebar: a standard source list, so selection, keyboard and VoiceOver
 /// come from AppKit rather than from hand-drawn rows.
 private struct SettingsSidebarPaneList: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var catalog: SettingsCatalog
     @ObservedObject var settings: AppSettings
     @ObservedObject var selection: SettingsSelection
 
@@ -200,7 +133,7 @@ private struct SettingsSidebarPaneList: View {
 
     /// General and Applications first, then each extension, About last, as in Thaw.
     private var rows: [Row] {
-        let extensions = model.allCommands
+        let extensions = catalog.allCommands
             .uniqued(on: \.extensionName)
             .sorted { $0.extensionTitle.localizedCaseInsensitiveCompare($1.extensionTitle) == .orderedAscending }
             .map { command in
@@ -276,13 +209,13 @@ private struct SettingsSidebarPaneList: View {
 }
 
 struct GeneralSettingsView: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var catalog: SettingsCatalog
     @ObservedObject var settings: AppSettings
 
     /// Writes a starter script into the Scripts folder and reveals it, so it can be edited.
-    static func makeScript(model: LauncherModel) {
+    static func makeScript(catalog: SettingsCatalog) {
         Paths.prepareSupportFolders()
-        var index = model.allScripts.count + 1
+        var index = catalog.allScripts.count + 1
         var file = Paths.scripts.appendingPathComponent("script-\(index).sh")
         while FileManager.default.fileExists(atPath: file.path) {
             index += 1
@@ -290,7 +223,9 @@ struct GeneralSettingsView: View {
         }
         try? ScriptRunner.template().write(to: file, atomically: true, encoding: .utf8)
         try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.path)
-        model.reloadScripts()
+        catalog.reloadScripts()
+        // The launcher lists scripts too, and has its own copy of the list.
+        ProcessLink.current?.send(.rescan(.scripts))
         NSWorkspace.shared.activateFileViewerSelecting([file])
     }
 
@@ -303,7 +238,7 @@ struct GeneralSettingsView: View {
             let archive = try SettingsTransfer.Archive(
                 settings: settings.exportedJSON(),
                 preferences: PreferenceStore.allStoredValues(),
-                secretKeys: PreferenceStore.secretKeys(for: model.allCommands)
+                secretKeys: PreferenceStore.secretKeys(for: catalog.allCommands)
             )
             try SettingsTransfer.encode(archive).write(to: url, options: .atomic)
         } catch {
@@ -390,7 +325,7 @@ struct GeneralSettingsView: View {
                 )
                 ThawSupportNotice()
             }
-            MenuBarCommandsSettingsSection(model: model, settings: settings)
+            MenuBarCommandsSettingsSection(catalog: catalog, settings: settings)
             WelcomeSettingsSection()
             DiagnosticsSettingsSection(settings: settings)
             PreferredAppsSettingsSection(settings: settings)
@@ -400,7 +335,8 @@ struct GeneralSettingsView: View {
                     Text("Keeps text, links, images and files you copy. Pins survive Clear.")
                 }
                 LabeledContent("History") {
-                    Button("Clear History") { ClipboardHistoryStore.shared.clear() }
+                    // The history is the launcher's: it is the one that watches the clipboard.
+                    Button("Clear History") { ProcessLink.current?.send(.clearClipboardHistory) }
                 }
             }
             AISettingsSection(settings: settings)
@@ -438,17 +374,17 @@ struct GeneralSettingsView: View {
                     Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([Paths.scripts]) }
                 }
                 LabeledContent("New") {
-                    Button("New Script") { Self.makeScript(model: model) }
+                    Button("New Script") { Self.makeScript(catalog: catalog) }
                 }
-                if model.allScripts.isEmpty, model.scriptFailures.isEmpty {
+                if catalog.allScripts.isEmpty, catalog.scriptFailures.isEmpty {
                     Text("No script commands yet. Scripts are executable files with @raycast metadata.").foregroundStyle(.secondary)
                 }
-                ForEach(model.allScripts) { script in
+                ForEach(catalog.allScripts) { script in
                     LabeledContent(script.title) {
                         Text(script.mode.rawValue).foregroundStyle(.secondary)
                     }
                 }
-                ForEach(model.scriptFailures) { failure in
+                ForEach(catalog.scriptFailures) { failure in
                     LabeledContent(failure.file) {
                         Text(failure.error.localizedDescription).foregroundStyle(.red)
                     }
@@ -463,13 +399,13 @@ struct GeneralSettingsView: View {
 /// Aliases and hotkeys for apps. Rows are plain text so the page stays cheap with hundreds of apps;
 /// the editing controls exist only for the selected app.
 struct ApplicationSettingsView: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var catalog: SettingsCatalog
     @ObservedObject var settings: AppSettings
     @State private var filter = ""
     @State private var selection: URL?
 
     var body: some View {
-        let apps = model.apps.filter { filter.isEmpty || $0.name.localizedCaseInsensitiveContains(filter) }
+        let apps = catalog.apps.filter { filter.isEmpty || $0.name.localizedCaseInsensitiveContains(filter) }
         VStack(spacing: 0) {
             editor
             Divider()
@@ -512,7 +448,7 @@ struct ApplicationSettingsView: View {
 
     @ViewBuilder
     private var editor: some View {
-        if let app = model.apps.first(where: { $0.url == selection }) {
+        if let app = catalog.apps.first(where: { $0.url == selection }) {
             let key = Self.key(app)
             Form {
                 ThawSection {
@@ -579,7 +515,7 @@ struct AppIconView: View {
 }
 
 struct ExtensionSettingsView: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var catalog: SettingsCatalog
     @ObservedObject var settings: AppSettings
     let commands: [ExtensionCommand]
 
