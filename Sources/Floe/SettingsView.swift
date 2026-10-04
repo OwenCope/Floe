@@ -392,6 +392,7 @@ struct GeneralSettingsView: View {
                     ),
                     prompt: Text("None")
                 )
+                ThawSupportNotice()
             }
             MenuBarCommandsSettingsSection(model: model, settings: settings)
             WelcomeSettingsSection()

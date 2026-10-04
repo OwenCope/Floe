@@ -272,6 +272,9 @@ struct RootIcon: View {
             SymbolTile(symbol: command.symbol)
         case let .note(action, _):
             SymbolTile(symbol: action.symbol)
+        case .thaw:
+            // Thaw's own icon, so its rows read as that app's and not as one more system command.
+            AppIconView(path: Thaw.applicationURL?.path ?? "", size: 24)
         case let .settingsPane(pane):
             SymbolTile(symbol: pane.symbol)
         case .snippet:

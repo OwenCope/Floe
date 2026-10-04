@@ -277,7 +277,7 @@ final class LauncherModel: ObservableObject {
         var all = commands.map(RootItem.command) + allScripts.map(RootItem.script) + apps.map(RootItem.app)
             + [RootItem.menuBarSearch, RootItem.emojiSearch, RootItem.clipboardHistory, RootItem.fileSearch, RootItem.settings]
             + SystemCommand.allCases.map(RootItem.system) + SnippetStore.shared.snippets.map(RootItem.snippet)
-            + settings.notesApp.actions.map { RootItem.note($0, text: "") }
+            + settings.notesApp.actions.map { RootItem.note($0, text: "") } + Thaw.actions().map(RootItem.thaw)
         let frecency = { [usage] (id: String) in usage.frecency(of: id) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let links = QuicklinkStore.shared.links
@@ -469,6 +469,12 @@ final class LauncherModel: ObservableObject {
                 if let message {
                     self?.showHUD(message)
                 }
+            }
+        case let .thaw(action):
+            hidePanel()
+            reset()
+            if !Thaw.perform(action) {
+                showHUD("Thaw isn't installed")
             }
         case let .settingsPane(pane):
             if let url = pane.url {

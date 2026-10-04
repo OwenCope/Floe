@@ -227,6 +227,13 @@ extension SearchIndex {
             keywords: ["menu bar", "keyword", "abbreviation", "short name"]
         ),
         .general(
+            "thawSupport",
+            "Thaw",
+            description: "Thaw's actions are in the search: type “thaw” to see them.",
+            section: "Menu Bar Items",
+            keywords: ["thaw", "hidden items", "thaw bar", "menu bar manager"]
+        ),
+        .general(
             "menuBarCommands",
             "Extension Commands in the Menu Bar",
             description: "Which extension commands have an item in the menu bar.",

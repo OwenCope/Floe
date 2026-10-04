@@ -142,8 +142,8 @@ struct LauncherCatalogTests {
         let model = LauncherModel(scanner: scanner, settings: makeSettings())
         #expect(scanner.startedScans.value == 0)
         #expect(
-            // Snippets come from the user's own file, so they are left out here.
-            model.results.map(\.id).filter { !$0.hasPrefix("snippet:") }.sorted()
+            // Snippets come from the user's own file and Thaw's actions from whether Thaw is installed, so both are left out here.
+            model.results.map(\.id).filter { !$0.hasPrefix("snippet:") && !$0.hasPrefix("thaw:") }.sorted()
                 == (["builtin:clipboard-history", "builtin:emoji-search", "builtin:file-search", "builtin:menubar-search", "note:new", "settings"]
                     + SystemCommand.allCases.map { "system:\($0.rawValue)" }).sorted(),
             "the built-ins are there before any catalog arrives"
