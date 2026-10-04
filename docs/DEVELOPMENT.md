@@ -84,7 +84,7 @@ Commands with required preferences or arguments ask for them in the panel before
   onboarding and permissions, settings search, the Sparkle updater with its consent sheet, and the App Intents that
   Shortcuts and Spotlight use (`FloeIntents.swift`).
 - `Sources/Floe/DroppyCode`: code ported from Droppy Code. Each file keeps Droppy Code's copyright and credit line
-  and says what Floe changed; `docs/licenses` holds its license and third-party notices.
+  and says what Floe changed; `LICENSES` holds its license and third-party notices.
   - `LoginEnvironment.swift` reads the login shell's environment, which extensions start with, and `Shell.swift` runs
     a tool with a timeout.
   - `AI.ask` is answered by one-shot `claude` or `codex` runs (`TextGeneration.swift`) or by a streamed request to an
@@ -101,7 +101,7 @@ Commands with required preferences or arguments ask for them in the panel before
 
 ## License
 
-AGPL-3.0. ThawUI and the other code from Thaw stay under GPL-3.0, which the AGPL allows combining with. The code from Droppy Code is AGPL-3.0 with the attribution terms in `docs/licenses/DroppyCode-LICENSE`. Extensions under `extensions/` keep their own licenses.
+AGPL-3.0. ThawUI and the other code from Thaw stay under GPL-3.0, which the AGPL allows combining with. The code from Droppy Code is AGPL-3.0 with the attribution terms in `LICENSES/DroppyCode-LICENSE`. `LICENSES/README.md` says which license covers which folder. Extensions under `extensions/` keep their own licenses.
 
 ## Adding an extension
 
