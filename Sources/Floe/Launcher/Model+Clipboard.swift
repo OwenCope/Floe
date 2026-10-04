@@ -6,11 +6,22 @@
 //  Licensed under the GNU AGPLv3
 
 import AppKit
+import Combine
 
 /// The clipboard history in the panel: opening it, and pasting, copying, pinning and deleting an entry.
 extension LauncherModel {
-    /// Switches the panel to the clipboard history.
+    /// Where the Clipboard History command goes now.
+    var clipboardDestination: ClipboardDestination {
+        settings.clipboardDestination(installed: appLookup)
+    }
+
+    /// Switches the panel to the clipboard history, or opens the app chosen to keep it.
     func openClipboardHistory() {
+        let destination = clipboardDestination
+        guard destination == .floe else {
+            openClipboardApp(destination)
+            return
+        }
         if let session {
             end(session)
         }
@@ -21,6 +32,34 @@ extension LauncherModel {
         clipboardSelection = 0
         showPanel()
         focusToken += 1
+    }
+
+    /// Hands the command to the chosen app. One that cannot be opened is named in the HUD.
+    private func openClipboardApp(_ destination: ClipboardDestination) {
+        hidePanel()
+        reset()
+        switch destination {
+        case .floe: break
+        case let .app(app): clipboardOpener.app(app.url)
+        case let .link(url, app): clipboardOpener.link(url, app?.url)
+        case let .unavailable(_, message): showHUD(message)
+        }
+    }
+
+    /// Follows the clipboard role as Settings changes it: Floe's history view closes, and the row is drawn again.
+    func followClipboardRole() -> AnyCancellable {
+        settings.$clipboardHandler.removeDuplicates()
+            .combineLatest(settings.$clipboardApp.removeDuplicates(), settings.$clipboardURL.removeDuplicates())
+            .dropFirst()
+            // After the publisher's willSet, so the new value is the one read.
+            .sink { [weak self] handler, _, _ in
+                DispatchQueue.main.async {
+                    if handler != .floe {
+                        self?.isShowingClipboardHistory = false
+                    }
+                    self?.refresh()
+                }
+            }
     }
 
     func closeClipboardHistory() {

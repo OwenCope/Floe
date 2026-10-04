@@ -8,7 +8,7 @@
 import SwiftUI
 import ThawUI
 
-/// The app each role stands for: where folders and files are opened, and where a note goes.
+/// The app each role stands for: where folders and files are opened, where a note goes, and what keeps the clipboard history.
 struct PreferredAppsSettingsSection: View {
     @ObservedObject var settings: AppSettings
     var installed = AppLookup.system
@@ -18,6 +18,7 @@ struct PreferredAppsSettingsSection: View {
             PreferredAppPicker(role: .terminal, choice: $settings.terminalApp, installed: installed)
             PreferredAppPicker(role: .editor, choice: $settings.editorApp, installed: installed)
             NotesAppPicker(settings: settings)
+            ClipboardAppPicker(settings: settings, installed: installed)
         }
     }
 }
@@ -96,7 +97,7 @@ struct PreferredAppPicker: View {
         choice = PreferredApps.choice(forAppAt: URL(fileURLWithPath: path), installed: installed)
     }
 
-    private static func icon(for option: AppOption) -> NSImage? {
+    static func icon(for option: AppOption) -> NSImage? {
         guard let url = option.url else { return nil }
         let icon = NSWorkspace.shared.icon(forFile: url.path)
         icon.size = NSSize(width: 16, height: 16)

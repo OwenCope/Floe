@@ -17,12 +17,15 @@ struct AppLookup {
     var plainTextApp: () -> URL?
     var exists: (URL) -> Bool
     var bundleIdentifier: (URL) -> String?
+    /// The app that answers a link, if any does.
+    var appForURL: (URL) -> URL? = { _ in nil }
 
     static let system = AppLookup(
         url: { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) },
         plainTextApp: { NSWorkspace.shared.urlForApplication(toOpen: UTType.plainText) },
         exists: { FileManager.default.fileExists(atPath: $0.path) },
-        bundleIdentifier: { Bundle(url: $0)?.bundleIdentifier }
+        bundleIdentifier: { Bundle(url: $0)?.bundleIdentifier },
+        appForURL: { NSWorkspace.shared.urlForApplication(toOpen: $0) }
     )
 }
 
@@ -69,7 +72,7 @@ enum PreferredApps {
         switch role {
         case .terminal: installed.url(AppRole.systemTerminal).map(ResolvedApp.init)
         case .editor: installed.plainTextApp().map(ResolvedApp.init)
-        case .notes: nil
+        case .notes, .clipboard: nil
         }
     }
 
@@ -110,7 +113,7 @@ enum PreferredApps {
         let urls: [URL] = switch role.input {
         case .folder: items.map { isFolder($0) ? $0 : $0.deletingLastPathComponent() }
         case .fileOrFolder: items
-        case .text: []
+        case .text, .nothing: []
         }
         let distinct = Array(urls.uniqued(on: \.standardizedFileURL.path))
         return distinct.isEmpty ? nil : Handoff(urls: distinct, application: app.url)
@@ -128,12 +131,13 @@ enum PreferredApps {
 }
 
 extension AppSettings {
-    /// The app chosen for a role that opens files; nil is the role's default. The notes role's choice is `notesApp`.
+    /// The app chosen for a role; nil is the role's default. The notes role's choice is `notesApp`.
     func appChoice(for role: AppRole) -> AppChoice? {
         switch role {
         case .terminal: terminalApp
         case .editor: editorApp
         case .notes: nil
+        case .clipboard: clipboardHandler == .app ? clipboardApp : nil
         }
     }
 }

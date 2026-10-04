@@ -120,6 +120,7 @@ final class LauncherModel: ObservableObject {
     let settings: AppSettings
     /// How the terminal and the editor are looked up. Tests replace it, so they do not read this Mac's apps.
     var appLookup = AppLookup.system
+    var clipboardOpener = ClipboardOpener.system
     var preferredApps: [RoleApp] {
         PreferredApps.apps(choice: settings.appChoice, installed: appLookup)
     }
@@ -302,7 +303,7 @@ final class LauncherModel: ObservableObject {
         }
     }
 
-    private func refresh() {
+    func refresh() {
         let started = Date()
         defer {
             if Date().timeIntervalSince(started) >= Log.slowSearch {
@@ -312,7 +313,7 @@ final class LauncherModel: ObservableObject {
         let context = searchContext()
         // A source that is switched on also answers to its keyword, after the scopes that are always there.
         let enabled = RootSearch.enabled(sources, in: settings.searchSources)
-        guard let match = RootSearch.scope(in: context, scopes: scopes + enabled) else {
+        guard let match = RootSearch.scope(in: context, scopes: ClipboardApps.scopes(scopes, handler: settings.clipboardHandler) + enabled) else {
             activeScope = nil
             scopeUpdates.cancel()
             selection = 0
@@ -362,6 +363,7 @@ final class LauncherModel: ObservableObject {
         context.apps = apps
         context.thawActions = Thaw.actions()
         context.preferredApps = preferredApps
+        context.clipboardDestination = clipboardDestination
         context.settingsPanes = settingsPanes
         context.snippets = SnippetStore.shared.snippets
         context.quicklinks = QuicklinkStore.shared.links
@@ -479,7 +481,7 @@ final class LauncherModel: ObservableObject {
         case .emojiSearch:
             query = ":"
             focusToken += 1
-        case .clipboardHistory:
+        case .clipboardHistory, .clipboardApp:
             openClipboardHistory()
         case .fileSearch:
             openFileSearch(with: query)

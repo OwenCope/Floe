@@ -54,6 +54,7 @@ Floe is early. There are no releases yet, so [build it from source](#build), and
 - The menu bar's items, searched and opened from the keyboard.
 - System commands (sleep, lock, empty Trash) and toggles for Wi-Fi, mute and keeping the Mac awake.
 - A preferred terminal, editor and notes app: open a file, a folder or the Finder selection in the ones you already use, and send `note` and some text to Apple Notes, Antinote, or any app with a URL scheme.
+- A preferred clipboard app: if you already use a clipboard manager, Clipboard History opens it (Raycast by name, any other app, or a link) and Floe stops saving copies of its own.
 - Script commands, and a picker for your own scripts: `ls | Floe --pick` shows the lines in the search panel and prints the one you choose.
 
 ### AI

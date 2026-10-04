@@ -205,6 +205,8 @@ enum RootItem: Identifiable {
     case menuBarSearch
     case emojiSearch
     case clipboardHistory
+    /// Clipboard History while another app keeps the history: the same command, opened there.
+    case clipboardApp(ClipboardDestination)
     case fileSearch
     case searchFiles(String)
     case settings
@@ -246,7 +248,7 @@ enum RootItem: Identifiable {
         case let .script(script): "script:\(script.file.lastPathComponent)"
         case .menuBarSearch: Self.menuBarSearchKey
         case .emojiSearch: Self.emojiSearchKey
-        case .clipboardHistory: Self.clipboardHistoryKey
+        case .clipboardHistory, .clipboardApp: Self.clipboardHistoryKey
         case .fileSearch: Self.fileSearchKey
         case let .searchFiles(query): "files-for:\(query)"
         case .settings: "settings"
@@ -277,7 +279,7 @@ enum RootItem: Identifiable {
         case let .script(script): script.title
         case .menuBarSearch: "Search Menu Bar Items"
         case .emojiSearch: "Search Emoji & Symbols"
-        case .clipboardHistory: "Clipboard History"
+        case .clipboardHistory, .clipboardApp: "Clipboard History"
         case .fileSearch: "Search Files"
         case let .searchFiles(query): "Search Files for \"\(query)\""
         case .settings: "Floe Settings"
@@ -336,7 +338,7 @@ enum RootItem: Identifiable {
         case let .script(script): script.id
         case .menuBarSearch: Self.menuBarSearchKey
         case .emojiSearch: Self.emojiSearchKey
-        case .clipboardHistory: Self.clipboardHistoryKey
+        case .clipboardHistory, .clipboardApp: Self.clipboardHistoryKey
         case .fileSearch: Self.fileSearchKey
         case let .system(command): "system:\(command.rawValue)"
         case .snippet: id
@@ -353,6 +355,7 @@ enum RootItem: Identifiable {
         case let .command(command): command.mode == "menu-bar" ? "Menu Bar" : "Command"
         case .script: "Script"
         case .menuBarSearch, .emojiSearch, .clipboardHistory, .settings: "Floe"
+        case let .clipboardApp(destination): destination.label
         case .fileSearch, .searchFiles: "Files"
         case .calculator: "Calculator"
         case .system: "System"
@@ -380,6 +383,7 @@ enum RootItem: Identifiable {
         case let .note(action, _): action == .new ? AppRole.notes.keywords : ["add to note"]
         case let .thaw(action): action.keywords
         case let .finderSelection(role, _): role.keywords
+        case .clipboardApp: AppRole.clipboard.keywords
         case let .snippet(snippet): [snippet.keyword]
         default: []
         }

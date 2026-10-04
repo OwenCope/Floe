@@ -56,6 +56,7 @@ struct AppSettingsTests {
         #expect(settings.menuBarItemNames.isEmpty)
         #expect(settings.terminalApp == nil, "no choice is the system's Terminal")
         #expect(settings.editorApp == nil, "no choice is whatever opens plain text")
+        #expect(settings.clipboardHandler == .floe, "Floe keeps the clipboard history until another app is chosen")
         #expect(settings.isRecordingHotkey == false)
         #expect(settings.searchSources.isEmpty, "every search source is off until it is switched on")
     }

@@ -23,6 +23,8 @@ struct SearchContext {
     var thawActions: [ThawAction] = []
     /// The terminal and the editor as they resolve now; empty when neither has an app.
     var preferredApps: [RoleApp] = []
+    /// Where the Clipboard History command goes: Floe's own history, or the app chosen for the role.
+    var clipboardDestination = ClipboardDestination.floe
     var settingsPanes: [SystemSettingsPane] = []
     var snippets: [Snippet] = []
     var quicklinks: [Quicklink] = []

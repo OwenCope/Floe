@@ -46,6 +46,10 @@ final class AppSettings: ObservableObject {
     /// The apps folders and files are opened in; nil is the role's default (see AppRole).
     @Published var terminalApp: AppChoice?
     @Published var editorApp: AppChoice?
+    /// The clipboard role's choice: Floe's own history, an app, or the link that opens an app's history.
+    @Published var clipboardHandler = ClipboardHandler.floe
+    @Published var clipboardApp: AppChoice?
+    @Published var clipboardURL = ""
     /// Names given to menu bar items with Edit Name, keyed by `MenuBarExtra.id`.
     @Published var menuBarItemNames: [String: String] = [:]
     /// True while a hotkey recorder is listening, so the registry can stand down.
@@ -100,6 +104,9 @@ final class AppSettings: ObservableObject {
         var notesURLTemplate: String?
         var terminalApp: AppChoice?
         var editorApp: AppChoice?
+        var clipboardHandler: ClipboardHandler?
+        var clipboardApp: AppChoice?
+        var clipboardURL: String?
         var menuBarItemNames: [String: String]?
         var showInDock: Bool?
         var hasSeenOnboarding: Bool?
@@ -221,6 +228,9 @@ final class AppSettings: ObservableObject {
         notesURLTemplate = stored.notesURLTemplate ?? notesURLTemplate
         terminalApp = stored.terminalApp
         editorApp = stored.editorApp
+        clipboardHandler = stored.clipboardHandler ?? .floe
+        clipboardApp = stored.clipboardApp
+        clipboardURL = stored.clipboardURL ?? ""
         menuBarItemNames = stored.menuBarItemNames ?? [:]
         showInDock = stored.showInDock ?? false
         hasSeenOnboarding = stored.hasSeenOnboarding ?? false
@@ -272,6 +282,9 @@ final class AppSettings: ObservableObject {
             notesURLTemplate: notesURLTemplate,
             terminalApp: terminalApp,
             editorApp: editorApp,
+            clipboardHandler: clipboardHandler,
+            clipboardApp: clipboardApp,
+            clipboardURL: clipboardURL,
             menuBarItemNames: menuBarItemNames,
             showInDock: showInDock,
             hasSeenOnboarding: hasSeenOnboarding,

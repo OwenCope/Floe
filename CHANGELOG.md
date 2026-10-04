@@ -23,6 +23,7 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 - Scopes in the root search: `files invoice`, `clipboard meeting`, `menu wifi`, `tabs invoice`.
 - Optional search sources, off until turned on in Privacy: files and open browser tabs (Safari, Dia, Helium) add up to three rows to an ordinary search.
 - Preferred apps: a terminal, an editor and a notes app. Files, folders and the Finder selection open in the ones already in use, and `note` followed by text goes to Apple Notes, Antinote, or any app with a URL scheme.
+- A preferred clipboard app: Clipboard History opens the clipboard manager already in use (Raycast by name, any other app, or a link), and Floe saves no copies while one is chosen. The history Floe already has stays on disk.
 - Ask AI: `ask` and a question, or the Ask AI row under any search, shows one answer in the launcher. No history is kept.
 - AI sources: the `claude` or `codex` tool, Apple Intelligence on the Mac, or an OpenAI-compatible API (OpenAI, OpenRouter, Ollama, LM Studio). A switch keeps all AI on the Mac, and one extension can be pinned to a source of its own.
 - Thaw 3's actions in the search when Thaw is installed, and a switch that makes the launcher follow Thaw's menu bar appearance.

@@ -91,6 +91,11 @@ pair as its sender. The welcome window at first launch is still the launcher's.
     with the app. Notes is handed text, which each app takes its own way, so it has its own adapter (`Notes.swift`):
     a link for Antinote or a custom app, a script for Apple Notes. A new role is a case of `AppRole` plus, when it
     takes text, an adapter like that one.
+  - The clipboard role is handed nothing: Clipboard History opens the chosen app, or a link, in place of Floe's own
+    history (`ClipboardApp.swift`). `ClipboardApps.destination` decides where the command goes and never falls back
+    to Floe's history; `records` is the one place that says whether copies are saved (the role is Floe and the
+    switch is on). An app whose history opens from a link goes in `ClipboardApps.links`, with a link confirmed from
+    the installed copy.
 - `Sources/Floe/Thaw`: code ported from Thaw: hotkeys (key codes, Carbon registry, recorder), the HUD, the About page,
   onboarding and permissions, settings search, the Sparkle updater with its consent sheet, and the App Intents that
   Shortcuts and Spotlight use (`FloeIntents.swift`).

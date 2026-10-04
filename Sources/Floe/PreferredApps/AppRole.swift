@@ -12,6 +12,7 @@ enum AppRole: String, CaseIterable, Identifiable {
     case terminal
     case editor
     case notes
+    case clipboard
 
     /// What a role's app is handed.
     enum Input {
@@ -20,6 +21,8 @@ enum AppRole: String, CaseIterable, Identifiable {
         case fileOrFolder
         /// Text typed into the search, sent through a link or a script the app answers (see `Notes`).
         case text
+        /// Nothing: the app is opened to show what it already has (see `ClipboardApps`).
+        case nothing
     }
 
     var id: String {
@@ -32,6 +35,7 @@ enum AppRole: String, CaseIterable, Identifiable {
         case .terminal: "Terminal"
         case .editor: "Editor"
         case .notes: "Notes"
+        case .clipboard: "Clipboard"
         }
     }
 
@@ -40,6 +44,7 @@ enum AppRole: String, CaseIterable, Identifiable {
         case .terminal: .folder
         case .editor: .fileOrFolder
         case .notes: .text
+        case .clipboard: .nothing
         }
     }
 
@@ -49,6 +54,7 @@ enum AppRole: String, CaseIterable, Identifiable {
         case .terminal: "Opens a folder from the Actions menu or from Finder."
         case .editor: "Opens a file or a folder from the Actions menu or from Finder."
         case .notes: "Type “note” and then your text in the search to send it there."
+        case .clipboard: "Opens from Clipboard History in the search. With another app chosen, Floe saves no copies and keeps the history it has."
         }
     }
 
@@ -63,6 +69,8 @@ enum AppRole: String, CaseIterable, Identifiable {
         case .editor: ["com.apple.TextEdit", "com.microsoft.VSCode", "dev.zed.Zed", "com.apple.dt.Xcode"]
         // Notes go to an app Floe knows how to hand text to, which `NotesApp` lists.
         case .notes: []
+        // Raycast's history opens from a link, which `ClipboardApps.links` holds.
+        case .clipboard: ["com.raycast.macos"]
         }
     }
 
@@ -72,6 +80,7 @@ enum AppRole: String, CaseIterable, Identifiable {
         case .terminal: ["terminal", "shell", "command line", "finder selection"]
         case .editor: ["editor", "edit", "code", "finder selection"]
         case .notes: ["notes", "jot", "memo"]
+        case .clipboard: ["clipboard", "copies", "paste"]
         }
     }
 
@@ -81,12 +90,13 @@ enum AppRole: String, CaseIterable, Identifiable {
         case .terminal: appName ?? "Terminal"
         case .editor: appName.map { "Default for Text Files (\($0))" } ?? "Default for Text Files"
         case .notes: NotesApp.appleNotes.title
+        case .clipboard: "Floe"
         }
     }
 
     /// The roles whose app is handed files and folders.
     static var opening: [AppRole] {
-        allCases.filter { $0.input != .text }
+        allCases.filter { $0.input == .folder || $0.input == .fileOrFolder }
     }
 }
 

@@ -118,7 +118,7 @@ final class ClipboardHistoryStore: ObservableObject {
     }
 
     private func poll() {
-        guard AppSettings.shared.clipboardHistoryEnabled else { return }
+        guard AppSettings.shared.recordsClipboardHistory else { return }
         let board = NSPasteboard.general
         guard board.changeCount != lastChangeCount else { return }
         lastChangeCount = board.changeCount

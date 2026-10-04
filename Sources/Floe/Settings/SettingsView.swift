@@ -329,16 +329,7 @@ struct GeneralSettingsView: View {
             WelcomeSettingsSection()
             DiagnosticsSettingsSection(settings: settings)
             PreferredAppsSettingsSection(settings: settings)
-            ThawSection("Clipboard") {
-                Toggle(isOn: $settings.clipboardHistoryEnabled) {
-                    Text("Save clipboard history")
-                    Text("Keeps text, links, images and files you copy. Pins survive Clear.")
-                }
-                LabeledContent("History") {
-                    // The history is the launcher's: it is the one that watches the clipboard.
-                    Button("Clear History") { ProcessLink.current?.send(.clearClipboardHistory) }
-                }
-            }
+            ClipboardSettingsSection(settings: settings)
             AISettingsSection(settings: settings)
             ThawSection("Your Settings") {
                 LabeledContent {

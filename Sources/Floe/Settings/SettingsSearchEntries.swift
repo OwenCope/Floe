@@ -273,20 +273,7 @@ extension SearchIndex {
             section: "Preferred Apps",
             keywords: ["notes", "notes app", "apple notes", "antinote", "new note", "quick note", "capture", "preferred app"]
         ),
-        .general(
-            "clipboardHistory",
-            "Save clipboard history",
-            description: "Keeps text, links, images and files you copy.",
-            section: "Clipboard",
-            keywords: ["clipboard", "history", "copy", "paste", "copies", "pin", "clear"]
-        ),
-        .general(
-            "clearClipboardHistory",
-            "Clear clipboard history",
-            description: "Removes every copy except pinned ones.",
-            section: "Clipboard",
-            keywords: ["clipboard", "history", "clear", "delete", "remove", "copies"]
-        ),
+    ] + clipboardEntries + [
         .general(
             "transferSettings",
             "Export or import settings",

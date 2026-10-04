@@ -106,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.panelWindowSizes(settings: settings)
             .sink { [weak self] size in self?.panel.resizeKeepingTop(to: size) }
             .store(in: &cancellables)
+        model.followClipboardRole().store(in: &cancellables)
         // The switch is in the settings process, which stays in front: the launcher only changes its own policy.
         settings.$showInDock.removeDuplicates().dropFirst()
             .sink { NSApp.setActivationPolicy($0 ? .regular : .accessory) }
