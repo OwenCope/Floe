@@ -12,12 +12,17 @@ enum MarkdownBlock: Equatable {
     case heading(Int, String)
     case paragraph(String)
     case bullet(String)
+    /// An item of a numbered list, with the number it is shown under.
+    case numbered(Int, String)
+    /// A quoted passage, with the blocks inside it.
+    case quote([MarkdownBlock])
     case code(String)
     case image(URL)
     case rule
 }
 
-/// Block-level Markdown for detail views: headings, bullets, code, rules, images and paragraphs.
+/// Block-level Markdown for detail views and AI answers: headings, bullets, numbered items, quotes,
+/// code, rules, images and paragraphs.
 /// swift-markdown finds the blocks; inline styling is left to AttributedString when a block is drawn,
 /// so each block carries its inline content as Markdown source.
 enum MarkdownParser {
@@ -40,17 +45,36 @@ enum MarkdownParser {
         case is ThematicBreak:
             return [.rule]
         case let item as ListItem:
-            // Nested lists are flattened: every item is one bullet.
-            return item.children.flatMap { child in
-                (child as? Paragraph).map { [.bullet(inline($0))] } ?? blocks(of: child)
+            return blocks(of: item, number: nil)
+        case let list as OrderedList:
+            // A list that starts at 4 keeps counting from 4.
+            return list.listItems.enumerated().flatMap { index, item in
+                blocks(of: item, number: Int(list.startIndex) + index)
             }
-        case is UnorderedList, is OrderedList, is BlockQuote:
+        default:
+            return otherBlocks(of: markup)
+        }
+    }
+
+    private static func otherBlocks(of markup: any Markup) -> [MarkdownBlock] {
+        switch markup {
+        case is UnorderedList:
             return markup.children.flatMap(blocks(of:))
+        case is BlockQuote:
+            return [.quote(markup.children.flatMap(blocks(of:)))]
         case let table as Table:
             // Monospaced, so the columns the formatter aligned stay aligned.
             return [.code(table.format())]
         default:
             return [.paragraph(markup.format())]
+        }
+    }
+
+    /// Nested lists are flattened: every item is one row, numbered when its list is.
+    private static func blocks(of item: ListItem, number: Int?) -> [MarkdownBlock] {
+        item.children.flatMap { child -> [MarkdownBlock] in
+            guard let paragraph = child as? Paragraph else { return blocks(of: child) }
+            return [number.map { .numbered($0, inline(paragraph)) } ?? .bullet(inline(paragraph))]
         }
     }
 

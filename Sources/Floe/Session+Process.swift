@@ -23,7 +23,7 @@ extension ExtensionSession {
         let variables = Self.hostVariables(
             LoginEnvironment.current,
             preferences: try? JSONSerialization.data(withJSONObject: PreferenceStore.resolvedValues(for: command)),
-            hasAI: AIAnswer.isAvailable,
+            hasAI: AIAnswer.isAvailable(for: command.extensionName),
             launchType: launchType
         )
         let environment = Environment.custom(Dictionary(uniqueKeysWithValues: variables.map { (Environment.Key(stringLiteral: $0.key), $0.value) }))

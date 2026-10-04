@@ -30,7 +30,7 @@ enum LauncherLayout: String, Codable, CaseIterable, Identifiable {
 /// What the panel is showing, reduced to the facts its size depends on.
 struct LauncherPanelState: Equatable {
     var menuBarSearch = false
-    /// The plain root search: no setup, command, menu bar search, clipboard history or file search on screen.
+    /// The plain root search: no setup, command, menu bar search, clipboard history, file search or answer on screen.
     var isRootSearch = true
     var queryIsEmpty = true
 
@@ -84,7 +84,8 @@ extension LauncherModel {
             menuBarSearch: isSearchingMenuBar,
             clipboardHistory: isShowingClipboardHistory,
             fileSearch: isSearchingFiles,
-            queryIsEmpty: query.isEmpty
+            queryIsEmpty: query.isEmpty,
+            askingAI: askAI != nil
         )
     }
 
@@ -93,15 +94,17 @@ extension LauncherModel {
         // Published values arrive before they are stored, so the state is built from what is sent.
         let views = $setup.map { $0 != nil }
             .combineLatest($session.map { $0?.command.mode == "view" }, $isSearchingMenuBar, $isShowingClipboardHistory)
-        return views.combineLatest($isSearchingFiles, $query.map(\.isEmpty), settings.$launcherLayout)
-            .map { views, fileSearch, queryIsEmpty, layout in
+        let searches = $isSearchingFiles.combineLatest($askAI.map { $0 != nil })
+        return views.combineLatest(searches, $query.map(\.isEmpty), settings.$launcherLayout)
+            .map { views, searches, queryIsEmpty, layout in
                 LauncherPanelState(
                     showingSetup: views.0,
                     showingCommand: views.1,
                     menuBarSearch: views.2,
                     clipboardHistory: views.3,
-                    fileSearch: fileSearch,
-                    queryIsEmpty: queryIsEmpty
+                    fileSearch: searches.0,
+                    queryIsEmpty: queryIsEmpty,
+                    askingAI: searches.1
                 )
                 .windowSize(in: layout)
             }
@@ -121,10 +124,18 @@ extension LauncherModel {
 
 extension LauncherPanelState {
     /// Mirrors the order `LauncherView` picks its view in: anything but the last branch is not the root search.
-    init(showingSetup: Bool, showingCommand: Bool, menuBarSearch: Bool, clipboardHistory: Bool, fileSearch: Bool, queryIsEmpty: Bool) {
+    init(
+        showingSetup: Bool,
+        showingCommand: Bool,
+        menuBarSearch: Bool,
+        clipboardHistory: Bool,
+        fileSearch: Bool,
+        queryIsEmpty: Bool,
+        askingAI: Bool = false
+    ) {
         self.init(
             menuBarSearch: menuBarSearch,
-            isRootSearch: !(showingSetup || showingCommand || menuBarSearch || clipboardHistory || fileSearch),
+            isRootSearch: !(showingSetup || showingCommand || menuBarSearch || clipboardHistory || fileSearch || askingAI),
             queryIsEmpty: queryIsEmpty
         )
     }

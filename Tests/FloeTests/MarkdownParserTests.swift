@@ -20,9 +20,28 @@ struct MarkdownParserTests {
         #expect(MarkdownParser.blocks(line) == [.paragraph(line)])
     }
 
-    @Test(arguments: ["- item", "* item", "+ item", "1. item", "12. item"])
+    @Test(arguments: ["- item", "* item", "+ item"])
     func bullets(line: String) {
         #expect(MarkdownParser.blocks(line) == [.bullet("item")])
+    }
+
+    @Test(arguments: [("1. item", 1), ("12. item", 12), ("3) item", 3)])
+    func aNumberedItemKeepsItsNumber(line: String, number: Int) {
+        #expect(MarkdownParser.blocks(line) == [.numbered(number, "item")])
+    }
+
+    @Test func aNumberedListCountsOnFromItsFirstNumber() {
+        #expect(MarkdownParser.blocks("4. four\n5. five\n1. six") == [.numbered(4, "four"), .numbered(5, "five"), .numbered(6, "six")])
+    }
+
+    @Test func bulletsUnderANumberedItemStayBullets() {
+        let blocks = MarkdownParser.blocks("1. first\n   - inside\n2. second")
+        #expect(blocks == [.numbered(1, "first"), .bullet("inside"), .numbered(2, "second")])
+    }
+
+    @Test func aQuoteKeepsTheBlocksInsideIt() {
+        let blocks = MarkdownParser.blocks("> quoted **text**\n>\n> - a point\n\nafter")
+        #expect(blocks == [.quote([.paragraph("quoted **text**"), .bullet("a point")]), .paragraph("after")])
     }
 
     @Test(arguments: ["---", "***", "___", "-----"])

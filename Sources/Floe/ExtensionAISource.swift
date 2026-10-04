@@ -1,0 +1,58 @@
+//
+//  ExtensionAISource.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU AGPLv3
+
+import SwiftUI
+
+extension AIAnswer {
+    /// The extension whose `AI.ask` is being answered; nil for Ask AI, which uses the choice in General.
+    @TaskLocal static var askingExtension: String?
+
+    /// The source for one extension: the one it is pinned to, else the one chosen in General.
+    static func source(for extensionName: String?, pinned: [String: AISource], general: AISource) -> AISource {
+        extensionName.flatMap { pinned[$0] } ?? general
+    }
+
+    /// The choice for one extension. A pinned API is the one set up in General: there is one address and one key.
+    static func configured(for extensionName: String?, _ settings: AppSettings = .shared) -> Choice {
+        let source = source(for: extensionName, pinned: settings.aiSourceByExtension, general: settings.aiSource)
+        return choice(source: source, baseURL: settings.aiBaseURL, model: settings.aiModel) {
+            Keychain.read(account: AIEndpoint.keychainAccount)
+        }
+    }
+
+    /// Whether one extension should be told AI is there, with the source it is pinned to.
+    static func isAvailable(for extensionName: String?) -> Bool {
+        isAvailable(
+            choice: configured(for: extensionName),
+            localOnly: AppSettings.shared.aiOnThisMacOnly,
+            toolInstalled: { AIEngine.isAvailable },
+            appleIntelligenceReady: { AppleIntelligence.problem == nil }
+        )
+    }
+}
+
+/// On an extension's settings page: the AI source its questions go to, when it is not the one in General.
+struct ExtensionAISourcePicker: View {
+    @ObservedObject var settings: AppSettings
+    let extensionName: String
+
+    var body: some View {
+        Picker(selection: Binding(
+            get: { settings.aiSourceByExtension[extensionName] },
+            set: { settings.aiSourceByExtension[extensionName] = $0 }
+        )) {
+            Text("The source chosen in General").tag(AISource?.none)
+            Divider()
+            Text("The claude or codex tool").tag(AISource?.some(.tools))
+            Text("The API set up in General").tag(AISource?.some(.api))
+            Text("Apple Intelligence, on this Mac").tag(AISource?.some(.appleIntelligence))
+        } label: {
+            Text("Answer its AI requests with")
+            Text("For an extension that handles private text, a source on this Mac keeps its questions here.")
+        }
+    }
+}

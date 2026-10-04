@@ -71,6 +71,10 @@ final class AppSettings: ObservableObject {
     @Published var aiSource = AISource.tools
     @Published var aiBaseURL = AIEndpoint.defaultBaseURL
     @Published var aiModel = ""
+    /// Only use AI that runs on this Mac: a source that sends questions elsewhere refuses.
+    @Published var aiOnThisMacOnly = false
+    /// Extensions pinned to a source other than the one above, by extension name.
+    @Published var aiSourceByExtension: [String: AISource] = [:]
 
     /// The tint a view should draw for the given system appearance.
     func launcherTint(for colorScheme: ColorScheme) -> LauncherTint {
@@ -110,6 +114,8 @@ final class AppSettings: ObservableObject {
         var aiSource: AISource?
         var aiBaseURL: String?
         var aiModel: String?
+        var aiOnThisMacOnly: Bool?
+        var aiSourceByExtension: [String: AISource]?
     }
 
     private static let defaultsKey = "settings"
@@ -160,6 +166,8 @@ final class AppSettings: ObservableObject {
         aiSource = stored.aiSource ?? aiSource
         aiBaseURL = stored.aiBaseURL ?? aiBaseURL
         aiModel = stored.aiModel ?? aiModel
+        aiOnThisMacOnly = stored.aiOnThisMacOnly ?? aiOnThisMacOnly
+        aiSourceByExtension = stored.aiSourceByExtension ?? aiSourceByExtension
     }
 
     /// The settings as they are saved, for an export file.
@@ -206,7 +214,9 @@ final class AppSettings: ObservableObject {
             launcherLayout: launcherLayout,
             aiSource: aiSource,
             aiBaseURL: aiBaseURL,
-            aiModel: aiModel
+            aiModel: aiModel,
+            aiOnThisMacOnly: aiOnThisMacOnly,
+            aiSourceByExtension: aiSourceByExtension
         )
         if let data = try? JSONEncoder().encode(stored) {
             defaults.set(data, forKey: Self.defaultsKey)

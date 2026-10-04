@@ -48,7 +48,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [x] Pasting into the frontmost app
 - [x] Confirmation dialogs inside the panel
 - [ ] `launchCommand` and deeplinks
-- [x] `AI.ask`, answered by the `claude` or `codex` tool you are signed in to, by Apple Intelligence on your Mac, or by an OpenAI-compatible API: OpenAI or OpenRouter with your key, Ollama or LM Studio without one
+- [x] `AI.ask`, answered by the `claude` or `codex` tool you are signed in to, by Apple Intelligence on your Mac, or by an OpenAI-compatible API: OpenAI or OpenRouter with your key, Ollama or LM Studio without one. One extension can be pinned to a source of its own, and a switch keeps all AI on your Mac
 - [ ] AI tools
 - [ ] Grid layout and full detail metadata
 - [x] App picker for preferences
@@ -78,6 +78,7 @@ Floe is early. There are no releases yet, so build it from source, and the list 
 - [ ] Search an app's menus
 - [x] Script commands
 - [x] A picker for your own scripts: `ls | Floe --pick` shows the lines in the search panel and prints the one you choose
+- [x] Ask AI: `ask` and a question, or the Ask AI row under any search, shows one answer in the launcher, streamed where the source streams, with a line that says who answered and whether it stayed on your Mac. No history is kept
 - [ ] AI chat
 
 ### App

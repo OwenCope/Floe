@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.showPanel = { [weak self] in self?.show() }
         model.showHUD = { ThawHUD.show(text: $0) }
         model.openSettings = { [weak self] in self?.settingsWindow.show(extensionName: $0) }
+        model.canAskAI = AskAI.availabilityCheck { AIAnswer.isAvailable }
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, self.panel.isKeyWindow else { return event }
@@ -294,6 +295,7 @@ if options.pick {
 if let query = options.search {
     // No sources: the process exits before they answer, and a tab read must not start from here.
     let model = LauncherModel(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions), sources: [])
+    model.canAskAI = { AIAnswer.isAvailable }
     model.query = query
     for result in model.results.prefix(8) {
         print("\(result.section.map { "[\($0)] " } ?? "")\(result.item.title) (\(result.item.kind))\(model.alias(for: result.item).map { " (alias \($0))" } ?? "")")
@@ -406,6 +408,12 @@ if let path = options.panelSnapshot {
     model.query = ""
     snapshot("compact")
     settings.launcherLayout = .extended
+    // The answer view with a canned answer: nothing is asked of any source.
+    model.askAIRequest = { _, _ in AskAI.sampleAnswer }
+    MarkdownView.isSelectable = false
+    model.openAskAI("how do tides work")
+    snapshot("ask-ai")
+    model.closeAskAI()
     model.openMenuBarSearch()
     snapshot("menubar", wait: 5)
     resizing.cancel()

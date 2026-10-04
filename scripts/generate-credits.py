@@ -54,7 +54,8 @@ DEPENDENCIES = [
     # The license asks for this exact credit line wherever Floe lists what it is built from.
     Dependency("Droppy Code", "droppyCode", "AGPL-3.0",
                "Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell "
-               "environment, its process runner, the tools and the streamed API request that answer AI.ask, "
+               "environment, its process runner, the tools and the streamed API request that answer AI.ask "
+               "and Ask AI, its reading of the claude tool's streamed answer, "
                "its hang watchdog and the folder watcher behind hot reload, each modified for Floe"),
     Dependency("CompactSlider", "compactSlider", "MIT", "Used by ThawUI", "swift", "compactslider"),
     Dependency("Sparkle", "sparkle", "MIT", "Checks for updates and installs them", "swift", "sparkle",

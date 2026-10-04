@@ -95,23 +95,10 @@ enum HostRequest: Sendable, Equatable {
     static func answer(_ request: HostRequest, emit: @Sendable (String) async -> Void) async throws -> Any {
         switch request {
         case let .askAI(prompt, model):
-            switch await MainActor.run(body: { AIAnswer.configured() }) {
-            case let .api(endpoint):
-                guard let endpoint else {
-                    throw ProviderError.failed(AIAnswer.incompleteMessage)
-                }
-                let request = ChatCompletionStream.request(chatURL: endpoint.chatURL, apiKey: endpoint.apiKey, model: endpoint.model, prompt: prompt)
-                return try await ChatCompletionStream.run(request, onText: emit)
-            case .appleIntelligence:
-                return try await AppleIntelligence.answer(prompt, emit: emit)
-            case .tools:
-                // A request right after launch waits for the shell, so a tool under nvm or mise is found.
-                await LoginEnvironment.load()
-                guard let engine = AIEngine.resolve(model: model, which: { LoginEnvironment.which($0) }) else {
-                    throw ShellError(AIEngine.missingMessage)
-                }
-                return try await TextGeneration.run(prompt, engine: engine)
-            }
+            // The one place a prompt is answered, for an extension and for Ask AI (see AISources.swift).
+            let asking = AIAnswer.askingExtension
+            let (choice, localOnly) = await MainActor.run { (AIAnswer.configured(for: asking), AppSettings.shared.aiOnThisMacOnly) }
+            return try await AIAnswer.answer(prompt, model: model, choice: choice, localOnly: localOnly, emit: emit)
         case .oauthAuthorize, .oauthGetTokens, .oauthSetTokens, .oauthRemoveTokens:
             // Answered by the OAuth broker, through the same reply channel (see Session+Requests.swift).
             throw OAuthError.unknownRequest
@@ -266,13 +253,15 @@ enum AIAnswer {
         }
     }
 
-    /// Whether extensions should be told AI is there: a tool is installed, the API is filled in, or the Mac's own model is ready.
+    /// Whether extensions should be told AI is there: a tool is installed, the API is filled in, or the Mac's own
+    /// model is ready, and the source is not one the "only on this Mac" switch refuses.
     static var isAvailable: Bool {
-        switch configured() {
-        case .tools: AIEngine.isAvailable
-        case let .api(endpoint): endpoint != nil
-        case .appleIntelligence: AppleIntelligence.problem == nil
-        }
+        isAvailable(
+            choice: configured(),
+            localOnly: AppSettings.shared.aiOnThisMacOnly,
+            toolInstalled: { AIEngine.isAvailable },
+            appleIntelligenceReady: { AppleIntelligence.problem == nil }
+        )
     }
 }
 

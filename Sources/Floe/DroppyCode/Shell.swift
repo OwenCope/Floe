@@ -9,8 +9,9 @@
 //  Floe changes © 2026 René Jiménez, under the same license.
 //
 //  Ported to Floe from Droppy Code's Core/Support/Shell.swift, and modified: the login shell
-//  environment moved to LoginEnvironment.swift, and the check for shell commands that write files
-//  is left out, because Floe runs no agent's commands.
+//  environment moved to LoginEnvironment.swift, the check for shell commands that write files
+//  is left out, because Floe runs no agent's commands, and `run` can hand standard output on
+//  as it is read, for a tool that streams its answer.
 
 import Foundation
 import Synchronization
@@ -61,7 +62,8 @@ struct ShellError: LocalizedError, Sendable {
 
 enum Shell {
     /// Runs a process to completion off the main actor and collects its output. With an
-    /// `outputLimit`, only that many bytes of each stream's tail are kept.
+    /// `outputLimit`, only that many bytes of each stream's tail are kept. `onOutput` is given
+    /// standard output as it is read, in order.
     @concurrent
     // swiftlint:disable:next function_body_length - kept in one piece, as in Droppy Code
     static func run(
@@ -71,7 +73,8 @@ enum Shell {
         environment: [String: String]? = nil,
         input: Data? = nil,
         timeout: TimeInterval = 120,
-        outputLimit: Int? = nil
+        outputLimit: Int? = nil,
+        onOutput: (@Sendable (Data) -> Void)? = nil
     ) async throws -> ShellResult {
         let process = Process()
         process.executableURL = executable
@@ -88,7 +91,7 @@ enum Shell {
         process.standardError = stderr
         process.standardInput = stdin ?? FileHandle.nullDevice
 
-        let collector = OutputCollector(limit: outputLimit)
+        let collector = OutputCollector(limit: outputLimit, onOutput: onOutput)
         stdout.fileHandleForReading.readabilityHandler = collector.reader(for: .stdout)
         stderr.fileHandleForReading.readabilityHandler = collector.reader(for: .stderr)
 
@@ -214,9 +217,11 @@ private final class OutputCollector: Sendable {
 
     private let state = Mutex(State())
     private let limit: Int?
+    private let onOutput: (@Sendable (Data) -> Void)?
 
-    init(limit: Int?) {
+    init(limit: Int?, onOutput: (@Sendable (Data) -> Void)? = nil) {
         self.limit = limit
+        self.onOutput = onOutput
     }
 
     func reader(for stream: Stream) -> @Sendable (FileHandle) -> Void {
@@ -231,6 +236,9 @@ private final class OutputCollector: Sendable {
                     case .stdout: append(data, to: &state.stdout)
                     case .stderr: append(data, to: &state.stderr)
                     }
+                }
+                if stream == .stdout {
+                    onOutput?(data)
                 }
             }
         }

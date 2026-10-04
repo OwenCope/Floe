@@ -608,6 +608,7 @@ struct ExtensionSettingsView: View {
                         }
                         Text((first.extensionDir.path as NSString).abbreviatingWithTildeInPath)
                     }
+                    ExtensionAISourcePicker(settings: settings, extensionName: first.extensionName)
                 }
                 if !first.extensionPreferences.isEmpty {
                     ThawSection("Preferences") {

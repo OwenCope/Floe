@@ -10,8 +10,8 @@
 //
 //  Ported to Floe from Droppy Code's Services/Providers/TextGeneration.swift, and modified: the
 //  thread title and commit message prompts are left out, the prompt is the caller's, both engines
-//  take an optional model, a failure is thrown with the tool's own words, and the arguments are
-//  built by a function a test can call.
+//  take an optional model, a failure is thrown with the tool's own words, the arguments are
+//  built by a function a test can call, and claude's answer can be streamed (ClaudeTextStream.swift).
 
 import Foundation
 
@@ -50,6 +50,22 @@ enum TextGeneration {
             ["exec", "--ephemeral", "--skip-git-repo-check", "-s", "read-only"]
                 + (model.map { ["--model", $0] } ?? [])
                 + ["--config", "model_reasoning_effort=\"low\"", "--output-last-message", output.path, "-"]
+        }
+    }
+
+    /// As `run`, with text handed to `onText` as it arrives. Claude streams; codex's one-shot run
+    /// prints its session, not its answer, so its answer comes whole at the end.
+    static func run(
+        _ prompt: String,
+        engine: Engine,
+        environment: [String: String] = LoginEnvironment.current,
+        onText: @Sendable (String) async -> Void
+    ) async throws -> String {
+        switch engine {
+        case let .claude(executable, model):
+            try await ClaudeTextStream.run(prompt, executable: executable, model: model, environment: environment, onText: onText)
+        case .codex:
+            try await run(prompt, engine: engine, environment: environment)
         }
     }
 

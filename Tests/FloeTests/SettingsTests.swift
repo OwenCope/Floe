@@ -142,6 +142,10 @@ struct AppSettingsTests {
         #expect(settings.aiSource == .tools)
         #expect(settings.aiBaseURL == AIEndpoint.defaultBaseURL)
         #expect(settings.aiModel.isEmpty)
+        #expect(settings.aiOnThisMacOnly == false, "AI is not kept on this Mac until the switch is turned on")
+        settings.aiOnThisMacOnly = true
+        #expect(settings.aiSourceByExtension.isEmpty)
+        settings.aiSourceByExtension = ["journal": .appleIntelligence]
         settings.aiSource = .api
         settings.aiBaseURL = "http://localhost:11434/v1"
         settings.aiModel = "small"
@@ -150,6 +154,8 @@ struct AppSettingsTests {
         #expect(reloaded.aiSource == .api)
         #expect(reloaded.aiBaseURL == "http://localhost:11434/v1")
         #expect(reloaded.aiModel == "small")
+        #expect(reloaded.aiOnThisMacOnly)
+        #expect(reloaded.aiSourceByExtension == ["journal": .appleIntelligence])
     }
 
     @Test func appearanceDefaultsPreserveTheCurrentLauncherLook() {
@@ -194,6 +200,8 @@ struct AppSettingsTests {
         #expect(settings.hasSeenOnboarding == false)
         #expect(settings.menuBarItemNames.isEmpty)
         #expect(settings.searchSources.isEmpty)
+        #expect(settings.aiOnThisMacOnly == false)
+        #expect(settings.aiSourceByExtension.isEmpty)
     }
 
     @Test func unreadableSettingsFallBackToDefaults() {

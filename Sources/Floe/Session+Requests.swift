@@ -41,6 +41,7 @@ extension ExtensionSession {
             return
         }
         let answer = answer
+        let extensionName = command.extensionName
         pendingRequests[id] = Task { @MainActor [weak self] in
             var reply: [String: Any] = ["type": "reply", "id": id]
             do {
@@ -49,12 +50,16 @@ extension ExtensionSession {
                     reply["result"] = try await OAuthBroker.shared.perform(request, extensionName: self.command.extensionName)
                 } else {
                     // Text that arrives early is sent on in order, while the request is still wanted.
-                    reply["result"] = try await answer(request) { [weak self] text in
-                        await MainActor.run { [weak self] in
-                            guard let self, pendingRequests[id] != nil else { return }
-                            send(["type": "replyChunk", "id": id, "chunk": text])
+                    // The extension's name travels with the request, for the AI source it may be pinned to.
+                    let result: Any = try await AIAnswer.$askingExtension.withValue(extensionName) {
+                        try await answer(request) { [weak self] text in
+                            await MainActor.run { [weak self] in
+                                guard let self, pendingRequests[id] != nil else { return }
+                                send(["type": "replyChunk", "id": id, "chunk": text])
+                            }
                         }
                     }
+                    reply["result"] = result
                 }
             } catch {
                 reply["error"] = error.localizedDescription

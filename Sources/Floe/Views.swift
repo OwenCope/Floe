@@ -34,6 +34,8 @@ struct LauncherView: View {
                 ClipboardHistoryView(model: model)
             } else if model.isSearchingFiles {
                 FileSearchView(model: model, fileSearch: model.fileSearch)
+            } else if let asking = model.askAI {
+                AskAIView(model: model, asking: asking)
             } else {
                 RootView(model: model, isCollapsed: model.panelState.isCollapsed(in: settings.launcherLayout))
             }
@@ -315,6 +317,8 @@ struct RootIcon: View {
             }
         case .menuBarAccess:
             SymbolTile(symbol: "hand.raised")
+        case .askAI:
+            SymbolTile(symbol: AskAI.symbol)
         }
     }
 }
@@ -1263,50 +1267,6 @@ struct MetadataRow: View {
             }
             .font(.system(size: 12))
         }
-    }
-}
-
-/// Draws the blocks MarkdownParser finds, with inline styling from AttributedString.
-struct MarkdownView: View {
-    let text: String
-
-    private func inline(_ string: String) -> AttributedString {
-        (try? AttributedString(markdown: string, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(string)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(MarkdownParser.blocks(text).enumerated()), id: \.offset) { _, block in
-                switch block {
-                case let .heading(level, text):
-                    Text(inline(text)).font(.system(size: [22, 18, 15][min(level, 3) - 1], weight: .semibold))
-                case let .paragraph(text):
-                    Text(inline(text))
-                case let .bullet(text):
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("•").foregroundStyle(.secondary)
-                        Text(inline(text))
-                    }
-                case let .code(text):
-                    Text(text)
-                        .font(.system(size: 12, design: .monospaced))
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.primary.opacity(0.07), in: .rect(cornerRadius: 8))
-                case let .image(url):
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: {
-                        Color.primary.opacity(0.05)
-                    }
-                    .frame(maxHeight: 260)
-                case .rule:
-                    Divider()
-                }
-            }
-        }
-        .font(.system(size: 13))
-        .textSelection(.enabled)
     }
 }
 

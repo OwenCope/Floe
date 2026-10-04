@@ -70,6 +70,12 @@ final class LauncherModel: ObservableObject {
     }
 
     @Published var clipboardSelection = 0
+    /// The question on screen and its answer, while the panel shows them instead of the root search.
+    @Published var askAI: AskAIModel?
+    /// Answers the question. A test replaces it: the real thing reaches the chosen AI source.
+    var askAIRequest: AskAIModel.Request = AskAIModel.live
+    /// Whether an AI source can answer. The app delegate sets it; without one no Ask AI row is offered.
+    var canAskAI: () -> Bool = { false }
     @Published var menuBarQuery = "" {
         didSet { refreshMenuBar() }
     }
@@ -111,7 +117,7 @@ final class LauncherModel: ObservableObject {
     private let sources: [any SearchSource]
     private let sourceSearch = SourceSearch()
 
-    private let settings: AppSettings
+    let settings: AppSettings
     /// How the terminal and the editor are looked up. Tests replace it, so they do not read this Mac's apps.
     var appLookup = AppLookup.system
     var preferredApps: [RoleApp] {
@@ -352,6 +358,7 @@ final class LauncherModel: ObservableObject {
         context.snippets = SnippetStore.shared.snippets
         context.quicklinks = QuicklinkStore.shared.links
         context.menuBarItemNames = settings.menuBarItemNames
+        context.canAskAI = !query.isEmpty && canAskAI()
         return context
     }
 
@@ -369,6 +376,9 @@ final class LauncherModel: ObservableObject {
             return
         }
         if item.isScopeResult {
+            return
+        }
+        if case .askAI = item {
             return
         }
         if let index = settings.favorites.firstIndex(of: item.id) {
@@ -434,6 +444,11 @@ final class LauncherModel: ObservableObject {
         if item.isScopeResult {
             // Found just now and gone next time: opening one records no frecency entry.
             (scopeResultOpener ?? openScopeResult)(item)
+            return
+        }
+        if case let .askAI(question) = item {
+            // Nothing about a question is kept: no usage record either.
+            openAskAI(question)
             return
         }
         if case .searchFiles = item {
@@ -505,7 +520,7 @@ final class LauncherModel: ObservableObject {
             reset()
         case .calculator, .emoji, .file, .clipboardEntry, .menuBarItem, .menuBarAccess:
             break
-        case .browserTab:
+        case .browserTab, .askAI:
             break
         }
     }
@@ -1027,6 +1042,7 @@ final class LauncherModel: ObservableObject {
         isShowingClipboardHistory = false
         isSearchingFiles = false
         fileSearch.cancel()
+        closeAskAI()
         query = ""
     }
 
@@ -1034,7 +1050,7 @@ final class LauncherModel: ObservableObject {
         PasteboardContent.write(text: text, html: html, file: file)
     }
 
-    private func paste(text: String, html: String? = nil, file: String? = nil) {
+    func paste(text: String, html: String? = nil, file: String? = nil) {
         PasteboardContent.write(text: text, html: html, file: file)
         if AXIsProcessTrusted() {
             hidePanel()
@@ -1207,6 +1223,9 @@ final class LauncherModel: ObservableObject {
         }
         if let session, session.command.mode == "view" {
             return handleSessionKey(event, flags, session)
+        }
+        if askAI != nil {
+            return handleAskAIKey(event, flags)
         }
         if let delta = Shortcuts.navigationDelta(event.keyCode) {
             selection = max(0, min(selection + delta, results.count - 1))

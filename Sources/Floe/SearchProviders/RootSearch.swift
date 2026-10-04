@@ -21,6 +21,7 @@ enum RootSearch {
         CalculatorSearchProvider(),
         ScriptArgumentsSearchProvider(),
         SearchFilesRowProvider(),
+        AskAISearchProvider(),
     ]
 
     /// `sources` are the rows the optional sources have found so far (see `SourceSearch`).

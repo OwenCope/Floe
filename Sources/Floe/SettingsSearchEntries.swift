@@ -180,6 +180,7 @@ extension SearchIndex {
         privacy("searchSources", "Search Sources", section: "Search Sources", keywords: ["sources", "root search", "results", "sections"]),
         privacy("searchSources.files", "Files", section: "Search Sources", keywords: ["file search", "spotlight", "documents", "source"]),
         privacy("searchSources.tabs", "Browser Tabs", section: "Search Sources", keywords: ["tabs", "browser", "safari", "open tabs", "automation", "applescript", "source"]),
+        privacy("aiOnThisMacOnly", "Only use AI that runs on this Mac", section: "Network Access", keywords: ["ai", "local", "on device", "offline", "cloud", "private", "apple intelligence", "ollama", "ask"]),
     ]
 
     private static func privacy(_ id: String, _ title: String, section: String, keywords: [String]) -> SearchEntry {

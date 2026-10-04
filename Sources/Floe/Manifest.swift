@@ -231,6 +231,8 @@ enum RootItem: Identifiable {
     case menuBarItem(MenuBarExtra, name: String)
     /// Stands in for the menu bar items until Floe may read them.
     case menuBarAccess
+    /// A question for the chosen AI source. Its id leaves the question out, so nothing stores it.
+    case askAI(String)
 
     static let menuBarSearchKey = "builtin:menubar-search"
     static let emojiSearchKey = "builtin:emoji-search"
@@ -264,6 +266,7 @@ enum RootItem: Identifiable {
         case let .clipboardEntry(entry): "clipboard-entry:\(entry.id.uuidString)"
         case let .menuBarItem(extra, _): "menubar-item:\(extra.id)"
         case .menuBarAccess: "menubar-access"
+        case .askAI: "ask-ai"
         }
     }
 
@@ -298,6 +301,7 @@ enum RootItem: Identifiable {
         case let .clipboardEntry(entry): entry.title.isEmpty ? entry.kind.rawValue.capitalized : entry.title
         case let .menuBarItem(_, name): name
         case .menuBarAccess: "Floe needs Accessibility to list your menu bar items"
+        case let .askAI(question): "Ask AI \u{201C}\(question)\u{201D}"
         }
     }
 
@@ -339,6 +343,7 @@ enum RootItem: Identifiable {
         case .settings, .settingsPane, .note, .thaw, .finderSelection, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
         case .file, .clipboardEntry, .menuBarItem, .menuBarAccess: nil
         case .browserTab: nil
+        case .askAI: nil
         }
     }
 
@@ -363,6 +368,7 @@ enum RootItem: Identifiable {
         case .browserTab: "Browser Tab"
         case .clipboardEntry: "Clipboard"
         case .menuBarItem, .menuBarAccess: "Menu Bar"
+        case .askAI: "AI"
         }
     }
 

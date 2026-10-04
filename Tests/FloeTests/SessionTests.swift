@@ -380,6 +380,39 @@ struct ExtensionSessionTests {
         #expect(reply?["result"] == nil)
     }
 
+    @Test func anExtensionsQuestionIsRefusedWhileOnlyAIOnThisMacIsAllowed() async {
+        let fake = FakeAISources()
+        session.answer = { request, emit in
+            guard case let .askAI(prompt, model) = request else { return "" }
+            return try await AIAnswer.answer(prompt, model: model, choice: .tools, localOnly: true, sources: fake.sources, emit: emit)
+        }
+        apply(["type": "request", "id": 21, "method": "ai.ask", "params": ["prompt": "why?"]])
+        let reply = await reply()
+        #expect(reply?["error"] as? String == AIAnswer.localOnlyMessage)
+        #expect(reply?["result"] == nil)
+        #expect(fake.askedSources.isEmpty, "the question went to no source")
+    }
+
+    @Test func anExtensionsQuestionIsAnsweredOnThisMacWhileOnlyThatIsAllowed() async {
+        let fake = FakeAISources()
+        session.answer = { request, emit in
+            guard case let .askAI(prompt, model) = request else { return "" }
+            return try await AIAnswer.answer(prompt, model: model, choice: .appleIntelligence, localOnly: true, sources: fake.sources, emit: emit)
+        }
+        apply(["type": "request", "id": 22, "method": "ai.ask", "params": ["prompt": "why?"]])
+        let reply = await reply()
+        #expect(reply?["result"] as? String == "appleIntelligence")
+        #expect(fake.askedSources == [.appleIntelligence])
+    }
+
+    @Test func aRequestCarriesTheNameOfTheExtensionThatAsked() async {
+        session.answer = { _, _ in AIAnswer.askingExtension ?? "nobody" }
+        apply(["type": "request", "id": 23, "method": "ai.ask", "params": ["prompt": "why?"]])
+        let reply = await reply()
+        #expect(reply?["result"] as? String == session.command.extensionName)
+        #expect(AIAnswer.askingExtension == nil, "outside the request there is no extension asking")
+    }
+
     @Test func aRequestTheAppDoesNotKnowIsRefusedAtOnce() {
         session.answer = { _, _ in "unused" }
         apply(["type": "request", "id": 9, "method": "teleport", "params": [:]])

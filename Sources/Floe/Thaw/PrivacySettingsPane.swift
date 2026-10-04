@@ -10,7 +10,7 @@
 //  Ported to Floe from Thaw 3's Privacy pane: the notice, the permissions and the network list.
 //  The network rows are Floe's own, since what it contacts is not what Thaw does, and Thaw's
 //  capture inspector and connection status sections have nothing to describe here.
-//  The search sources' switches are Floe's too.
+//  The search sources' switches and the switch that keeps AI on this Mac are Floe's too.
 
 import SwiftUI
 import ThawUI
@@ -57,7 +57,11 @@ struct PrivacySettingsPane: View {
                     row("Updates", "Checking asks \(host) whether a newer version exists. Floe asked before it started doing this.")
                 }
                 row("Extension Store", "Opening the Extension Store lists extensions from GitHub. Installing or updating one downloads it from GitHub and its packages from the npm registry.")
-                row("AI", PrivacyNetwork.aiLine(source: settings.aiSource, baseURL: settings.aiBaseURL))
+                row("AI", PrivacyNetwork.aiLine(source: settings.aiSource, baseURL: settings.aiBaseURL, onThisMacOnly: settings.aiOnThisMacOnly))
+                Toggle(isOn: $settings.aiOnThisMacOnly) {
+                    Text("Only use AI that runs on this Mac")
+                    Text("A source that sends questions elsewhere is refused, for Ask AI and for extensions. Nothing else is asked in its place.")
+                }
                 row("Extensions", "Each extension makes its own requests, and the images it shows are loaded from wherever it points.")
             }
         }
@@ -97,8 +101,12 @@ enum PrivacyNetwork {
     }
 
     /// Where a question from an extension goes, for the answer source chosen in General.
-    static func aiLine(source: AISource, baseURL: String) -> String {
+    /// With `onThisMacOnly`, a source that is not on this Mac is said to be refused.
+    static func aiLine(source: AISource, baseURL: String, onThisMacOnly: Bool = false) -> String {
+        let refused = "While the switch below is on, Floe refuses to ask it, so no question is sent."
         switch source {
+        case .tools where onThisMacOnly:
+            return "The claude or codex tool is chosen, which sends questions to its own service. \(refused)"
         case .tools:
             return "Questions go to the claude or codex tool, which sends them to its own service on the account you signed in to."
         case .appleIntelligence:
@@ -106,6 +114,9 @@ enum PrivacyNetwork {
         case .api:
             let url = AIEndpoint.chatURL(baseURL: baseURL)
             guard let host = url?.host else { return "Questions go to the address set in General, once it is filled in." }
+            if onThisMacOnly, AIEndpoint.needsKey(url) {
+                return "\(host) is chosen, which is not on this Mac. \(refused)"
+            }
             return AIEndpoint.needsKey(url)
                 ? "Questions go to \(host), with your key, and nowhere else."
                 : "Questions go to the server on this Mac at \(host). Nothing leaves the machine."

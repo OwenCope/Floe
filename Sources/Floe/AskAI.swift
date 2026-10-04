@@ -1,0 +1,116 @@
+//
+//  AskAI.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU AGPLv3
+
+import Foundation
+
+/// Ask AI, the launcher's own way to the source chosen in Settings: one question, one answer.
+/// What is here is the part that needs no panel: the keyword, where a source runs, and who answered.
+enum AskAI {
+    /// `ask why is the sky blue` leads the search with the question.
+    static let keyword = "ask"
+    /// A question in a speech bubble; the row, the view and the menu all use it.
+    static let symbol = "questionmark.bubble"
+    /// Stands in for an answer where the view is drawn without asking anything (`--panel-snapshot`).
+    static let sampleAnswer = """
+    Tides are the sea rising and falling, **twice a day** in most places.
+
+    1. The Moon pulls the water nearest to it into a bulge.
+    2. A second bulge forms on the far side of the Earth.
+    3. As the Earth turns, a coast passes through both.
+
+    > The Sun does the same with about half the strength.
+
+    - Spring tides: Sun and Moon in line.
+    - Neap tides: Sun and Moon at right angles.
+
+    ```
+    high tide to high tide: about 12 h 25 min
+    ```
+    """
+
+    /// Who answers, and whether the question stays on this Mac.
+    struct Source: Equatable {
+        /// One line for under the answer, such as "Ollama, on this Mac" or "openrouter.ai".
+        let line: String
+        let isOnThisMac: Bool
+    }
+
+    /// The question in a query that starts with the keyword, in any case, then a space and some text.
+    /// The keyword alone is an ordinary search, and a quicklink or a script that answers to the same word keeps it.
+    static func question(in context: SearchContext) -> String? {
+        let query = context.trimmed
+        guard query.lowercased().hasPrefix(keyword + " ") else { return nil }
+        let text = query.dropFirst(keyword.count + 1).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty,
+              QuicklinkSearchProvider.keywordSearchResult(query: query, links: context.quicklinks) == nil,
+              !context.scripts.contains(where: { $0.argumentsText(in: query) != nil })
+        else { return nil }
+        return text
+    }
+
+    /// Whether a source answers without the question leaving this Mac: Apple Intelligence, and an API
+    /// whose address is on this Mac. The command line tools and a remote API send it elsewhere.
+    static func isOnThisMac(_ choice: AIAnswer.Choice) -> Bool {
+        switch choice {
+        case .appleIntelligence: true
+        case let .api(endpoint): endpoint.map { !AIEndpoint.needsKey($0.chatURL) } ?? false
+        case .tools: false
+        }
+    }
+
+    /// Who would answer and where. `tool` is the command line tool found, "claude" or "codex".
+    /// Nil when nothing can answer: no tool installed, or an API that is not filled in.
+    static func source(for choice: AIAnswer.Choice, tool: String?) -> Source? {
+        switch choice {
+        case .appleIntelligence:
+            return Source(line: "Apple Intelligence, on this Mac", isOnThisMac: true)
+        case .tools:
+            return tool.map { Source(line: "The \($0) tool, on your account", isOnThisMac: false) }
+        case let .api(endpoint):
+            guard let endpoint, let host = endpoint.chatURL.host else { return nil }
+            guard isOnThisMac(choice) else { return Source(line: host, isOnThisMac: false) }
+            // Ollama and LM Studio are known by their address; any other local server by its port.
+            let service = AIService.allCases.first { $0.baseURL.flatMap(AIEndpoint.chatURL(baseURL:)) == endpoint.chatURL }
+            let address = endpoint.chatURL.port.map { "\(host):\($0)" } ?? host
+            return Source(line: service?.title ?? "\(address), on this Mac", isOnThisMac: true)
+        }
+    }
+
+    /// The source the settings choose, with the tool looked up on the PATH known so far.
+    static func configuredSource(_ settings: AppSettings) -> Source? {
+        let tool = AIEngine.resolve(model: nil, which: { LoginEnvironment.which($0) })?.toolName
+        return source(for: AIAnswer.configured(settings), tool: tool)
+    }
+
+    /// Whether a source can answer, asked at most once per `lifetime`: the search asks on every
+    /// keystroke, and the answer may cost a Keychain read or a walk of the PATH.
+    static func availabilityCheck(
+        lifetime: TimeInterval = 2,
+        now: @escaping () -> Date = Date.init,
+        check: @escaping () -> Bool
+    ) -> () -> Bool {
+        var last: (at: Date, value: Bool)?
+        return {
+            if let last, now().timeIntervalSince(last.at) < lifetime {
+                return last.value
+            }
+            let value = check()
+            last = (now(), value)
+            return value
+        }
+    }
+}
+
+extension TextGeneration.Engine {
+    /// The tool's name as the user types it in a terminal.
+    var toolName: String {
+        switch self {
+        case .claude: "claude"
+        case .codex: "codex"
+        }
+    }
+}

@@ -21,6 +21,11 @@ struct AISettingsSection: View {
         _service = State(initialValue: AIService.matching(settings.aiBaseURL))
     }
 
+    /// The choice as it stands in the fields, with the key typed here and not the stored one.
+    private var choice: AIAnswer.Choice {
+        AIAnswer.choice(source: settings.aiSource, baseURL: settings.aiBaseURL, model: settings.aiModel) { apiKey }
+    }
+
     var body: some View {
         ThawSection("AI") {
             Picker(selection: $settings.aiSource) {
@@ -30,6 +35,9 @@ struct AISettingsSection: View {
             } label: {
                 Text("Answer AI requests with")
                 Text("Extensions that ask AI a question get their answer from here.")
+            }
+            if choice != .api(nil), AIAnswer.refusal(for: choice, localOnly: settings.aiOnThisMacOnly) != nil {
+                warning("This source is not on this Mac, and Privacy is set to only use AI that runs on this Mac. Nothing will be asked until one of the two changes.")
             }
             switch settings.aiSource {
             case .tools:

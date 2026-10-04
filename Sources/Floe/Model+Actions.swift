@@ -30,6 +30,7 @@ extension LauncherModel {
         case let .command(command) where command.mode == "menu-bar":
             isInMenuBar(command) ? "Remove from Menu Bar" : "Add to Menu Bar"
         case .clipboardEntry: "Paste"
+        case .askAI: "Ask"
         case .menuBarItem: "Click Item"
         case .browserTab(.tab): "Switch to Tab"
         default: "Open"
@@ -99,6 +100,7 @@ extension LauncherModel {
         case .calculator, .emoji, .searchFiles, .event, .quicklink: false
         case .file, .clipboardEntry, .menuBarItem, .menuBarAccess: false
         case .browserTab: false
+        case .askAI: false
         default: true
         }
     }

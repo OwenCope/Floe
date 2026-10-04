@@ -28,6 +28,8 @@ struct SearchContext {
     var quicklinks: [Quicklink] = []
     /// The names the user gave menu bar items, by item id.
     var menuBarItemNames: [String: String] = [:]
+    /// Whether an AI source can answer; the Ask AI rows are left out when none can.
+    var canAskAI = false
 
     init(query: String) {
         self.query = query
