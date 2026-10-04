@@ -57,19 +57,22 @@ private actor ControlledScanner: CatalogScanning {
     func scanApps() async -> [AppEntry] {
         let gate = Gate()
         appGates.append(gate)
+        // Taken before the wait: gates opened back to back resume in either order.
+        let result = appResults.isEmpty ? [] : appResults.removeFirst()
         startedScans.increment()
         await gate.wait()
-        return appResults.isEmpty ? [] : appResults.removeFirst()
+        return result
     }
 
     func scanCommands(includeRaycast: Bool) async -> [ExtensionCommand] {
         receivedIncludeRaycast.record(includeRaycast)
         let gate = Gate()
         commandGates.append(gate)
+        let result = commandResults.isEmpty ? [] : commandResults.removeFirst()
         startedScans.increment()
         startedCommandScans.increment()
         await gate.wait()
-        return commandResults.isEmpty ? [] : commandResults.removeFirst()
+        return result
     }
 
     func openAppScan(at index: Int) async {
@@ -313,6 +316,8 @@ struct LauncherCatalogTests {
             weakModel = model
             model.startCatalogLoading()
         }
+        // A task that is just starting may hold the model for a moment; what matters is that it lets go.
+        await waitFor("the model is released") { weakModel == nil }
         #expect(weakModel == nil, "a suspended scan holds the scanner, not the model")
         await scanner.openAppScan(at: 0)
         await scanner.openCommandScan(at: 0)

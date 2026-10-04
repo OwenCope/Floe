@@ -214,7 +214,10 @@ struct AppSettingsTests {
     @Test func changesAreSavedOnTheirOwnShortlyAfter() async throws {
         let settings = AppSettings(defaults: scratch.defaults)
         settings.popToRootDelay = 300
-        try await Task.sleep(for: .milliseconds(600))
+        // Polled, not slept once: the save waits on the main run loop, which a busy test run delays.
+        for _ in 0 ..< 100 where AppSettings(defaults: scratch.defaults).popToRootDelay != 300 {
+            try await Task.sleep(for: .milliseconds(50))
+        }
         #expect(AppSettings(defaults: scratch.defaults).popToRootDelay == 300)
     }
 }
