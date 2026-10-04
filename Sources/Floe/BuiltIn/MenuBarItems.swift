@@ -7,6 +7,7 @@
 
 import AppKit
 import ApplicationServices
+import Synchronization
 
 /// One item in the menu bar's status area. Thaw finds items through its own runtime; Floe reads them
 /// through the public Accessibility API and opens one by pressing it.
@@ -38,43 +39,47 @@ enum MenuBarExtras {
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
     }
 
-    /// Walks every running app's extras menu bar. Slow enough (one AX round trip per app) to keep off the main thread.
+    /// Asks every running app for its extras menu bar, all at once: each answer is a round trip to that app,
+    /// and most apps have none. Still off the main thread, since the slowest app sets the pace.
     static func scan() -> [MenuBarExtra] {
-        var extras: [MenuBarExtra] = []
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        for app in NSWorkspace.shared.runningApplications where app.processIdentifier != ownPID {
-            let application = AXUIElementCreateApplication(app.processIdentifier)
-            AXUIElementSetMessagingTimeout(application, 0.25)
-            guard let bar: AXUIElement = value(application, "AXExtrasMenuBar"),
-                  let items: [AXUIElement] = value(bar, kAXChildrenAttribute) else { continue }
-            let ownerName = app.localizedName ?? ""
-            for (index, item) in items.enumerated() {
-                let identifier: String? = value(item, "AXIdentifier")
-                let label = MenuBarNaming.label(
-                    title: value(item, kAXTitleAttribute),
-                    description: value(item, kAXDescriptionAttribute),
-                    help: value(item, kAXHelpAttribute)
-                )
-                guard MenuBarNaming.isListed(identifier: identifier, label: label, ownerName: ownerName) else { continue }
-                let key = MenuBarNaming.identifier(
-                    bundleIdentifier: app.bundleIdentifier,
-                    ownerName: ownerName,
-                    identifier: identifier,
-                    label: label,
-                    index: index
-                )
-                extras.append(MenuBarExtra(
-                    id: key,
-                    name: label ?? ownerName,
-                    ownerName: ownerName,
-                    ownerURL: app.bundleURL,
-                    frame: frame(of: item),
-                    element: item
-                ))
+        let apps = NSWorkspace.shared.runningApplications.filter {
+            $0.processIdentifier != ownPID && MenuBarNaming.canOwnItems(executableURL: $0.executableURL)
+        }
+        let found = Mutex<[MenuBarExtra]>([])
+        DispatchQueue.concurrentPerform(iterations: apps.count) { index in
+            let extras = extras(of: apps[index])
+            if !extras.isEmpty {
+                found.withLock { $0 += extras }
             }
         }
-        // Left to right, the order they sit in the menu bar.
-        return extras.sorted { $0.frame.minX < $1.frame.minX }
+        // Left to right, the order they sit in the menu bar. The name breaks a tie, so the order never depends on which app answered first.
+        return found.withLock { $0 }.sorted { ($0.frame.minX, $0.id) < ($1.frame.minX, $1.id) }
+    }
+
+    private static func extras(of app: NSRunningApplication) -> [MenuBarExtra] {
+        let application = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(application, 0.25)
+        guard let bar: AXUIElement = value(application, "AXExtrasMenuBar"),
+              let items: [AXUIElement] = value(bar, kAXChildrenAttribute) else { return [] }
+        let ownerName = app.localizedName ?? ""
+        return items.enumerated().compactMap { index, item in
+            let identifier: String? = value(item, "AXIdentifier")
+            let label = MenuBarNaming.label(
+                title: value(item, kAXTitleAttribute),
+                description: value(item, kAXDescriptionAttribute),
+                help: value(item, kAXHelpAttribute)
+            )
+            guard MenuBarNaming.isListed(identifier: identifier, label: label, ownerName: ownerName) else { return nil }
+            let key = MenuBarNaming.identifier(
+                bundleIdentifier: app.bundleIdentifier,
+                ownerName: ownerName,
+                identifier: identifier,
+                label: label,
+                index: index
+            )
+            return MenuBarExtra(id: key, name: label ?? ownerName, ownerName: ownerName, ownerURL: app.bundleURL, frame: frame(of: item), element: item)
+        }
     }
 
     private static func frame(of element: AXUIElement) -> CGRect {

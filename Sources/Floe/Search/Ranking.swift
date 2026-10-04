@@ -13,6 +13,11 @@ enum Fuzzy {
     static func score(_ query: String, _ candidate: String) -> Int? {
         evaluate(query, candidate, wantPositions: false)?.score
     }
+
+    /// The score of a match that is a prefix, a word start, initials or one run of characters, and nil for anything looser.
+    static func tierScore(_ query: String, _ candidate: String) -> Int? {
+        evaluate(query, candidate, wantPositions: false, scattered: false)?.score
+    }
 }
 
 /// Orders the root search. Usage and settings come in as plain values, so this stays free of stored state.

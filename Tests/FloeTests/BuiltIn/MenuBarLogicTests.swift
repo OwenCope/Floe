@@ -11,6 +11,13 @@ import Foundation
 import Testing
 
 struct MenuBarNamingTests {
+    @Test func anXPCServiceIsNotAskedForItems() {
+        let tab = "/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent"
+        #expect(!MenuBarNaming.canOwnItems(executableURL: URL(fileURLWithPath: tab)))
+        #expect(MenuBarNaming.canOwnItems(executableURL: URL(fileURLWithPath: "/Applications/Pandan.app/Contents/MacOS/Pandan")))
+        #expect(MenuBarNaming.canOwnItems(executableURL: nil), "a process that names no executable is still asked")
+    }
+
     @Test func theLabelIsTheFirstNonEmptyOfTitleDescriptionAndHelp() {
         #expect(MenuBarNaming.label(title: "Pandan", description: "Other", help: nil) == "Pandan")
         #expect(MenuBarNaming.label(title: "", description: "AirDrop", help: nil) == "AirDrop")

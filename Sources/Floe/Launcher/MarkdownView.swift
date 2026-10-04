@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-/// Draws the blocks MarkdownParser finds, with inline styling from AttributedString.
+/// Draws Markdown that was parsed already. Nothing is parsed here: `content` is made when the text changes.
 struct MarkdownView: View {
-    let text: String
+    let content: MarkdownContent
     /// Detail views keep the compact size; an answer that is read at length passes a larger one.
     var font = Font.system(size: 13)
     var lineSpacing: CGFloat = 0
@@ -17,9 +17,19 @@ struct MarkdownView: View {
     static var isSelectable = true
 
     var body: some View {
-        MarkdownBlocks(blocks: MarkdownParser.blocks(text), lineSpacing: lineSpacing)
+        MarkdownBlocks(pieces: content.pieces, lineSpacing: lineSpacing)
             .font(font)
             .modifier(Selectable(isOn: Self.isSelectable))
+    }
+}
+
+/// Markdown that arrives as text and seldom changes, parsed once per text and not once per evaluation.
+struct MarkdownTextView: View {
+    let text: String
+    @State private var memo = MarkdownMemo()
+
+    var body: some View {
+        MarkdownView(content: memo.content(for: text))
     }
 }
 
@@ -37,18 +47,14 @@ private struct Selectable: ViewModifier {
 
 /// A run of blocks, drawn again inside a quote for the blocks it holds.
 private struct MarkdownBlocks: View {
-    let blocks: [MarkdownBlock]
+    let pieces: [MarkdownContent.Piece]
     let lineSpacing: CGFloat
 
-    private func inline(_ string: String) -> AttributedString {
-        (try? AttributedString(markdown: string, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(string)
+    private func paragraph(_ string: AttributedString) -> some View {
+        Text(string).lineSpacing(lineSpacing).fixedSize(horizontal: false, vertical: true)
     }
 
-    private func paragraph(_ string: String) -> some View {
-        Text(inline(string)).lineSpacing(lineSpacing).fixedSize(horizontal: false, vertical: true)
-    }
-
-    private func listRow(_ marker: String, _ string: String) -> some View {
+    private func listRow(_ marker: String, _ string: AttributedString) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(marker).foregroundStyle(.secondary).monospacedDigit()
             paragraph(string)
@@ -57,10 +63,10 @@ private struct MarkdownBlocks: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
-                switch block {
+            ForEach(Array(pieces.enumerated()), id: \.offset) { _, piece in
+                switch piece {
                 case let .heading(level, text):
-                    Text(inline(text)).font(.system(size: [22, 18, 15][min(level, 3) - 1], weight: .semibold))
+                    Text(text).font(.system(size: [22, 18, 15][min(level, 3) - 1], weight: .semibold))
                 case let .paragraph(text):
                     paragraph(text)
                 case let .bullet(text):
@@ -69,7 +75,7 @@ private struct MarkdownBlocks: View {
                     listRow("\(number).", text)
                 case let .quote(quoted):
                     // Type-erased: a view cannot hold itself in its own body's type.
-                    AnyView(MarkdownBlocks(blocks: quoted, lineSpacing: lineSpacing))
+                    AnyView(MarkdownBlocks(pieces: quoted, lineSpacing: lineSpacing))
                         .foregroundStyle(.secondary)
                         .padding(.leading, 12)
                         .overlay(alignment: .leading) {

@@ -8,7 +8,7 @@
 import Foundation
 import Markdown
 
-enum MarkdownBlock: Equatable {
+enum MarkdownBlock: Equatable, Sendable {
     case heading(Int, String)
     case paragraph(String)
     case bullet(String)
@@ -23,7 +23,7 @@ enum MarkdownBlock: Equatable {
 
 /// Block-level Markdown for detail views and AI answers: headings, bullets, numbered items, quotes,
 /// code, rules, images and paragraphs.
-/// swift-markdown finds the blocks; inline styling is left to AttributedString when a block is drawn,
+/// swift-markdown finds the blocks; inline styling is left to AttributedString (see `MarkdownContent`),
 /// so each block carries its inline content as Markdown source.
 enum MarkdownParser {
     static func blocks(_ text: String) -> [MarkdownBlock] {

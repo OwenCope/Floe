@@ -6,6 +6,7 @@
 //  Licensed under the GNU AGPLv3
 
 import AppKit
+import Combine
 @testable import Floe
 import Foundation
 import Synchronization
@@ -61,6 +62,119 @@ private final class FakeSource: Sendable {
     /// Lets every request waiting at the gate go on to its result.
     func open() {
         state.withLock { $0.gates }.forEach { $0.yield() }
+    }
+}
+
+/// A source that streams what the test sends, when the test sends it.
+private final class StreamedSource: Sendable {
+    private let pipe = AsyncStream.makeStream(of: String.self)
+    private let whole = Mutex<String?>(nil)
+
+    var request: AskAIModel.Request {
+        { [self] _, emit in
+            var all = ""
+            for await text in pipe.stream {
+                all += text
+                await emit(text)
+            }
+            try Task.checkCancellation()
+            return whole.withLock { $0 } ?? all
+        }
+    }
+
+    func send(_ text: String) {
+        pipe.continuation.yield(text)
+    }
+
+    /// Ends the stream. The source returns `whole`, or what it streamed.
+    func end(with whole: String? = nil) {
+        self.whole.withLock { $0 = whole }
+        pipe.continuation.finish()
+    }
+}
+
+/// Stands in for the clock and the parser: the wait between two batches ends when the test says,
+/// every parse is noted, and the first parse of one text can be held back to land late.
+private final class FakeBatching: Sendable {
+    private struct State {
+        var started: [String] = []
+        var waiting: [AsyncStream<Void>.Continuation] = []
+        var holding: String?
+        var held: CheckedContinuation<Void, Never>?
+    }
+
+    private let state: Mutex<State>
+
+    init(holding: String? = nil) {
+        state = Mutex(State(holding: holding))
+    }
+
+    /// The texts parsed, in the order the parses started.
+    var started: [String] {
+        state.withLock { $0.started }
+    }
+
+    var waiting: Int {
+        state.withLock { $0.waiting.count }
+    }
+
+    var isHolding: Bool {
+        state.withLock { $0.held != nil }
+    }
+
+    var parse: AskAIModel.Parse {
+        { [self] text, shown in
+            let holds = state.withLock { state in
+                state.started.append(text)
+                guard text == state.holding else { return false }
+                state.holding = nil
+                return true
+            }
+            if holds {
+                // Not ended by cancellation: a parse that is running cannot be called back.
+                await withCheckedContinuation { held in state.withLock { $0.held = held } }
+            }
+            return await MarkdownContent.parsed(text, reusing: shown)
+        }
+    }
+
+    var pause: AskAIModel.Pause {
+        { [self] in
+            let (gate, opener) = AsyncStream.makeStream(of: Void.self)
+            state.withLock { $0.waiting.append(opener) }
+            for await _ in gate {
+                break
+            }
+        }
+    }
+
+    /// The batching interval passes.
+    func tick() {
+        let waiting = state.withLock { state in
+            defer { state.waiting = [] }
+            return state.waiting
+        }
+        waiting.forEach { $0.finish() }
+    }
+
+    /// Lets the parse that was held back return.
+    func release() {
+        let held = state.withLock { state in
+            defer { state.held = nil }
+            return state.held
+        }
+        held?.resume()
+    }
+}
+
+/// The texts a model showed, in order.
+@MainActor
+private final class ShownTexts {
+    private(set) var texts: [String] = []
+    private var watching: AnyCancellable?
+
+    init(_ asking: AskAIModel) {
+        watching = asking.$shown.sink { [weak self] in self?.texts.append($0.text) }
     }
 }
 
@@ -176,6 +290,162 @@ struct AskAIModelTests {
         #expect(fake.cancellations == 1, "the request in flight was told to stop")
         #expect(asking.state == .cancelled, "a late result changes nothing")
         #expect(asking.answer.isEmpty)
+    }
+
+    // MARK: Streaming
+
+    @Test func aStreamingAnswerIsParsedOncePerBatchHoweverManyTokensArrive() async {
+        let stream = StreamedSource()
+        let batching = FakeBatching()
+        let asking = AskAIModel(question: "q", source: source, request: stream.request, parse: batching.parse, pause: batching.pause)
+        let task = asking.ask()
+
+        stream.send("# Tides\n\n")
+        await waitFor("the first text, drawn at once") { asking.shown.text == "# Tides\n\n" }
+        await waitFor("the wait for the next batch") { batching.waiting == 1 }
+
+        let tokens = (1 ... 50).map { "word\($0) " }
+        tokens.forEach(stream.send)
+        let received = "# Tides\n\n" + tokens.joined()
+        await waitFor("every token") { asking.answer == received }
+        #expect(batching.started.count == 1, "fifty tokens inside one interval start no parse")
+        #expect(asking.shown.text == "# Tides\n\n")
+
+        batching.tick()
+        await waitFor("the batch") { asking.shown.text == received }
+        #expect(batching.started == ["# Tides\n\n", received], "one parse for the batch, of everything received")
+        #expect(asking.shown.blocks == MarkdownParser.blocks(received))
+
+        // Nothing arrived in this interval, so nothing is parsed; the next token is drawn at once again.
+        await waitFor("the wait after the batch") { batching.waiting == 1 }
+        batching.tick()
+        stream.send("end")
+        await waitFor("the text after a quiet interval") { asking.shown.text == received + "end" }
+        #expect(batching.started.count == 3)
+
+        stream.end()
+        await task.value
+        #expect(asking.state == .finished)
+        #expect(batching.started.count == 3, "the whole answer is what is shown already, so it is not parsed again")
+    }
+
+    @Test func updatesArriveInOrderAndEndOnTheWholeAnswer() async {
+        let stream = StreamedSource()
+        let batching = FakeBatching()
+        let asking = AskAIModel(question: "q", source: source, request: stream.request, parse: batching.parse, pause: batching.pause)
+        let shown = ShownTexts(asking)
+        let task = asking.ask()
+
+        stream.send("one ")
+        await waitFor("the first text") { asking.shown.text == "one " }
+        stream.send("two ")
+        await waitFor("the second token") { asking.answer == "one two " }
+        await waitFor("the wait for the next batch") { batching.waiting == 1 }
+        batching.tick()
+        await waitFor("the second batch") { asking.shown.text == "one two " }
+        stream.send("three")
+        await waitFor("the third token") { asking.answer == "one two three" }
+        #expect(asking.shown.text == "one two ", "the view is a batch behind, and what copy and paste use is not")
+
+        // The interval never passes again: the end of the stream alone brings the rest.
+        stream.end(with: "one two three, **four**")
+        await task.value
+        #expect(asking.state == .finished)
+        #expect(asking.answer == "one two three, **four**")
+        #expect(asking.shown == MarkdownContent("one two three, **four**"))
+        #expect(shown.texts == ["", "", "one ", "one two ", "one two three, **four**"])
+    }
+
+    @Test func aFailureAfterSomeTextShowsAllOfTheTextThatArrived() async {
+        let fake = FakeSource(early: ["partial ", "answer"], result: .failure(.failed("Cut off.")))
+        let batching = FakeBatching()
+        let asking = AskAIModel(question: "q", source: source, request: fake.request, parse: batching.parse, pause: batching.pause)
+        let task = asking.ask()
+        await waitFor("the streamed text") { asking.answer == "partial answer" }
+        fake.open()
+        await task.value
+        #expect(asking.state == .failed("Cut off."))
+        #expect(asking.shown.text == "partial answer")
+    }
+
+    @Test func aParseThatLandsLateNeverReplacesANewerOne() async throws {
+        let stream = StreamedSource()
+        let batching = FakeBatching(holding: "old")
+        let asking = AskAIModel(question: "q", source: source, request: stream.request, parse: batching.parse, pause: batching.pause)
+        let task = asking.ask()
+
+        stream.send("old")
+        await waitFor("the parse of the first text, held back") { batching.isHolding }
+        let batch = try #require(asking.showing)
+        stream.end(with: "old and new")
+        await task.value
+        #expect(asking.shown.text == "old and new")
+
+        batching.release()
+        await batch.value
+        #expect(batching.started == ["old", "old and new"])
+        #expect(asking.shown.text == "old and new", "the older parse came back last and was dropped")
+        #expect(asking.state == .finished)
+    }
+
+    @Test func leavingMidStreamLeavesNoLaterUpdate() async throws {
+        let stream = StreamedSource()
+        let batching = FakeBatching(holding: "first second")
+        let asking = AskAIModel(question: "q", source: source, request: stream.request, parse: batching.parse, pause: batching.pause)
+        let shown = ShownTexts(asking)
+        let task = asking.ask()
+
+        stream.send("first ")
+        await waitFor("the first text") { asking.shown.text == "first " }
+        await waitFor("the wait for the next batch") { batching.waiting == 1 }
+        stream.send("second")
+        await waitFor("the second token") { asking.answer == "first second" }
+        batching.tick()
+        await waitFor("the parse of the batch, held back") { batching.isHolding }
+        let batch = try #require(asking.showing)
+
+        asking.leave()
+        #expect(asking.shown == .empty)
+        #expect(asking.showing == nil)
+        batching.release()
+        await batch.value
+        await task.value
+
+        #expect(asking.state == .cancelled)
+        #expect(asking.answer.isEmpty)
+        #expect(asking.shown == .empty, "the parse in flight came back to a view that was left")
+        #expect(shown.texts == ["", "", "first ", ""])
+        #expect(batching.started == ["first ", "first second"], "nothing is parsed after leaving")
+    }
+
+    @Test func askingAgainMidStreamDropsTheBatchOfTheFirstRequest() async throws {
+        let calls = Mutex(0)
+        let batching = FakeBatching(holding: "first")
+        let request: AskAIModel.Request = { _, emit in
+            let call = calls.withLock { calls in
+                calls += 1
+                return calls
+            }
+            guard call == 1 else { return "second" }
+            await emit("first")
+            // The first request is never answered: it ends when it is cancelled.
+            try await Task.sleep(for: .seconds(3600))
+            return "never"
+        }
+        let asking = AskAIModel(question: "q", source: source, request: request, parse: batching.parse, pause: batching.pause)
+        let shown = ShownTexts(asking)
+        asking.ask()
+        await waitFor("the parse of the first text, held back") { batching.isHolding }
+        let batch = try #require(asking.showing)
+
+        let second = asking.ask()
+        await second.value
+        #expect(asking.shown.text == "second")
+        batching.release()
+        await batch.value
+        #expect(asking.state == .finished)
+        #expect(asking.shown.text == "second", "text of the request that was replaced is not drawn")
+        #expect(shown.texts == ["", "", "", "second"])
     }
 
     // MARK: In the launcher

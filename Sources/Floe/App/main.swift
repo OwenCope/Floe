@@ -134,12 +134,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             .store(in: &cancellables)
         // Everything the panel needs is wired up: the catalog can fill in behind it now.
         model.startCatalogLoading()
+        model.warmMenuBar()
         Log.app.notice("Launched in \(Log.milliseconds(since: processStart)) ms")
 
         UpdatesManager.shared.performSetup()
         // Takes floe:// links: Thaw's answer about its appearance, and the browser's return once sign-in is back.
         IncomingURLRouter.shared.install()
         TextExpander.shared.start()
+        // Made here so copies are recorded from launch, not from the first time the history is looked at.
+        _ = ClipboardHistoryStore.shared
         settingsLink.start()
 
         // The first launch opens the welcome window; the launcher follows when it is finished.
@@ -206,6 +209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menuBarCommands?.stopAll()
         backgroundScheduler?.stopAll()
         settingsLink.terminate()
+        ClipboardHistoryStore.flushShared()
     }
 
     private func toggle() {
@@ -337,7 +341,8 @@ if options.benchSettings {
     let catalog = SettingsCatalog(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
     let selection = SettingsSelection()
     let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 820, height: 560), styleMask: [.titled], backing: .buffered, defer: false)
-    window.contentView = NSHostingView(rootView: SettingsView(catalog: catalog, settings: .shared, selection: selection))
+    let search = MainActor.assumeIsolated { SearchModel() }
+    window.contentView = NSHostingView(rootView: SettingsView(catalog: catalog, settings: .shared, selection: selection, search: search))
     window.orderFrontRegardless()
     let pages: [(String, SettingsPage)] = [("general", .general), ("applications", .applications), ("privacy", .privacy), ("about", .about), ("extension", .extensionPage("kill-process"))]
     for (name, page) in pages {
@@ -352,6 +357,7 @@ if options.benchSettings {
             window.contentView?.writePNG(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
         }
     }
+    MainActor.assumeIsolated { runSettingsSearchBench(search: search, window: window) }
     // General's AI section sits below the fold, so each of its states is drawn on its own, on scratch settings.
     if let directory = ProcessInfo.processInfo.environment["FLOE_BENCH_DUMP"], let scratch = UserDefaults(suiteName: "floe.bench.\(UUID().uuidString)") {
         let states: [(String, AISource, String, String?)] = [("ai-tools", .tools, "", nil), ("ai-api", .api, "small", "key-123"), ("ai-api-incomplete", .api, "", nil)]
@@ -378,7 +384,7 @@ if options.iconCheck {
     } + [("kill-process accessory", ["source": "cpu.svg", "tintColor": "color:PrimaryText"], ExtensionCommand.scan().first { $0.extensionName == "kill-process" }?.assetsPath ?? "")]
     MainActor.assumeIsolated {
         for (name, value, assets) in samples {
-            let renderer = ImageRenderer(content: IconView(value: value, assetsPath: assets, size: 32).environment(\.colorScheme, .dark))
+            let renderer = ImageRenderer(content: IconView(value: value, assetsPath: assets, size: 32, waitsForImage: true).environment(\.colorScheme, .dark))
             renderer.scale = 1
             guard let image = renderer.cgImage, let data = image.dataProvider?.data as Data? else { print("\(name): no image"); continue }
             // A pixel counts as drawn when any of its four bytes is set, whatever the channel order.

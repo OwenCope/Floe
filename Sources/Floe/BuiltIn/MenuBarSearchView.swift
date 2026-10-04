@@ -75,18 +75,21 @@ struct MenuBarSearchView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
-                        if let section = result.section, index == 0 || results[index - 1].section != section {
-                            SearchSectionHeader(title: section)
+                        // One view per item, title included: a lazy stack walks the whole list when rows vary in count.
+                        VStack(spacing: 0) {
+                            if let section = result.section, index == 0 || results[index - 1].section != section {
+                                SearchSectionHeader(title: section)
+                            }
+                            InspectorItemRow(
+                                extra: result.extra,
+                                name: model.displayName(for: result.extra),
+                                renameDraft: model.renamingMenuBarItem == result.extra.id ? $model.menuBarRenameDraft : nil
+                            )
+                            .modifier(SearchRowBackground(selected: index == model.menuBarSelection))
+                            .onTapGesture(count: 2) { model.openMenuBarExtra(result.extra) }
+                            .onTapGesture { model.menuBarSelection = index }
                         }
-                        InspectorItemRow(
-                            extra: result.extra,
-                            name: model.displayName(for: result.extra),
-                            renameDraft: model.renamingMenuBarItem == result.extra.id ? $model.menuBarRenameDraft : nil
-                        )
-                        .modifier(SearchRowBackground(selected: index == model.menuBarSelection))
                         .id(result.id)
-                        .onTapGesture(count: 2) { model.openMenuBarExtra(result.extra) }
-                        .onTapGesture { model.menuBarSelection = index }
                     }
                 }
             }

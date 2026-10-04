@@ -135,12 +135,16 @@ struct RootView: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
-                                if let section = result.section, index == 0 || results[index - 1].section != section {
-                                    SectionTitle(title: section, isFirst: index == 0)
+                                // One view per result, title included: a lazy stack walks the whole list when rows vary in count.
+                                VStack(alignment: .leading, spacing: 0) {
+                                    if let section = result.section, index == 0 || results[index - 1].section != section {
+                                        SectionTitle(title: section, isFirst: index == 0)
+                                    }
+                                    RootRow(model: model, item: result.item, selected: index == model.selection)
+                                        .equatable()
+                                        .onTapGesture { model.activate(result.item) }
                                 }
-                                RootRow(model: model, item: result.item, selected: index == model.selection)
-                                    .id(result.id)
-                                    .onTapGesture { model.activate(result.item) }
+                                .id(result.id)
                             }
                         }
                     }
@@ -193,13 +197,36 @@ struct SectionTitle: View {
     }
 }
 
-struct RootRow: View {
-    let model: LauncherModel
+/// One result. Equatable so moving the selection redraws the two rows it touches, not every row on screen.
+struct RootRow: View, Equatable {
     let item: RootItem
     let selected: Bool
+    let matched: [Int]
+    let isInMenuBar: Bool
+    let isFavorite: Bool
+    let alias: String?
+
+    init(model: LauncherModel, item: RootItem, selected: Bool) {
+        self.item = item
+        self.selected = selected
+        matched = Fuzzy.match(model.query, item.title)?.matched ?? []
+        if case let .command(command) = item {
+            isInMenuBar = model.isInMenuBar(command)
+        } else {
+            isInMenuBar = false
+        }
+        isFavorite = model.isFavorite(item)
+        alias = model.alias(for: item)
+    }
+
+    static func == (lhs: RootRow, rhs: RootRow) -> Bool {
+        lhs.item.id == rhs.item.id && lhs.item.title == rhs.item.title && lhs.item.rowLabel == rhs.item.rowLabel
+            && lhs.selected == rhs.selected && lhs.matched == rhs.matched && lhs.isInMenuBar == rhs.isInMenuBar
+            && lhs.isFavorite == rhs.isFavorite && lhs.alias == rhs.alias
+    }
 
     var body: some View {
-        PaletteRow(title: item.title, subtitle: nil, selected: selected, matched: Fuzzy.match(model.query, item.title)?.matched ?? []) {
+        PaletteRow(title: item.title, subtitle: nil, selected: selected, matched: matched) {
             RootIcon(item: item)
         } trailing: {
             HStack(spacing: ThawSpacing.compact) {
@@ -209,15 +236,15 @@ struct RootRow: View {
                     .font(ThawType.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                if case let .command(command) = item, model.isInMenuBar(command) {
+                if isInMenuBar {
                     Image(systemName: "checkmark").font(ThawType.caption).foregroundStyle(.secondary)
                         .accessibilityLabel("In the menu bar")
                 }
-                if model.isFavorite(item) {
+                if isFavorite {
                     Image(systemName: "star.fill").font(ThawType.caption).foregroundStyle(.yellow)
                         .accessibilityLabel("Favorite")
                 }
-                if let alias = model.alias(for: item) {
+                if let alias {
                     KeyCap(alias)
                 }
             }

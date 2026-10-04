@@ -7,45 +7,66 @@
 
 import AppKit
 import Combine
-import SwiftUI
+
+/// The part of a status item a menu-bar command uses; tests stand in for it.
+@MainActor protocol MenuBarStatusItem: AnyObject {
+    var statusButton: (any MenuBarStatusButton)? { get }
+    var menu: NSMenu? { get set }
+}
+
+extension NSStatusItem: MenuBarStatusItem {
+    var statusButton: (any MenuBarStatusButton)? {
+        button
+    }
+}
+
+/// What menu-bar commands need from the system: the menu bar, extension hosts and icon files.
+@MainActor struct MenuBarHost {
+    var addItem: () -> any MenuBarStatusItem = { NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength) }
+    var removeItem: (any MenuBarStatusItem) -> Void = { item in
+        if let item = item as? NSStatusItem {
+            NSStatusBar.system.removeStatusItem(item)
+        }
+    }
+
+    var start: (ExtensionSession) -> Void = { $0.start() }
+    var resolver: (_ assetsPath: String) -> MenuBarIconResolver = { MenuBarIconResolver.system(assetsPath: $0) }
+    var icons = IconThumbnailCache.shared
+}
 
 /// One menu-bar command's status item and its running session.
 @MainActor final class MenuBarCommands {
     private let model: LauncherModel
+    private let host: MenuBarHost
+    private let images: MenuBarIconImages
     private var entries: [String: Entry] = [:]
 
     private final class Entry {
-        let item: NSStatusItem
+        let item: any MenuBarStatusItem
+        let presenter: MenuBarPresenter
         var command: ExtensionCommand
-        var session: ExtensionSession
+        var session: ExtensionSession?
         var cancellables = Set<AnyCancellable>()
-        let dispatch = MenuDispatch()
-        init(item: NSStatusItem, command: ExtensionCommand, session: ExtensionSession) {
+        init(item: any MenuBarStatusItem, presenter: MenuBarPresenter, command: ExtensionCommand) {
             self.item = item
+            self.presenter = presenter
             self.command = command
-            self.session = session
         }
     }
 
-    private final class MenuDispatch: NSObject {
-        var onAction: ((Int) -> Void)?
-        var onRetry: (() -> Void)?
-        var onRemove: (() -> Void)?
-        @objc func fire(_ sender: NSMenuItem) {
-            onAction?(sender.tag)
-        }
-
-        @objc func retry(_: NSMenuItem) {
-            onRetry?()
-        }
-
-        @objc func remove(_: NSMenuItem) {
-            onRemove?()
-        }
-    }
-
-    init(model: LauncherModel) {
+    init(model: LauncherModel, host: MenuBarHost? = nil) {
+        let host = host ?? MenuBarHost()
         self.model = model
+        self.host = host
+        self.images = MenuBarIconImages(cache: host.icons)
+    }
+
+    func presenter(for id: String) -> MenuBarPresenter? {
+        entries[id]?.presenter
+    }
+
+    func session(for id: String) -> ExtensionSession? {
+        entries[id]?.session
     }
 
     /// Keeps one status item plus one running session per enabled menu-bar command.
@@ -58,18 +79,20 @@ import SwiftUI
         for command in wanted {
             if let entry = entries[command.id] {
                 entry.command = command
-                rebuild(command.id)
+                entry.presenter.commandTitle = command.title
             } else {
                 start(command)
             }
         }
     }
 
-    /// Stops and restarts one command's session, for interval refreshes.
+    /// Stops and restarts one command's session, for interval refreshes. The status item stays and
+    /// shows the last render until the new session has one, so the menu bar does not blink each time.
     func refresh(_ command: ExtensionCommand) {
-        guard entries[command.id] != nil else { return }
-        remove(command.id)
-        start(command)
+        guard let entry = entries[command.id] else { return }
+        entry.command = command
+        entry.presenter.commandTitle = command.title
+        run(entry)
     }
 
     func stopAll() {
@@ -79,193 +102,55 @@ import SwiftUI
     }
 
     private func start(_ command: ExtensionCommand) {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = command.title
-        let session = ExtensionSession(command: command, launchType: "background")
-        let entry = Entry(item: item, command: command, session: session)
-        entry.dispatch.onAction = { [weak self, weak session] nodeID in
-            guard let session, let node = Self.find(id: nodeID, in: session.root) else { return }
-            session.event(node, "onAction", [["type": "left-click"]])
-            self?.rebuild(command.id)
+        let item = host.addItem()
+        let resolver = host.resolver
+        let presenter = MenuBarPresenter(button: item.statusButton, commandTitle: command.title, images: images) { [weak self] in
+            resolver(self?.entries[command.id]?.command.assetsPath ?? command.assetsPath)
         }
-        entry.dispatch.onRetry = { [weak self] in self?.refresh(command) }
-        entry.dispatch.onRemove = { [weak self] in self?.model.toggleMenuBarCommand(command) }
+        let entry = Entry(item: item, presenter: presenter, command: command)
+        entry.presenter.onAction = { [weak entry] nodeID in
+            guard let session = entry?.session, let node = session.root?.descendant(id: nodeID) else { return }
+            session.event(node, "onAction", [["type": "left-click"]])
+        }
+        entry.presenter.onRetry = { [weak self, weak entry] in
+            guard let self, let entry else { return }
+            // Asked for by hand, so the menu says it is loading instead of showing what failed.
+            entry.presenter.show(root: nil)
+            run(entry)
+        }
+        entry.presenter.onRemove = { [weak self, weak entry] in
+            guard let self, let entry else { return }
+            model.toggleMenuBarCommand(entry.command)
+        }
+        item.menu = entry.presenter.menu
+        entries[command.id] = entry
+        run(entry)
+    }
+
+    /// Gives the entry a fresh session, ending the one it had.
+    private func run(_ entry: Entry) {
+        entry.cancellables.removeAll()
+        entry.session?.forceStop()
+        let session = ExtensionSession(command: entry.command, launchType: "background")
         session.onMessage = { [weak self] message in
             self?.model.handleBackgroundMessage(message)
         }
-        session.$root.sink { [weak self] _ in self?.rebuild(command.id) }.store(in: &entry.cancellables)
-        session.$failure.sink { [weak self] _ in self?.rebuild(command.id) }.store(in: &entry.cancellables)
-        entries[command.id] = entry
-        session.start()
-        rebuild(command.id)
+        let presenter = entry.presenter
+        presenter.show(failure: nil)
+        // Published in willSet, so the value handed over is the new one while the property is still the old.
+        // The first value is the empty state every session starts in, which is not a render.
+        session.$root.dropFirst().sink { [weak presenter] in presenter?.show(root: $0) }.store(in: &entry.cancellables)
+        session.$failure.dropFirst().sink { [weak presenter] in presenter?.show(failure: $0) }.store(in: &entry.cancellables)
+        entry.session = session
+        host.start(session)
     }
 
     private func remove(_ id: String) {
         guard let entry = entries.removeValue(forKey: id) else { return }
         entry.cancellables.removeAll()
-        entry.session.forceStop()
-        NSStatusBar.system.removeStatusItem(entry.item)
-    }
-
-    private func rebuild(_ id: String) {
-        guard let entry = entries[id] else { return }
-        let session = entry.session
-        let extra = session.root?.descendants(ofType: "MenuBarExtra").first
-        if let tooltip = extra?.string("tooltip") {
-            entry.item.button?.toolTip = tooltip
-        }
-        let title = extra?.string("title")
-        entry.item.button?.title = title ?? ""
-        if let icon = extra?.props["icon"], let image = statusImage(icon, assetsPath: entry.command.assetsPath) {
-            image.size = NSSize(width: 16, height: 16)
-            entry.item.button?.image = image
-        } else {
-            entry.item.button?.image = nil
-        }
-        if entry.item.button?.title.isEmpty == true, entry.item.button?.image == nil {
-            entry.item.button?.title = entry.command.title
-        }
-        let menu = NSMenu()
-        if let failure = session.failure {
-            let message = NSMenuItem(title: failure.message, action: nil, keyEquivalent: "")
-            message.isEnabled = false
-            menu.addItem(message)
-            let retry = NSMenuItem(title: "Try Again", action: #selector(MenuDispatch.retry(_:)), keyEquivalent: "")
-            retry.target = entry.dispatch
-            menu.addItem(retry)
-        } else if let extra {
-            let children = extra.content
-            if extra.bool("isLoading"), children.isEmpty {
-                let loading = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
-                loading.isEnabled = false
-                menu.addItem(loading)
-            } else {
-                addNodes(children, to: menu, entry: entry)
-                if menu.numberOfItems == 0 {
-                    let empty = NSMenuItem(title: entry.command.title, action: nil, keyEquivalent: "")
-                    empty.isEnabled = false
-                    menu.addItem(empty)
-                }
-            }
-        } else {
-            let loading = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
-            loading.isEnabled = false
-            menu.addItem(loading)
-        }
-        // Always the last row, so an item can be taken out of the menu bar from the menu bar.
-        menu.addItem(.separator())
-        let remove = NSMenuItem(title: "Remove from Menu Bar", action: #selector(MenuDispatch.remove(_:)), keyEquivalent: "")
-        remove.target = entry.dispatch
-        menu.addItem(remove)
-        entry.item.menu = menu
-    }
-
-    private func addNodes(_ nodes: [Node], to menu: NSMenu, entry: Entry) {
-        for child in nodes {
-            switch child.type {
-            case "MenuBarExtra.Item":
-                menu.addItem(makeItem(child, entry: entry))
-            case "MenuBarExtra.Separator":
-                menu.addItem(.separator())
-            case "MenuBarExtra.Section":
-                if menu.numberOfItems > 0 {
-                    menu.addItem(.separator())
-                }
-                menu.addItem(NSMenuItem.sectionHeader(title: child.string("title") ?? ""))
-                addNodes(child.content, to: menu, entry: entry)
-            case "MenuBarExtra.Submenu":
-                let sub = NSMenuItem(title: child.string("title") ?? "", action: nil, keyEquivalent: "")
-                let submenu = NSMenu()
-                addNodes(child.content, to: submenu, entry: entry)
-                sub.submenu = submenu
-                if let icon = child.props["icon"] {
-                    sub.image = statusImage(icon, assetsPath: entry.command.assetsPath)
-                }
-                menu.addItem(sub)
-            default:
-                break
-            }
-        }
-    }
-
-    private func makeItem(_ node: Node, entry: Entry) -> NSMenuItem {
-        let item = NSMenuItem(title: node.string("title") ?? "", action: nil, keyEquivalent: "")
-        if let subtitle = node.string("subtitle") {
-            item.subtitle = subtitle
-        }
-        if let tooltip = node.string("tooltip") {
-            item.toolTip = tooltip
-        }
-        if let icon = node.props["icon"] {
-            item.image = statusImage(icon, assetsPath: entry.command.assetsPath)
-        }
-        if node.handlers.contains("onAction") {
-            item.target = entry.dispatch
-            item.action = #selector(MenuDispatch.fire(_:))
-            item.tag = node.id
-        } else {
-            item.isEnabled = false
-        }
-        return item
-    }
-
-    /// Maps an icon value the way IconView does: SF Symbols stay templates, asset files load
-    /// directly, anything fancier renders through IconView at 16pt.
-    private func statusImage(_ value: Any?, assetsPath: String) -> NSImage? {
-        if let dict = value as? [String: Any] {
-            if let path = dict["fileIcon"] as? String {
-                return NSWorkspace.shared.icon(forFile: path)
-            }
-            if let source = dict["source"] as? [String: Any] {
-                let dark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                return statusImage(dark ? source["dark"] ?? source["light"] : source["light"] ?? source["dark"], assetsPath: assetsPath)
-            }
-            return statusImage(dict["source"] ?? dict["value"], assetsPath: assetsPath)
-        }
-        guard let string = value as? String, !string.isEmpty else { return nil }
-        if string.hasPrefix("icon:") {
-            let name = String(string.dropFirst(5))
-            let dotted = name.replacing(#/([a-z0-9])([A-Z])/#) { "\($0.1).\($0.2)" }.lowercased()
-            for candidate in [dotted, name.lowercased()] {
-                if let image = NSImage(systemSymbolName: candidate, accessibilityDescription: nil) {
-                    image.isTemplate = true
-                    return image
-                }
-            }
-        }
-        if let path = assetPath(string, assetsPath: assetsPath), let image = NSImage(contentsOfFile: path) {
-            return image
-        }
-        let renderer = ImageRenderer(content: IconView(value: value, assetsPath: assetsPath, size: 16))
-        renderer.scale = 2
-        guard let cg = renderer.cgImage else { return nil }
-        let image = NSImage(cgImage: cg, size: NSSize(width: 16, height: 16))
-        image.isTemplate = string.hasPrefix("icon:")
-        return image
-    }
-
-    private static func find(id: Int, in node: Node?) -> Node? {
-        guard let node else { return nil }
-        if node.id == id {
-            return node
-        }
-        for child in node.children {
-            if let found = find(id: id, in: child) {
-                return found
-            }
-        }
-        return nil
-    }
-
-    private func assetPath(_ name: String, assetsPath: String) -> String? {
-        let path = name.hasPrefix("/") ? name : "\(assetsPath)/\(name)"
-        if NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-            let url = URL(fileURLWithPath: path)
-            let dark = url.deletingPathExtension().path + "@dark." + url.pathExtension
-            if FileManager.default.fileExists(atPath: dark) {
-                return dark
-            }
-        }
-        return FileManager.default.fileExists(atPath: path) ? path : nil
+        entry.session?.forceStop()
+        entry.session = nil
+        entry.item.menu = nil
+        host.removeItem(entry.item)
     }
 }

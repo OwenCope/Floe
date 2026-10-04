@@ -30,28 +30,31 @@ struct ListBody: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                                if let title = row.sectionTitle, index == 0 || rows[index - 1].sectionTitle != title {
-                                    Text(title)
-                                        .font(ThawType.caption.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .padding(.horizontal, 10)
-                                        .padding(.top, index == 0 ? 2 : 10)
-                                        .padding(.bottom, 4)
-                                }
-                                ListRow(
-                                    node: row.node,
-                                    assetsPath: session.command.assetsPath,
-                                    selected: row.id == selected?.id,
-                                    compact: view.bool("isShowingDetail")
-                                )
-                                .id(row.id)
-                                .onTapGesture(count: 2) {
-                                    session.selection = index
-                                    if let action = session.actions.first {
-                                        session.run(action)
+                                // One view per row, title included: a lazy stack walks the whole list when rows vary in count.
+                                VStack(alignment: .leading, spacing: 0) {
+                                    if let title = row.sectionTitle, index == 0 || rows[index - 1].sectionTitle != title {
+                                        Text(title)
+                                            .font(ThawType.caption.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .padding(.horizontal, 10)
+                                            .padding(.top, index == 0 ? 2 : 10)
+                                            .padding(.bottom, 4)
                                     }
+                                    ListRow(
+                                        node: row.node,
+                                        assetsPath: session.command.assetsPath,
+                                        selected: row.id == selected?.id,
+                                        compact: view.bool("isShowingDetail")
+                                    )
+                                    .onTapGesture(count: 2) {
+                                        session.selection = index
+                                        if let action = session.actions.first {
+                                            session.run(action)
+                                        }
+                                    }
+                                    .onTapGesture { session.selection = index }
                                 }
-                                .onTapGesture { session.selection = index }
+                                .id(row.id)
                             }
                         }
                         .padding(8)
@@ -136,7 +139,7 @@ struct DetailBody: View {
     var body: some View {
         HStack(spacing: 0) {
             ScrollView {
-                MarkdownView(text: node.string("markdown") ?? "")
+                MarkdownTextView(text: node.string("markdown") ?? "")
                     .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

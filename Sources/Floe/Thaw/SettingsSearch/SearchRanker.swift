@@ -67,7 +67,7 @@ enum SearchRanker {
 
     /// Fuzzy's score without its subsequence fallback.
     private static func wordScore(_ query: String, _ candidate: String) -> Int? {
-        Fuzzy.score(query, candidate).flatMap { $0 >= substringScore ? $0 : nil }
+        Fuzzy.tierScore(query, candidate).flatMap { $0 >= substringScore ? $0 : nil }
     }
 
     /// Turns Fuzzy's score (higher is better, 100 at most) into a diff score (lower is better),

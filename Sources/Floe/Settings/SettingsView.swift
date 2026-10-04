@@ -14,7 +14,15 @@ struct SettingsView: View {
     @ObservedObject var catalog: SettingsCatalog
     @ObservedObject var settings: AppSettings
     @ObservedObject var selection: SettingsSelection
-    @State private var search = SearchModel()
+    @State private var search: SearchModel
+
+    /// `search` is passed in only by the benchmark, which types into it.
+    init(catalog: SettingsCatalog, settings: AppSettings, selection: SettingsSelection, search: SearchModel? = nil) {
+        self.catalog = catalog
+        self.settings = settings
+        self.selection = selection
+        _search = State(initialValue: search ?? MainActor.assumeIsolated { SearchModel() })
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -475,32 +483,6 @@ struct ApplicationSettingsView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 64)
-        }
-    }
-}
-
-/// App icons are slow to fetch one by one on the main thread; fetch once per path and reuse.
-struct AppIconView: View {
-    let path: String
-    let size: CGFloat
-    @State private var image: NSImage?
-
-    private static let cache = NSCache<NSString, NSImage>()
-
-    var body: some View {
-        Group {
-            if let image = image ?? Self.cache.object(forKey: path as NSString) {
-                Image(nsImage: image).resizable()
-            } else {
-                Color.clear
-            }
-        }
-        .frame(width: size, height: size)
-        .task(id: path) {
-            guard Self.cache.object(forKey: path as NSString) == nil else { return }
-            let icon = NSWorkspace.shared.icon(forFile: path)
-            Self.cache.setObject(icon, forKey: path as NSString)
-            image = icon
         }
     }
 }

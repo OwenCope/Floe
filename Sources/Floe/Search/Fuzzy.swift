@@ -64,29 +64,32 @@ extension Fuzzy {
         evaluate(query, candidate, wantPositions: true)
     }
 
-    static func evaluate(_ query: String, _ candidate: String, wantPositions: Bool) -> Match? {
+    /// `scattered` false stops at a run of characters: a caller that would drop a scattered match skips its cost.
+    static func evaluate(_ query: String, _ candidate: String, wantPositions: Bool, scattered: Bool = true) -> Match? {
         // A carriage return can join the next byte into one character, which would shift the offsets.
         let isPlain = { (byte: UInt8) in byte < 0x80 && byte != 0x0D }
         if query.utf8.allSatisfy(isPlain), candidate.utf8.allSatisfy(isPlain) {
             let needle = query.utf8.map(\.asciiLowercased)
             let text = candidate.utf8.map(\.asciiLowercased)
-            return evaluate(needle, in: text, original: { Array(candidate.utf8) }, wantPositions: wantPositions)
+            return evaluate(needle, in: text, original: { Array(candidate.utf8) }, wantPositions: wantPositions, allowScattered: scattered)
         }
         let text = Array(candidate.lowercased())
-        return evaluate(Array(query.lowercased()), in: text, original: { Array(candidate) }, wantPositions: wantPositions)
+        return evaluate(Array(query.lowercased()), in: text, original: { Array(candidate) }, wantPositions: wantPositions, allowScattered: scattered)
     }
 
     private static func evaluate<Unit: FuzzyUnit>(
         _ needle: [Unit],
         in text: [Unit],
         original: () -> [Unit],
-        wantPositions: Bool
+        wantPositions: Bool,
+        allowScattered: Bool
     ) -> Match? {
         // Every tier needs the letters in order, so most candidates leave here without further work.
         guard isSubsequence(needle, of: text) else { return nil }
         if let tiered = tiered(needle, in: text, wantPositions: wantPositions) {
             return tiered
         }
+        guard allowScattered else { return nil }
         let cased = original()
         // Lowercasing can change the length in rare scripts; without the original case there are no humps.
         let humps = cased.count == text.count ? cased : text

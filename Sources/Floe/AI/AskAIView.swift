@@ -50,7 +50,7 @@ struct AskAIView: View {
 
     @ViewBuilder
     private var content: some View {
-        if asking.answer.isEmpty {
+        if asking.shown.text.isEmpty {
             switch asking.state {
             case let .failed(message):
                 ThawEmptyState(
@@ -76,7 +76,7 @@ struct AskAIView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 // Thaw's reading size and line spacing, for text that is read rather than scanned.
-                MarkdownView(text: asking.answer, font: ThawType.body, lineSpacing: 6)
+                MarkdownView(content: asking.shown, font: ThawType.body, lineSpacing: 6)
                 if case let .failed(message) = asking.state {
                     Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.secondary)
                 }
@@ -109,7 +109,7 @@ struct AskAIView: View {
                 KeyCapView(text: "R")
             }
             ActionsButton(model: model) { $0.askAIActions() }
-            if !asking.answer.isEmpty {
+            if !asking.shown.text.isEmpty {
                 ShortcutHintButton(title: "Paste Answer") { model.pasteAskAIAnswer() } hint: {
                     KeyCapView(text: "⌘")
                     KeyCapView(systemImage: "return")

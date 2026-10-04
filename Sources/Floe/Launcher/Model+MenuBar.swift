@@ -30,6 +30,12 @@ extension LauncherModel {
         focusToken += 1
     }
 
+    /// Reads the menu bar once at launch, so the first search opens on a full list and not on a spinner.
+    func warmMenuBar() {
+        guard MenuBarExtras.isTrusted, menuBarExtras.isEmpty else { return }
+        scanMenuBar()
+    }
+
     private func scanMenuBar() {
         menuBarAccessGranted = MenuBarExtras.isTrusted
         guard menuBarAccessGranted else {

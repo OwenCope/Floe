@@ -16,6 +16,12 @@ enum MenuBarNaming {
             .first { !$0.isEmpty }
     }
 
+    /// Whether a process could have items. An XPC service has none, and a suspended one, as browser tabs
+    /// often are, answers nothing until the request times out. It is told by its path: it reports no bundle.
+    static func canOwnItems(executableURL: URL?) -> Bool {
+        executableURL?.pathComponents.contains { $0.hasSuffix(".xpc") } != true
+    }
+
     /// Thaw's own section dividers are not items anyone opens, and an unnamed item from a host
     /// process such as MenuBarAgent would only be one more row with the host's name.
     static func isListed(identifier: String?, label: String?, ownerName: String) -> Bool {
