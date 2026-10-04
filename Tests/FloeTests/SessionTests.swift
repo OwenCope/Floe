@@ -152,6 +152,77 @@ struct ExtensionSessionTests {
         #expect(session.toast == ToastState(id: 0, style: "success", title: "", message: nil))
     }
 
+    @Test func aToastWithActionsKeepsTheirTitles() {
+        apply(["type": "toast", "id": 5, "style": "success", "title": "Saved", "primaryTitle": "Undo", "secondaryTitle": "Dismiss"])
+        #expect(session.toast == ToastState(id: 5, style: "success", title: "Saved", message: nil, primaryTitle: "Undo", secondaryTitle: "Dismiss"))
+    }
+
+    @Test func runningAToastActionTellsTheHostAndDismissesTheToast() {
+        apply(["type": "toast", "id": 5, "title": "Saved", "primaryTitle": "Undo", "secondaryTitle": "Dismiss"])
+        session.runToastAction(primary: true)
+        #expect(session.toast == nil)
+        #expect(recorder.sent.count == 1)
+        #expect(recorder.sent.first?["type"] as? String == "toastAction")
+        #expect(recorder.sent.first?["id"] as? Int == 5)
+        #expect(recorder.sent.first?["which"] as? String == "primary")
+    }
+
+    @Test func aToastActionWithoutThatButtonSendsNothing() {
+        apply(["type": "toast", "id": 6, "title": "Plain"])
+        session.runToastAction(primary: true)
+        #expect(recorder.sent.isEmpty)
+        #expect(session.toast?.id == 6)
+    }
+
+    // MARK: Confirmation dialogs
+
+    @Test func aConfirmRequestShowsAnInPanelDialog() {
+        apply(["type": "request", "id": 20, "method": "alert.confirm", "params": ["title": "Delete?", "message": "Sure?", "primaryTitle": "Delete", "primaryStyle": "destructive", "dismissTitle": "Keep"]])
+        #expect(session.alert == AlertState(id: 20, title: "Delete?", message: "Sure?", primaryTitle: "Delete", isDestructive: true, dismissTitle: "Keep"))
+        #expect(recorder.forwarded.isEmpty)
+        session.resolveAlert(true)
+        #expect(session.alert == nil)
+        #expect(recorder.sent.count == 1)
+        #expect(recorder.sent.first?["type"] as? String == "reply")
+        #expect(recorder.sent.first?["id"] as? Int == 20)
+        #expect(recorder.sent.first?["result"] as? Bool == true)
+    }
+
+    @Test func aNewAlertReplacesTheOldOneAnsweringItFalse() {
+        apply(["type": "request", "id": 21, "method": "alert.confirm", "params": ["title": "First"]])
+        apply(["type": "request", "id": 22, "method": "alert.confirm", "params": ["title": "Second"]])
+        #expect(session.alert?.id == 22)
+        #expect(session.alert?.primaryTitle == "OK")
+        let replies = recorder.sent.filter { $0["type"] as? String == "reply" }
+        #expect(replies.count == 1)
+        #expect(replies.first?["id"] as? Int == 21)
+        #expect(replies.first?["result"] as? Bool == false)
+        session.resolveAlert(false)
+        #expect(recorder.sent.filter { $0["type"] as? String == "reply" }.count == 2)
+    }
+
+    @Test func answeringTwiceAnswersOnce() {
+        apply(["type": "request", "id": 23, "method": "alert.confirm", "params": ["title": "Sure?"]])
+        session.resolveAlert(true)
+        session.resolveAlert(false)
+        #expect(recorder.sent.count == 1)
+    }
+
+    @Test func cancellingOrStoppingAnAlertAnswersItFalse() {
+        apply(["type": "request", "id": 24, "method": "alert.confirm", "params": ["title": "Sure?"]])
+        apply(["type": "cancelRequest", "id": 24])
+        #expect(session.alert == nil)
+        #expect(recorder.sent.first?["result"] as? Bool == false)
+
+        apply(["type": "request", "id": 25, "method": "alert.confirm", "params": ["title": "Sure?"]])
+        session.stop()
+        #expect(session.alert == nil)
+        let replies = recorder.sent.filter { $0["type"] as? String == "reply" }
+        #expect(replies.count == 2)
+        #expect(replies.last?["id"] as? Int == 25)
+        #expect(replies.last?["result"] as? Bool == false)
+    }
+
     @Test func aNonFatalErrorIsAFailureToastAndTheViewStays() {
         render(planets)
         apply(["type": "error", "message": "Request failed", "fatal": false])
@@ -344,8 +415,11 @@ struct ExtensionSessionTests {
     @Test func theHostStartsWithTheShellsVariablesItsPreferencesAndWhetherAIIsThere() {
         let base = ["PATH": "/opt/homebrew/bin", "FLOE_AI": "stale"]
         let with = ExtensionSession.hostVariables(base, preferences: Data(#"{"unit":"metric"}"#.utf8), hasAI: true)
-        #expect(with == ["PATH": "/opt/homebrew/bin", "FLOE_PREFERENCES": #"{"unit":"metric"}"#, "FLOE_AI": "1"])
-        #expect(ExtensionSession.hostVariables(base, preferences: nil, hasAI: false) == ["PATH": "/opt/homebrew/bin"])
+        #expect(with == [
+            "PATH": "/opt/homebrew/bin", "FLOE_PREFERENCES": #"{"unit":"metric"}"#, "FLOE_AI": "1", "FLOE_LAUNCH_TYPE": "userInitiated",
+        ])
+        let background = ExtensionSession.hostVariables(base, preferences: nil, hasAI: false, launchType: "background")
+        #expect(background == ["PATH": "/opt/homebrew/bin", "FLOE_LAUNCH_TYPE": "background"])
     }
 
     // MARK: Actions

@@ -104,7 +104,7 @@ enum Fixture {
         ExtensionCommand(
             extensionDir: URL(fileURLWithPath: "/tmp/\(extensionName)"), extensionName: extensionName,
             extensionTitle: extensionName.capitalized, source: .local, name: name, title: title ?? name.capitalized,
-            mode: "view", icon: nil, arguments: [], extensionPreferences: extensionPreferences, commandPreferences: commandPreferences
+            mode: "view", interval: nil, icon: nil, arguments: [], extensionPreferences: extensionPreferences, commandPreferences: commandPreferences
         )
     }
 

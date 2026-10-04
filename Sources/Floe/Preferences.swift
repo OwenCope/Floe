@@ -78,3 +78,47 @@ enum PreferenceResolver {
         }
     }
 }
+
+/// `appPicker` preferences: edited and stored as the app's path, handed to the command as
+/// `{ name, path, bundleId }`. A manifest default may name the app by bundle id, name or path.
+enum AppPickerValue {
+    struct App: Equatable {
+        let name: String
+        let path: String
+        let bundleId: String?
+
+        var object: [String: String] {
+            var object = ["name": name, "path": path]
+            object["bundleId"] = bundleId
+            return object
+        }
+    }
+
+    /// The app a stored or default value names, matched by path, then bundle id, then name.
+    static func match(_ value: String, in apps: [App]) -> App? {
+        let trimmed = value.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        let path = (trimmed as NSString).expandingTildeInPath
+        return apps.first { $0.path == path }
+            ?? apps.first { $0.bundleId?.caseInsensitiveCompare(trimmed) == .orderedSame }
+            ?? apps.first { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }
+            ?? apps.first { $0.name.caseInsensitiveCompare((trimmed as NSString).deletingPathExtension) == .orderedSame }
+    }
+
+    /// Replaces each app picker's text with the app object, and drops ones that name no installed app,
+    /// so a required picker without an app counts as missing.
+    static func resolve(_ values: [String: Any], fields: [FieldSpec], apps: () -> [App]) -> [String: Any] {
+        let pickers = fields.filter { $0.type == "appPicker" }
+        guard !pickers.isEmpty else { return values }
+        var result = values
+        let installed = apps()
+        for field in pickers {
+            if let text = values[field.name] as? String, let app = match(text, in: installed) {
+                result[field.name] = app.object
+            } else if !(values[field.name] is [String: Any]) {
+                result[field.name] = nil
+            }
+        }
+        return result
+    }
+}

@@ -87,7 +87,8 @@ enum Ranking {
         limit: Int = 40
     ) -> [RootResult] {
         all.compactMap { item -> (RootItem, Double)? in
-            guard let match = score(query: query, title: item.title, alias: alias(item)) else { return nil }
+            let scores = [score(query: query, title: item.title, alias: alias(item))] + item.keywords.map { Fuzzy.score(query, $0) }
+            guard let match = scores.compactMap(\.self).max() else { return nil }
             let boost = min(20, frecency(item.id) * 2) + (favorites.contains(item.id) ? 5 : 0)
             return (item, Double(match) + boost)
         }

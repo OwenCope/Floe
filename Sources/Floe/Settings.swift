@@ -33,6 +33,8 @@ final class AppSettings: ObservableObject {
     @Published var hasSeenOnboarding = false
     /// Keep the menu bar search's query between showings, like Thaw's "Remember last search".
     @Published var rememberMenuBarQuery = false
+    /// Whether copies are saved to the clipboard history.
+    @Published var clipboardHistoryEnabled = true
     /// Names given to menu bar items with Edit Name, keyed by `MenuBarExtra.id`.
     @Published var menuBarItemNames: [String: String] = [:]
     /// True while a hotkey recorder is listening, so the registry can stand down.
@@ -68,6 +70,7 @@ final class AppSettings: ObservableObject {
         var popToRootDelay: Int?
         var favorites: [String]?
         var rememberMenuBarQuery: Bool?
+        var clipboardHistoryEnabled: Bool?
         var menuBarItemNames: [String: String]?
         var showInDock: Bool?
         var hasSeenOnboarding: Bool?
@@ -92,31 +95,48 @@ final class AppSettings: ObservableObject {
         if let data = defaults.data(forKey: Self.defaultsKey),
            let stored = try? JSONDecoder().decode(Stored.self, from: data)
         {
-            toggleHotkey = stored.toggleHotkey
-            commandHotkeys = stored.commandHotkeys
-            aliases = stored.aliases
-            disabledExtensions = stored.disabledExtensions
-            includeRaycastExtensions = stored.includeRaycastExtensions
-            popToRootDelay = stored.popToRootDelay ?? popToRootDelay
-            favorites = stored.favorites ?? []
-            rememberMenuBarQuery = stored.rememberMenuBarQuery ?? false
-            menuBarItemNames = stored.menuBarItemNames ?? [:]
-            showInDock = stored.showInDock ?? false
-            hasSeenOnboarding = stored.hasSeenOnboarding ?? false
-            // A tint saved before light and dark variants existed becomes the light one.
-            launcherTintLight = stored.launcherTintLight ?? stored.launcherTint ?? launcherTintLight
-            launcherTintDark = stored.launcherTintDark ?? launcherTintDark
-            launcherTintIsDynamic = stored.launcherTintIsDynamic ?? launcherTintIsDynamic
-            launcherBorder = stored.launcherBorder ?? launcherBorder
-            launcherShowsBorder = stored.launcherShowsBorder ?? launcherShowsBorder
-            launcherShowsShadow = stored.launcherShowsShadow ?? launcherShowsShadow
-            aiSource = stored.aiSource ?? aiSource
-            aiBaseURL = stored.aiBaseURL ?? aiBaseURL
-            aiModel = stored.aiModel ?? aiModel
+            apply(stored)
         }
         cancellable = objectWillChange
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] in self?.save() }
+    }
+
+    private func apply(_ stored: Stored) {
+        toggleHotkey = stored.toggleHotkey
+        commandHotkeys = stored.commandHotkeys
+        aliases = stored.aliases
+        disabledExtensions = stored.disabledExtensions
+        includeRaycastExtensions = stored.includeRaycastExtensions
+        popToRootDelay = stored.popToRootDelay ?? popToRootDelay
+        favorites = stored.favorites ?? []
+        rememberMenuBarQuery = stored.rememberMenuBarQuery ?? false
+        clipboardHistoryEnabled = stored.clipboardHistoryEnabled ?? true
+        menuBarItemNames = stored.menuBarItemNames ?? [:]
+        showInDock = stored.showInDock ?? false
+        hasSeenOnboarding = stored.hasSeenOnboarding ?? false
+        // A tint saved before light and dark variants existed becomes the light one.
+        launcherTintLight = stored.launcherTintLight ?? stored.launcherTint ?? launcherTintLight
+        launcherTintDark = stored.launcherTintDark ?? launcherTintDark
+        launcherTintIsDynamic = stored.launcherTintIsDynamic ?? launcherTintIsDynamic
+        launcherBorder = stored.launcherBorder ?? launcherBorder
+        launcherShowsBorder = stored.launcherShowsBorder ?? launcherShowsBorder
+        launcherShowsShadow = stored.launcherShowsShadow ?? launcherShowsShadow
+        aiSource = stored.aiSource ?? aiSource
+        aiBaseURL = stored.aiBaseURL ?? aiBaseURL
+        aiModel = stored.aiModel ?? aiModel
+    }
+
+    /// The settings as they are saved, for an export file.
+    func exportedJSON() throws -> Data {
+        save()
+        return defaults.data(forKey: Self.defaultsKey) ?? Data("{}".utf8)
+    }
+
+    /// Replaces every setting with an exported copy and saves it.
+    func importJSON(_ data: Data) throws {
+        apply(try JSONDecoder().decode(Stored.self, from: data))
+        save()
     }
 
     /// Runs on its own shortly after any change; callable directly when the change must be on disk now.
@@ -130,6 +150,7 @@ final class AppSettings: ObservableObject {
             popToRootDelay: popToRootDelay,
             favorites: favorites,
             rememberMenuBarQuery: rememberMenuBarQuery,
+            clipboardHistoryEnabled: clipboardHistoryEnabled,
             menuBarItemNames: menuBarItemNames,
             showInDock: showInDock,
             hasSeenOnboarding: hasSeenOnboarding,

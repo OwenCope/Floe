@@ -20,6 +20,17 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.thaw.floe</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>floe</string>
+			</array>
+		</dict>
+	</array>
 	<key>FloeLinks</key>
 	<dict>
 		<key>bun</key>
@@ -64,6 +75,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Floe uses AppleScript to read the Finder selection and to run system commands such as Empty Trash and Toggle Dark Mode.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Floe shows your upcoming events and meeting links when you search for them.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Floe shows your upcoming events and meeting links when you search for them.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>

@@ -75,19 +75,64 @@ enum PreferenceStore {
         }
     }
 
+    /// Every extension's plain stored values, for a settings export.
+    static func allStoredValues() -> [String: [String: Any]] {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: Paths.data.path)) ?? []
+        return names.reduce(into: [:]) { result, name in
+            let values = storedValues(name)
+            if !values.isEmpty { result[name] = values }
+        }
+    }
+
+    /// Adds imported values to an extension's stored ones; the imported value wins for a key in both.
+    static func merge(_ values: [String: Any], extensionName: String) {
+        let merged = storedValues(extensionName).merging(values) { _, imported in imported }
+        try? FileManager.default.createDirectory(at: directory(for: extensionName), withIntermediateDirectories: true)
+        if let data = try? JSONSerialization.data(withJSONObject: merged) {
+            try? data.write(to: file(for: extensionName))
+        }
+    }
+
+    /// Password preference keys by extension, never their values.
+    static func secretKeys(for commands: [ExtensionCommand]) -> [String: [String]] {
+        commands.reduce(into: [:]) { result, command in
+            let keys = command.extensionPreferences.filter(\.isSecret).map { PreferenceResolver.storageKey($0, commandName: nil) }
+                + command.commandPreferences.filter(\.isSecret).map { PreferenceResolver.storageKey($0, commandName: command.name) }
+            result[command.extensionName, default: []].append(contentsOf: keys.filter { !(result[command.extensionName] ?? []).contains($0) })
+        }
+        .filter { !$0.value.isEmpty }
+    }
+
     /// Everything a command's `getPreferenceValues()` should return: stored values, then defaults.
     static func resolvedValues(for command: ExtensionCommand) -> [String: Any] {
-        PreferenceResolver.resolve(
+        let values = PreferenceResolver.resolve(
             extensionFields: command.extensionPreferences,
             commandFields: command.commandPreferences,
             commandName: command.name,
             stored: storedValues(command.extensionName),
             secret: { Keychain.read(account: "\(command.extensionName)/\($0)") }
         )
+        return AppPickerValue.resolve(values, fields: command.preferences, apps: InstalledApps.list)
     }
 
     static func missingRequired(for command: ExtensionCommand) -> [FieldSpec] {
         PreferenceResolver.missingRequired(command.preferences, values: resolvedValues(for: command))
+    }
+}
+
+/// Applications in the usual folders, for app pickers.
+enum InstalledApps {
+    static func list() -> [AppPickerValue.App] {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let folders = ["/Applications", "/Applications/Utilities", "/System/Applications", "/System/Applications/Utilities", "\(home)/Applications"]
+        return folders.flatMap { folder -> [AppPickerValue.App] in
+            let names = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
+            return names.filter { $0.hasSuffix(".app") }.map { name in
+                let path = "\(folder)/\(name)"
+                return AppPickerValue.App(name: (name as NSString).deletingPathExtension, path: path, bundleId: Bundle(path: path)?.bundleIdentifier)
+            }
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 }
 
@@ -112,6 +157,8 @@ enum Keychain {
         if SecItemUpdate(query(account) as CFDictionary, [kSecValueData as String: data] as CFDictionary) == errSecItemNotFound {
             var item = query(account)
             item[kSecValueData as String] = data
+            // Secrets (OAuth tokens among them) stay on this device and need it unlocked.
+            item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
             SecItemAdd(item as CFDictionary, nil)
         }
     }

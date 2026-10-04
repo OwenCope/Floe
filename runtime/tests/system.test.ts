@@ -62,14 +62,26 @@ describe("toasts and HUD", () => {
     expect(two.id).not.toBe(one.id);
   });
 
-  test("toast actions are kept on the handle without sending anything", () => {
-    const toast = new api.Toast({ title: "Saved" });
-    const undo = { title: "Undo", onAction: () => {} };
-    toast.primaryAction = undo;
-    toast.secondaryAction = undo;
-    expect(toast.primaryAction).toBe(undo);
-    expect(toast.secondaryAction).toBe(undo);
-    expect(sent()).toEqual([]);
+  test("toast actions sync their titles and run when the app reports a click", async () => {
+    const calls: string[] = [];
+    const toast = new api.Toast({
+      title: "Saved",
+      primaryAction: { title: "Undo", onAction: () => calls.push("primary") },
+      secondaryAction: { title: "Dismiss", onAction: () => calls.push("secondary") },
+    });
+    await toast.show();
+    const shown = sent("toast")[0];
+    expect(shown).toMatchObject({ primaryTitle: "Undo", secondaryTitle: "Dismiss" });
+
+    api.handleToastAction(shown.id, "primary");
+    api.handleToastAction(shown.id, "secondary");
+    api.handleToastAction(-1, "primary");
+    expect(calls).toEqual(["primary", "secondary"]);
+
+    toast.primaryAction = { title: "Redo", onAction: () => calls.push("redo") };
+    expect(sent("toast").at(-1)).toMatchObject({ id: shown.id, primaryTitle: "Redo" });
+    api.handleToastAction(shown.id, "primary");
+    expect(calls).toEqual(["primary", "secondary", "redo"]);
   });
 
   test("changing the options object after creating the toast does not change the toast", async () => {
@@ -88,34 +100,67 @@ describe("toasts and HUD", () => {
 
 describe("confirmAlert", () => {
   const options = (calls: string[]) => ({
-    title: 'Delete "notes"?',
-    message: String.raw`C:\temp`,
+    title: "Delete notes?",
+    message: "This cannot be undone.",
     primaryAction: { title: "Delete", style: api.Alert.ActionStyle.Destructive, onAction: () => calls.push("confirmed") },
     dismissAction: { title: "Keep", onAction: () => calls.push("dismissed") },
   });
 
-  test("resolves true and runs the primary action when its button is pressed", async () => {
-    const tool = stubSpawnSync("button returned:Delete\n");
+  test("asks the app and resolves true with the primary action when confirmed", async () => {
     const calls: string[] = [];
-    expect(await api.confirmAlert(options(calls))).toBe(true);
+    const asked = api.confirmAlert(options(calls));
+    const [ask] = sent("request");
+    expect(ask).toMatchObject({
+      method: "alert.confirm",
+      params: {
+        title: "Delete notes?",
+        message: "This cannot be undone.",
+        primaryTitle: "Delete",
+        primaryStyle: "destructive",
+        dismissTitle: "Keep",
+      },
+    });
+    handleReply({ id: ask.id, result: true });
+    expect(await asked).toBe(true);
     expect(calls).toEqual(["confirmed"]);
-
-    const [program, flag, script] = tool.commands()[0];
-    expect([program, flag]).toEqual(["osascript", "-e"]);
-    expect(script).toBe(String.raw`display alert "Delete \"notes\"?" message "C:\\temp" buttons {"Keep", "Delete"} default button 2`);
   });
 
-  test("resolves false and runs the dismiss action otherwise", async () => {
-    stubSpawnSync("button returned:Keep\n");
+  test("resolves false with the dismiss action when dismissed", async () => {
     const calls: string[] = [];
-    expect(await api.confirmAlert(options(calls))).toBe(false);
+    const asked = api.confirmAlert(options(calls));
+    handleReply({ id: sent("request")[0].id, result: false });
+    expect(await asked).toBe(false);
     expect(calls).toEqual(["dismissed"]);
   });
 
   test("uses OK and Cancel when no actions are given", async () => {
-    const tool = stubSpawnSync("button returned:OK\n");
-    expect(await api.confirmAlert({ title: "Sure?" })).toBe(true);
-    expect(tool.commands()[0][2]).toBe('display alert "Sure?" message "" buttons {"Cancel", "OK"} default button 2');
+    const asked = api.confirmAlert({ title: "Sure?" });
+    expect(sent("request")[0].params).toMatchObject({ primaryTitle: "OK", primaryStyle: "default", dismissTitle: "Cancel" });
+    handleReply({ id: sent("request")[0].id, result: true });
+    expect(await asked).toBe(true);
+  });
+
+  test("rememberUserChoice skips the dialog once confirmed, remembered per title", async () => {
+    await api.LocalStorage.clear();
+    const first: string[] = [];
+    const one = api.confirmAlert({ ...options(first), rememberUserChoice: true });
+    await Bun.sleep(0);
+    handleReply({ id: sent("request")[0].id, result: true });
+    expect(await one).toBe(true);
+    expect(first).toEqual(["confirmed"]);
+
+    const second: string[] = [];
+    expect(await api.confirmAlert({ ...options(second), rememberUserChoice: true })).toBe(true);
+    expect(sent("request")).toHaveLength(1);
+    expect(second).toEqual(["confirmed"]);
+
+    const other: string[] = [];
+    const third = api.confirmAlert({ ...options(other), title: "Delete other?", rememberUserChoice: true });
+    await Bun.sleep(0);
+    expect(sent("request")).toHaveLength(2);
+    handleReply({ id: sent("request")[1].id, result: false });
+    expect(await third).toBe(false);
+    expect(other).toEqual(["dismissed"]);
   });
 });
 
@@ -167,9 +212,17 @@ describe("window and system", () => {
     expect(await api.getFrontmostApplication()).toMatchObject({ name: "Finder" });
   });
 
+  test("the selected text and Finder selection come from the app", async () => {
+    const text = api.getSelectedText();
+    expect(sent("request")[0]).toMatchObject({ method: "selectedText" });
+    handleReply({ id: sent("request")[0].id, result: "highlighted" });
+    expect(await text).toBe("highlighted");
+    const items = api.getSelectedFinderItems();
+    handleReply({ id: sent("request")[1].id, error: "No files are selected in the Finder." });
+    await expect(items).rejects.toThrow("No files are selected in the Finder.");
+  });
+
   test("calls that are not supported yet reject with a message saying so", async () => {
-    await expect(api.getSelectedText()).rejects.toThrow("selected text isn't supported yet");
-    await expect(api.getSelectedFinderItems()).rejects.toThrow("Finder selection isn't supported yet");
     await expect(api.launchCommand({ name: "other" })).rejects.toThrow("launchCommand isn't supported yet");
     expect(await api.updateCommandMetadata({ subtitle: "3 unread" })).toBeUndefined();
   });
@@ -190,18 +243,17 @@ describe("Clipboard", () => {
     await api.Clipboard.copy({ file: "/tmp/a.png" });
     await api.Clipboard.copy({ html: "<b>bold</b>" });
     await api.Clipboard.copy({});
-    expect(sent("copy").map((message) => message.text)).toEqual(["plain", "7", "from text", "/tmp/a.png", "<b>bold</b>", ""]);
+    expect(sent("copy").map((message) => message.text)).toEqual(["plain", "7", "from text", "", "", ""]);
+    expect(sent("copy")[3].file).toBe("/tmp/a.png");
+    expect(sent("copy")[4].html).toBe("<b>bold</b>");
   });
 
   test("paste sends the text to paste", async () => {
     await api.Clipboard.paste("typed");
     await api.Clipboard.paste({ text: "from object" });
     await api.Clipboard.paste({});
-    expect(sent()).toEqual([
-      { type: "paste", text: "typed" },
-      { type: "paste", text: "from object" },
-      { type: "paste", text: "" },
-    ]);
+    expect(sent().map((message) => message.text)).toEqual(["typed", "from object", ""]);
+    expect(sent().every((message) => message.type === "paste")).toBe(true);
   });
 
   test("clear copies an empty string", async () => {
@@ -209,17 +261,17 @@ describe("Clipboard", () => {
     expect(sent()).toEqual([{ type: "copy", text: "" }]);
   });
 
-  test("readText and read return what pbpaste prints", async () => {
-    const tool = stubSpawnSync("on the clipboard");
-    expect(await api.Clipboard.readText()).toBe("on the clipboard");
-    expect(await api.Clipboard.read()).toEqual({ text: "on the clipboard" });
-    expect(tool.commands()).toEqual([["pbpaste"], ["pbpaste"]]);
+  test("read asks the app for text, HTML and file", async () => {
+    const read = api.Clipboard.read();
+    expect(sent("request")[0]).toMatchObject({ method: "clipboard.read" });
+    handleReply({ id: sent("request")[0].id, result: { text: "on the clipboard", html: "<p>on</p>" } });
+    expect(await read).toEqual({ text: "on the clipboard", html: "<p>on</p>" });
   });
 
   test("an empty clipboard reads as undefined text", async () => {
-    stubSpawnSync("");
-    expect(await api.Clipboard.readText()).toBeUndefined();
-    expect(await api.Clipboard.read()).toEqual({ text: "" });
+    const text = api.Clipboard.readText();
+    handleReply({ id: sent("request")[0].id, result: { text: "" } });
+    expect(await text).toBeUndefined();
   });
 });
 
@@ -463,41 +515,55 @@ describe("constants", () => {
 });
 
 describe("OAuth", () => {
-  const password = (name: string, title?: string) => ({ name, title, type: "password" });
+  const clientOptions = { redirectMethod: api.OAuth.RedirectMethod.App, providerName: "GitHub", providerId: "github" };
 
-  test("creating a client works, so an extension that also takes a token can load", async () => {
-    const client = new api.OAuth.PKCEClient({ providerName: "GitHub" });
-    expect(await client.getTokens()).toBeUndefined();
-    expect(await client.removeTokens()).toBeUndefined();
+  test("authorizationRequest redirects at floe://oauth with an S256 challenge", async () => {
+    ctx.manifest = { name: "github" };
+    const request = await new api.OAuth.PKCEClient(clientOptions).authorizationRequest({
+      endpoint: "https://github.com/login/oauth/authorize",
+      clientId: "cid",
+      scope: "repo",
+    });
+    expect(request.redirectURI).toBe("floe://oauth?package_name=github");
+    const url = new URL(request.toURL());
+    expect(url.searchParams.get("code_challenge")).toBe(request.codeChallenge);
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(url.searchParams.get("state")).toBe(request.state);
   });
 
-  test("starting a sign-in fails and names the token preference to use instead", async () => {
-    ctx.manifest = { name: "github", preferences: [password("personalAccessToken", "Personal Access Token")] };
-    const client = new api.OAuth.PKCEClient({ providerName: "GitHub" });
-    const message = `Floe can't sign in to GitHub yet. Add "Personal Access Token" in this extension's preferences instead.`;
-    await expect(client.authorizationRequest({ endpoint: "https://example.com" })).rejects.toThrow(message);
-    await expect(client.authorize({})).rejects.toThrow(message);
-    await expect(client.setTokens({ accessToken: "abc" })).rejects.toThrow(message);
+  test("authorize resolves the code from the app's callback", async () => {
+    ctx.manifest = { name: "github" };
+    const client = new api.OAuth.PKCEClient(clientOptions);
+    const request = await client.authorizationRequest({ endpoint: "https://example.com/auth", clientId: "c", scope: "s" });
+    const authorized = client.authorize(request);
+    const [sentRequest] = sent("request");
+    expect(sentRequest).toMatchObject({ method: "oauth.authorize", params: { providerName: "GitHub", state: request.state } });
+    handleReply({ id: sentRequest.id, result: { url: `floe://oauth?package_name=github&code=abc&state=${request.state}` } });
+    await expect(authorized).resolves.toEqual({ authorizationCode: "abc" });
   });
 
-  test("the token preference is the secret one whose name says so, wherever it is declared", async () => {
-    const client = new api.OAuth.PKCEClient();
-    ctx.manifest = {
-      name: "notes",
-      preferences: [password("passphrase"), { name: "workspace", type: "textfield" }],
-      commands: [{ name: "main", preferences: [password("apiKey")] }],
-    };
-    await expect(client.authorize({})).rejects.toThrow(`Floe can't sign in yet. Add "apiKey" in`);
-    ctx.manifest = { name: "notes", preferences: [password("passphrase")] };
-    await expect(client.authorize({})).rejects.toThrow(`Add "passphrase" in`);
-    ctx.manifest = { name: "notes", preferences: [{ name: "apiToken", title: "API Token", type: "textfield" }] };
-    await expect(client.authorize({})).rejects.toThrow(`Add "API Token" in`);
+  test("getTokens answers undefined without stored tokens and a TokenSet with them", async () => {
+    const client = new api.OAuth.PKCEClient(clientOptions);
+    const missing = client.getTokens();
+    handleReply({ id: sent("request")[0].id, result: null });
+    await expect(missing).resolves.toBeUndefined();
+    const stored = client.getTokens();
+    handleReply({ id: sent("request")[1].id, result: { accessToken: "a", expiresIn: 3600, updatedAt: new Date().toISOString() } });
+    const tokens = await stored;
+    expect(tokens).toBeInstanceOf(api.OAuth.TokenSet);
+    expect(tokens?.accessToken).toBe("a");
+    expect(sent("request").map((message) => message.method)).toEqual(["oauth.getTokens", "oauth.getTokens"]);
   });
 
-  test("without a token preference the message says there is none", async () => {
-    ctx.manifest = { name: "calendar", preferences: [{ name: "weekStart", type: "dropdown" }] };
-    const client = new api.OAuth.PKCEClient({ providerName: "Google" });
-    await expect(client.authorize({})).rejects.toThrow("Floe can't sign in to Google yet. This extension has no token preference to use instead.");
+  test("setTokens and removeTokens forward to the app", async () => {
+    const client = new api.OAuth.PKCEClient(clientOptions);
+    const saved = client.setTokens({ accessToken: "a" });
+    const removed = client.removeTokens();
+    expect(sent("request").map((message) => message.method)).toEqual(["oauth.setTokens", "oauth.removeTokens"]);
+    expect(sent("request")[0].params).toMatchObject({ providerId: "github" });
+    for (const message of sent("request")) handleReply({ id: message.id, result: null });
+    await saved;
+    await removed;
   });
 });
 

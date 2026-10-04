@@ -22,7 +22,7 @@ struct HotReloadTests {
     private func command(in folder: URL, source: ExtensionCommand.Source = .local, mode: String = "view") -> ExtensionCommand {
         ExtensionCommand(
             extensionDir: folder, extensionName: "sample", extensionTitle: "Sample", source: source, name: "main", title: "Main",
-            mode: mode, icon: nil, arguments: [], extensionPreferences: [], commandPreferences: []
+            mode: mode, interval: nil, icon: nil, arguments: [], extensionPreferences: [], commandPreferences: []
         )
     }
 

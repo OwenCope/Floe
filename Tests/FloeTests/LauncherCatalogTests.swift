@@ -138,7 +138,13 @@ struct LauncherCatalogTests {
         let scanner = ControlledScanner(apps: [], commands: [])
         let model = LauncherModel(scanner: scanner, settings: makeSettings())
         #expect(scanner.startedScans.value == 0)
-        #expect(model.results.map(\.id).sorted() == ["builtin:menubar-search", "settings"], "the built-ins are there before any catalog arrives")
+        #expect(
+            // Snippets come from the user's own file, so they are left out here.
+            model.results.map(\.id).filter { !$0.hasPrefix("snippet:") }.sorted()
+                == (["builtin:clipboard-history", "builtin:emoji-search", "builtin:file-search", "builtin:menubar-search", "settings"]
+                    + SystemCommand.allCases.map { "system:\($0.rawValue)" }).sorted(),
+            "the built-ins are there before any catalog arrives"
+        )
         #expect(model.isLoadingCatalog, "without a snapshot the first load is still pending")
     }
 
@@ -149,7 +155,7 @@ struct LauncherCatalogTests {
         #expect(model.isLoadingCatalog == false, "readiness starts complete with a snapshot")
         #expect(model.allCommands.map(\.id) == [planets.id])
         model.query = "planets"
-        #expect(model.results.map(\.item.id) == ["command:sample/planets"], "a preloaded model ranks normally")
+        #expect(model.results.first?.item.id == "command:sample/planets", "a preloaded model ranks normally")
         await model.waitForCommands()
     }
 
@@ -182,8 +188,10 @@ struct LauncherCatalogTests {
         model.query = "forecast"
 
         await scanner.openCommandScan(at: 0)
-        await waitFor("!model.results.isEmpty") { !model.results.isEmpty }
-        #expect(model.results.map(\.item.id) == ["command:weather/forecast"], "the query typed mid-load filters the published results")
+        // Fallback rows show while loading, so wait for the command itself.
+        await waitFor("forecast published") { model.results.contains { $0.item.id == "command:weather/forecast" } }
+        #expect(model.results.first?.item.id == "command:weather/forecast", "the query typed mid-load filters the published results")
+        #expect(!model.results.contains { $0.item.id == "command:sample/planets" })
     }
 
     @Test func anOlderRequestCannotOverwriteANewerOne() async {

@@ -9,9 +9,33 @@ import Foundation
 
 /// Something an extension asks the app for and waits on: the host sends `request` with an id, a
 /// method and its parameters, and the app sends back `reply` with the same id and a result or an error.
-enum HostRequest: Equatable, Sendable {
+enum HostRequest: Sendable, Equatable {
     /// `AI.ask`: one prompt, one answer.
     case askAI(prompt: String, model: String?)
+    /// `OAuth.PKCEClient.authorize`: the provider's page, opened in the browser.
+    case oauthAuthorize(url: String, state: String, providerName: String)
+    /// `OAuth.PKCEClient.getTokens`: the stored tokens, if the extension signed in before.
+    case oauthGetTokens(providerId: String)
+    /// `OAuth.PKCEClient.setTokens`: what the provider answered the authorization code with.
+    case oauthSetTokens(providerId: String, tokens: [String: Any])
+    /// `OAuth.PKCEClient.removeTokens`.
+    case oauthRemoveTokens(providerId: String)
+
+    /// Whether the OAuth broker answers this rather than `answer`.
+    var isOAuth: Bool {
+        switch self {
+        case .oauthAuthorize, .oauthGetTokens, .oauthSetTokens, .oauthRemoveTokens:
+            true
+        case .askAI, .selectedText, .selectedFinderItems, .clipboardRead:
+            false
+        }
+    }
+    /// `getSelectedText`: the frontmost app's selected text.
+    case selectedText
+    /// `getSelectedFinderItems`: the Finder's selection, when Finder is frontmost.
+    case selectedFinderItems
+    /// `Clipboard.read`: the pasteboard as text, HTML and file.
+    case clipboardRead
 
     /// Nil for a method the app doesn't know, or one whose parameters are missing.
     init?(method: String, params: [String: Any]) {
@@ -19,15 +43,55 @@ enum HostRequest: Equatable, Sendable {
         case "ai.ask":
             guard let prompt = params["prompt"] as? String else { return nil }
             self = .askAI(prompt: prompt, model: params["model"] as? String)
+        case "oauth.authorize":
+            guard let url = params["url"] as? String,
+                  let state = params["state"] as? String,
+                  let providerName = params["providerName"] as? String
+            else { return nil }
+            self = .oauthAuthorize(url: url, state: state, providerName: providerName)
+        case "oauth.getTokens":
+            guard let providerId = params["providerId"] as? String else { return nil }
+            self = .oauthGetTokens(providerId: providerId)
+        case "oauth.setTokens":
+            guard let providerId = params["providerId"] as? String,
+                  let tokens = params["tokens"] as? [String: Any]
+            else { return nil }
+            self = .oauthSetTokens(providerId: providerId, tokens: tokens)
+        case "oauth.removeTokens":
+            guard let providerId = params["providerId"] as? String else { return nil }
+            self = .oauthRemoveTokens(providerId: providerId)
+        case "selectedText":
+            self = .selectedText
+        case "selectedFinderItems":
+            self = .selectedFinderItems
+        case "clipboard.read":
+            self = .clipboardRead
         default:
             return nil
+        }
+    }
+
+    static func == (lhs: HostRequest, rhs: HostRequest) -> Bool {
+        switch (lhs, rhs) {
+        case let (.askAI(prompt1, model1), .askAI(prompt2, model2)):
+            prompt1 == prompt2 && model1 == model2
+        case let (.oauthAuthorize(url1, state1, provider1), .oauthAuthorize(url2, state2, provider2)):
+            url1 == url2 && state1 == state2 && provider1 == provider2
+        case let (.oauthGetTokens(first), .oauthGetTokens(second)):
+            first == second
+        case let (.oauthSetTokens(firstId, firstTokens), .oauthSetTokens(secondId, secondTokens)):
+            firstId == secondId && NSDictionary(dictionary: firstTokens).isEqual(to: secondTokens)
+        case let (.oauthRemoveTokens(first), .oauthRemoveTokens(second)):
+            first == second
+        default:
+            false
         }
     }
 
     /// Answers a request with the real system: the user's settings, the login shell's environment
     /// and the installed tools. Text that arrives before the whole answer goes to `emit`.
     @Sendable
-    static func answer(_ request: HostRequest, emit: @Sendable (String) async -> Void) async throws -> String {
+    static func answer(_ request: HostRequest, emit: @Sendable (String) async -> Void) async throws -> Any {
         switch request {
         case let .askAI(prompt, model):
             switch await MainActor.run(body: { AIAnswer.configured() }) {
@@ -45,6 +109,15 @@ enum HostRequest: Equatable, Sendable {
                 }
                 return try await TextGeneration.run(prompt, engine: engine)
             }
+        case .oauthAuthorize, .oauthGetTokens, .oauthSetTokens, .oauthRemoveTokens:
+            // Answered by the OAuth broker, through the same reply channel (see Session+Requests.swift).
+            throw OAuthError.unknownRequest
+        case .selectedText:
+            return try await SelectedText.current()
+        case .selectedFinderItems:
+            return try await MainActor.run { try FinderSelection.current() }
+        case .clipboardRead:
+            return await MainActor.run { PasteboardContent.read() }
         }
     }
 }

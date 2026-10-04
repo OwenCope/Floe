@@ -23,7 +23,8 @@ extension ExtensionSession {
         let variables = Self.hostVariables(
             LoginEnvironment.current,
             preferences: try? JSONSerialization.data(withJSONObject: PreferenceStore.resolvedValues(for: command)),
-            hasAI: AIAnswer.isAvailable
+            hasAI: AIAnswer.isAvailable,
+            launchType: launchType
         )
         let environment = Environment.custom(Dictionary(uniqueKeysWithValues: variables.map { (Environment.Key(stringLiteral: $0.key), $0.value) }))
         // Cancelling the task sends SIGTERM, then SIGKILL: a host stuck in synchronous code ignores SIGTERM.
@@ -132,6 +133,7 @@ extension ExtensionSession {
     /// Stops the process, optionally after a grace period so trailing messages still arrive.
     func stop(after delay: TimeInterval = 0) {
         isStopping = true
+        resolveAlert(false)
         watchdog?.invalidate()
         cancelRequests()
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [self] in
@@ -142,6 +144,7 @@ extension ExtensionSession {
     /// Kills the process now, for app quit and the self-test, where nothing waits for a grace period.
     func forceStop() {
         isStopping = true
+        resolveAlert(false)
         watchdog?.invalidate()
         cancelRequests()
         if let processID {

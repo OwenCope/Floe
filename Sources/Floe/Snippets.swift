@@ -1,0 +1,95 @@
+//
+//  Snippets.swift
+//  Project: Floe
+//
+//  Copyright (Floe) © 2026 René Jiménez
+//  Licensed under the GNU AGPLv3
+
+import AppKit
+
+/// Text saved under a name and a keyword: pasted from the root search, or typed as its keyword anywhere.
+struct Snippet: Codable, Identifiable, Equatable {
+    var id = UUID()
+    var name: String
+    var keyword: String
+    var text: String
+
+    var firstLine: String {
+        text.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.first { !$0.isEmpty } ?? ""
+    }
+
+    /// The text with its placeholders filled in: {clipboard}, {date}, {time}, {datetime}, {uuid}, {day}.
+    static func expand(_ text: String, clipboard: String, now: Date = Date(), uuid: UUID = UUID()) -> String {
+        let replacements = [
+            "{clipboard}": clipboard,
+            "{date}": now.formatted(date: .abbreviated, time: .omitted),
+            "{time}": now.formatted(date: .omitted, time: .shortened),
+            "{datetime}": now.formatted(date: .abbreviated, time: .shortened),
+            "{uuid}": uuid.uuidString,
+            "{day}": now.formatted(.dateTime.weekday(.wide)),
+        ]
+        return replacements.reduce(text) { $0.replacingOccurrences(of: $1.key, with: $1.value) }
+    }
+
+    /// Nil when a keyword can be used, otherwise why it can't.
+    static func keywordProblem(_ keyword: String, id: UUID, among snippets: [Snippet]) -> String? {
+        let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.count < 2 { return "Keywords need at least 2 characters." }
+        if trimmed.contains(where: \.isWhitespace) { return "Keywords can't contain spaces." }
+        if snippets.contains(where: { $0.id != id && $0.keyword == trimmed }) { return "Another snippet uses that keyword." }
+        return nil
+    }
+
+    /// The snippet whose keyword the typed text ends with; the longest keyword wins.
+    static func match(typed: String, in snippets: [Snippet]) -> Snippet? {
+        snippets.filter { !$0.keyword.isEmpty && typed.hasSuffix($0.keyword) }.max { $0.keyword.count < $1.keyword.count }
+    }
+}
+
+/// Snippets and whether typed keywords expand, kept in Floe's support folder.
+final class SnippetStore: ObservableObject {
+    static let shared = SnippetStore()
+
+    @Published var snippets: [Snippet] = [] { didSet { save() } }
+    @Published var expansionEnabled = true { didSet { save() } }
+
+    private struct Saved: Codable {
+        var snippets: [Snippet]
+        var expansionEnabled: Bool
+    }
+
+    private let file: URL
+    private var isLoading = false
+
+    init(file: URL = Paths.support.appendingPathComponent("snippets.json")) {
+        self.file = file
+        isLoading = true
+        if let data = try? Data(contentsOf: file), let saved = try? JSONDecoder().decode(Saved.self, from: data) {
+            snippets = saved.snippets
+            expansionEnabled = saved.expansionEnabled
+        }
+        isLoading = false
+    }
+
+    func expanded(_ snippet: Snippet) -> String {
+        Snippet.expand(snippet.text, clipboard: NSPasteboard.general.string(forType: .string) ?? "")
+    }
+
+    func upsert(_ snippet: Snippet) {
+        if let index = snippets.firstIndex(where: { $0.id == snippet.id }) {
+            snippets[index] = snippet
+        } else {
+            snippets.append(snippet)
+        }
+    }
+
+    func remove(_ snippet: Snippet) {
+        snippets.removeAll { $0.id == snippet.id }
+    }
+
+    private func save() {
+        guard !isLoading, let data = try? JSONEncoder().encode(Saved(snippets: snippets, expansionEnabled: expansionEnabled)) else { return }
+        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? data.write(to: file, options: .atomic)
+    }
+}

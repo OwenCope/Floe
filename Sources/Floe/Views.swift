@@ -6,6 +6,8 @@
 //  Licensed under the GNU AGPLv3
 
 import AppKit
+import QuickLook
+import QuickLookThumbnailing
 import SwiftUI
 import ThawUI
 
@@ -37,6 +39,10 @@ struct LauncherView: View {
                 SessionContainer(model: model, session: session)
             } else if model.isSearchingMenuBar {
                 MenuBarSearchView(model: model)
+            } else if model.isShowingClipboardHistory {
+                ClipboardHistoryView(model: model)
+            } else if model.isSearchingFiles {
+                FileSearchView(model: model, fileSearch: model.fileSearch)
             } else {
                 RootView(model: model)
             }
@@ -282,10 +288,558 @@ struct RootIcon: View {
             AppIconView(path: app.url.path, size: 24)
         case let .command(command):
             IconView(value: command.icon ?? "icon:Terminal", assetsPath: command.assetsPath, size: 24)
+        case let .script(script):
+            IconView(value: script.icon ?? "icon:Terminal", assetsPath: "", size: 24)
         case .menuBarSearch:
             IconView(value: "icon:MenubarRectangle", assetsPath: "", size: 24)
+        case .emojiSearch:
+            Text("😀").font(.system(size: 20))
+        case .clipboardHistory:
+            IconView(value: "icon:Clipboard", assetsPath: "", size: 24)
+        case .fileSearch, .searchFiles:
+            IconView(value: "icon:Document", assetsPath: "", size: 24)
         case .settings:
             IconView(value: "icon:Gear", assetsPath: "", size: 24)
+        case let .system(command):
+            Image(systemName: command.symbol)
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 24, height: 24)
+                .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+        case .snippet:
+            Image(systemName: "text.quote")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.teal)
+                .frame(width: 24, height: 24)
+                .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+        case .event:
+            Image(systemName: "calendar")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.red)
+                .frame(width: 24, height: 24)
+                .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+        case .calculator:
+            IconView(value: "icon:PlusForwardslashMinus", assetsPath: "", size: 24)
+        case let .emoji(entry):
+            Text(entry.character).font(.system(size: 20))
+        case let .quicklink(link, _, _, _):
+            Image(systemName: link.symbol)
+                .font(.system(size: 24 * 0.55))
+                .foregroundStyle(.orange)
+                .frame(width: 24, height: 24)
+                .background(.quinary, in: RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 24 * 0.22, style: .continuous))
+        }
+    }
+}
+
+// MARK: Clipboard history
+
+/// Saved copies: a searchable list with Pinned and day sections, and a preview
+/// with metadata. Return pastes (Command-V when Accessibility allows it),
+/// Escape goes back to the root search.
+struct ClipboardHistoryView: View {
+    @ObservedObject var model: LauncherModel
+    @ObservedObject var history = ClipboardHistoryStore.shared
+    @ObservedObject var settings = AppSettings.shared
+
+    var body: some View {
+        VStack(spacing: 0) {
+            SearchBar(placeholder: "Search clipboard history…", text: $model.clipboardQuery, focusToken: model.focusToken) { EmptyView() }
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            bottomBar()
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if !settings.clipboardHistoryEnabled {
+            ThawEmptyState(
+                systemImage: "doc.on.clipboard",
+                title: "Clipboard history is off",
+                caption: "Turn on Save clipboard history in Settings to keep copies here."
+            )
+        } else {
+            let entries = model.filteredClipboardEntries()
+            if history.entries.isEmpty {
+                ThawEmptyState(
+                    systemImage: "doc.on.clipboard",
+                    title: "Nothing copied yet",
+                    caption: "Copies you make show up here."
+                )
+            } else if entries.isEmpty {
+                ThawEmptyState(
+                    systemImage: "magnifyingglass",
+                    title: "No copies match",
+                    caption: "Try part of the copied text, link or app name."
+                )
+            } else {
+                HStack(spacing: 0) {
+                    list(entries: entries)
+                    Divider()
+                    preview
+                        .frame(width: 250)
+                }
+            }
+        }
+    }
+
+    private func list(entries: [ClipboardEntry]) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    let pinned = entries.filter(\.pinned)
+                    let rest = entries.filter { !$0.pinned }
+                    if !pinned.isEmpty {
+                        SearchSectionHeader(title: "Pinned")
+                        ForEach(pinned) { entry in row(entry, entries: entries) }
+                    }
+                    ForEach(dayGroups(rest), id: \.title) { group in
+                        SearchSectionHeader(title: group.title)
+                        ForEach(group.entries) { entry in row(entry, entries: entries) }
+                    }
+                }
+            }
+            .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
+            .onChange(of: model.clipboardSelection) {
+                if entries.indices.contains(model.clipboardSelection) {
+                    proxy.scrollTo(entries[model.clipboardSelection].id)
+                }
+            }
+        }
+    }
+
+    private func row(_ entry: ClipboardEntry, entries: [ClipboardEntry]) -> some View {
+        let index = entries.firstIndex(where: { $0.id == entry.id }) ?? 0
+        let selected = index == model.clipboardSelection
+        return HStack(spacing: 10) {
+            Image(systemName: symbol(for: entry.kind))
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(entry.title.isEmpty ? kindName(for: entry.kind) : entry.title)
+                    .lineLimit(1)
+                Text(rowSubtitle(for: entry))
+                    .font(ThawType.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            if entry.pinned {
+                Image(systemName: "pin.fill").font(ThawType.caption).foregroundStyle(.secondary)
+                    .accessibilityLabel("Pinned")
+            }
+        }
+        .font(ThawType.body)
+        .modifier(RowBackground(selected: selected))
+        .id(entry.id)
+        .onTapGesture(count: 2) { model.pasteClipboardEntry(entry) }
+        .onTapGesture { model.clipboardSelection = index }
+    }
+
+    @ViewBuilder
+    private var preview: some View {
+        if let entry = model.selectedClipboardEntry {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    if entry.kind == .image, let image = history.image(for: entry) {
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 160)
+                    } else if let text = entry.text {
+                        Text(text)
+                            .textSelection(.enabled)
+                            .font(.system(size: 12))
+                    }
+                    if entry.kind == .file {
+                        ForEach(entry.filePaths ?? [], id: \.self) { path in
+                            Text(URL(fileURLWithPath: path).lastPathComponent)
+                                .font(.system(size: 12))
+                                .lineLimit(1)
+                        }
+                    }
+                    Divider()
+                    metadata(title: "Kind", value: kindName(for: entry.kind))
+                    metadata(title: "Copied", value: Self.dateFormatter.string(from: entry.date))
+                    if let app = entry.sourceApp {
+                        metadata(title: "App", value: app)
+                    }
+                    metadata(title: "Detail", value: detail(for: entry))
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            ThawEmptyState(systemImage: "doc.on.clipboard", title: "Select a copy to preview it")
+        }
+    }
+
+    private func metadata(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.system(size: 11)).foregroundStyle(.secondary)
+            Text(value).font(.system(size: 12)).textSelection(.enabled)
+        }
+    }
+
+    private func bottomBar() -> some View {
+        HStack(spacing: ThawSpacing.row) {
+            Button {
+                model.hidePanel()
+                model.openSettings(nil)
+            } label: {
+                Image(systemName: "gearshape")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.secondary)
+                    .padding(ThawSpacing.hairline)
+            }
+            .help("Open Settings")
+            .accessibilityLabel("Open Settings")
+            Spacer(minLength: 0)
+            if let entry = model.selectedClipboardEntry {
+                ShortcutHintButton(title: entry.pinned ? "Unpin" : "Pin") { model.toggleClipboardPin(entry) } hint: {
+                    KeyCapView(systemImage: "pin")
+                }
+                ShortcutHintButton(title: "Delete") { model.deleteClipboardEntry(entry) } hint: {
+                    KeyCapView(text: "⌫")
+                }
+                ShortcutHintButton(title: "Copy") { model.copyClipboardEntry(entry) } hint: {
+                    KeyCapView(text: "⌘C")
+                }
+                ShortcutHintButton(title: "Paste") { model.pasteClipboardEntry(entry) } hint: {
+                    KeyCapView(systemImage: "return")
+                }
+            }
+        }
+        .padding(.horizontal, ThawSpacing.inset)
+        .padding(.vertical, ThawSpacing.row)
+    }
+
+    private func symbol(for kind: ClipboardEntry.Kind) -> String {
+        switch kind {
+        case .text: "doc.text"
+        case .link: "link"
+        case .image: "photo"
+        case .file: "folder"
+        }
+    }
+
+    private func kindName(for kind: ClipboardEntry.Kind) -> String {
+        switch kind {
+        case .text: "Text"
+        case .link: "Link"
+        case .image: "Image"
+        case .file: "File"
+        }
+    }
+
+    private func rowSubtitle(for entry: ClipboardEntry) -> String {
+        var parts: [String] = [Self.timeFormatter.string(from: entry.date)]
+        if let app = entry.sourceApp { parts.append(app) }
+        if entry.kind == .link, let text = entry.text, let host = URL(string: text)?.host {
+            parts.append(host)
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func detail(for entry: ClipboardEntry) -> String {
+        switch entry.kind {
+        case .text, .link:
+            let count = (entry.text ?? "").count
+            return count == 1 ? "1 character" : "\(count) characters"
+        case .file:
+            let count = entry.filePaths?.count ?? 0
+            return count == 1 ? "1 file" : "\(count) files"
+        case .image:
+            if let name = entry.imageFile,
+               let size = try? FileManager.default.attributesOfItem(atPath: ClipboardHistoryStore.directory.appendingPathComponent(name).path)[.size] as? Int
+            {
+                return Self.byteFormatter.string(fromByteCount: Int64(size))
+            }
+            return "Image"
+        }
+    }
+
+    private struct DayGroup {
+        let title: String
+        let entries: [ClipboardEntry]
+    }
+
+    private func dayGroups(_ entries: [ClipboardEntry]) -> [DayGroup] {
+        let calendar = Calendar.current
+        var today: [ClipboardEntry] = []
+        var yesterday: [ClipboardEntry] = []
+        var byDay: [Date: [ClipboardEntry]] = [:]
+        for entry in entries {
+            if calendar.isDateInToday(entry.date) {
+                today.append(entry)
+            } else if calendar.isDateInYesterday(entry.date) {
+                yesterday.append(entry)
+            } else {
+                let day = calendar.startOfDay(for: entry.date)
+                byDay[day, default: []].append(entry)
+            }
+        }
+        var groups: [DayGroup] = []
+        if !today.isEmpty { groups.append(DayGroup(title: "Today", entries: today)) }
+        if !yesterday.isEmpty { groups.append(DayGroup(title: "Yesterday", entries: yesterday)) }
+        for day in byDay.keys.sorted(by: >) {
+            groups.append(DayGroup(title: Self.dateFormatter.string(from: day), entries: byDay[day] ?? []))
+        }
+        return groups
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private static let byteFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter
+    }()
+}
+
+// MARK: File search
+
+/// The file search: a query field above a list of files beside a preview of
+/// the selected file, and the file's actions below.
+struct FileSearchView: View {
+    @ObservedObject var model: LauncherModel
+    @ObservedObject var fileSearch: FileSearch
+
+    var body: some View {
+        VStack(spacing: 0) {
+            SearchBar(placeholder: "Search files…", text: $model.fileSearchQuery, focusToken: model.focusToken, isLoading: fileSearch.isSearching) { EmptyView() }
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            bottomBar
+        }
+    }
+
+    /// Either the matching files or the state that explains why there are none.
+    @ViewBuilder
+    private var content: some View {
+        let results = fileSearch.results
+        if fileSearch.isSearching, results.isEmpty {
+            ThawEmptyState(systemImage: "doc", title: "Searching files…", isLoading: true)
+        } else if results.isEmpty, model.fileSearchQuery.isEmpty {
+            ThawEmptyState(
+                systemImage: "doc",
+                title: "No recent files",
+                caption: "Files you open will show up here."
+            )
+        } else if results.isEmpty {
+            ThawEmptyState(
+                systemImage: "magnifyingglass",
+                title: "No files match",
+                caption: "Try part of a file's name."
+            )
+        } else {
+            HStack(spacing: 0) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(results.enumerated()), id: \.element.id) { index, file in
+                                FileSearchRow(file: file, selected: index == model.fileSearchSelection)
+                                    .id(file.id)
+                                    .onTapGesture(count: 2) { model.openSelectedFile() }
+                                    .onTapGesture { model.fileSearchSelection = index }
+                            }
+                        }
+                    }
+                    .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
+                    .onChange(of: model.fileSearchSelection) {
+                        if results.indices.contains(model.fileSearchSelection) {
+                            proxy.scrollTo(results[model.fileSearchSelection].id)
+                        }
+                    }
+                }
+                Divider()
+                if let file = model.selectedFile {
+                    FilePreview(file: file)
+                        .frame(width: 250)
+                } else {
+                    Color.clear.frame(width: 250)
+                }
+            }
+        }
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: ThawSpacing.row) {
+            Button {
+                model.hidePanel()
+                model.openSettings(nil)
+            } label: {
+                Image(systemName: "gearshape")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.secondary)
+                    .padding(ThawSpacing.hairline)
+            }
+            .help("Open Settings")
+            .accessibilityLabel("Open Settings")
+
+            Spacer(minLength: 0)
+
+            ShortcutHintButton(title: "Open") { model.openSelectedFile() } hint: {
+                KeyCapView(systemImage: "return")
+            }
+            ShortcutHintButton(title: "Show in Finder") { model.revealSelectedFile() } hint: {
+                KeyCapView(text: "⌘")
+                KeyCapView(systemImage: "return")
+            }
+            ShortcutHintButton(title: "Copy Path") { model.copySelectedFilePath() } hint: {
+                KeyCapView(text: "⌘")
+                Text(verbatim: "+")
+                KeyCapView(text: "⇧")
+                KeyCapView(text: "C")
+            }
+        }
+        .buttonStyle(SearchPanelButtonStyle())
+        .padding(.horizontal, ThawSpacing.inset)
+        .padding(.vertical, ThawSpacing.row)
+    }
+}
+
+struct FileSearchRow: View {
+    let file: FileResult
+    let selected: Bool
+
+    private var parentName: String {
+        file.url.deletingLastPathComponent().lastPathComponent
+    }
+
+    var body: some View {
+        PaletteRow(title: file.name, subtitle: nil, selected: selected) {
+            AppIconView(path: file.url.path, size: 24)
+        } trailing: {
+            Text(parentName)
+                .font(ThawType.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(file.name), \(parentName)")
+    }
+}
+
+struct FilePreview: View {
+    let file: FileResult
+
+    private var values: URLResourceValues {
+        (try? file.url.resourceValues(forKeys: [.localizedTypeDescriptionKey, .fileSizeKey,
+                                               .isDirectoryKey, .contentModificationDateKey]))
+            ?? URLResourceValues()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            FileThumbnail(url: file.url, maxHeight: 180)
+            Text(file.name)
+                .font(.system(size: 15, weight: .semibold))
+                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 6) {
+                if let kind = values.localizedTypeDescription {
+                    FileMetaRow(label: "Kind") { Text(kind).lineLimit(1) }
+                }
+                if values.isDirectory != true, let size = values.fileSize {
+                    FileMetaRow(label: "Size") {
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))
+                    }
+                }
+                if let modified = values.contentModificationDate {
+                    FileMetaRow(label: "Modified") {
+                        Text(modified.formatted(date: .abbreviated, time: .shortened))
+                    }
+                }
+                if let lastUsed = file.lastUsed {
+                    FileMetaRow(label: "Last opened") {
+                        Text(lastUsed.formatted(date: .abbreviated, time: .shortened))
+                    }
+                }
+                FileMetaRow(label: "Where") {
+                    Text(file.displayPath).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                }
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 8) {
+                Text("↵ Open").foregroundStyle(.secondary)
+                Text("⌘Y Quick Look").foregroundStyle(.secondary)
+                Text("⌘⇧C Copy Path").foregroundStyle(.secondary)
+            }
+            .font(.system(size: 11))
+        }
+        .padding(ThawSpacing.gutter)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+struct FileMetaRow<Content: View>: View {
+    let label: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label).font(.system(size: 11)).foregroundStyle(.secondary)
+            content.font(.system(size: 12))
+        }
+    }
+}
+
+/// A file's Quick Look thumbnail, or its Finder icon while that loads. Clicking it, or ⌘Y anywhere in the
+/// preview, opens the full Quick Look panel.
+struct FileThumbnail: View {
+    let url: URL
+    var maxHeight: CGFloat = 180
+    @State private var thumbnail: NSImage?
+    @State private var quickLook: URL?
+
+    var body: some View {
+        Button { quickLook = url } label: {
+            Group {
+                if let thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+                } else {
+                    AppIconView(path: url.path, size: 96)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: maxHeight, alignment: .center)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut("y", modifiers: .command)
+        .help("Quick Look  ⌘Y")
+        .accessibilityLabel("Quick Look \(url.lastPathComponent)")
+        .quickLookPreview($quickLook)
+        .task(id: url) { await load() }
+    }
+
+    private func load() async {
+        thumbnail = nil
+        let request = QLThumbnailGenerator.Request(
+            fileAt: url,
+            size: CGSize(width: 512, height: 512),
+            scale: NSScreen.main?.backingScaleFactor ?? 2,
+            representationTypes: .thumbnail)
+        if let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) {
+            thumbnail = representation.nsImage
         }
     }
 }
@@ -299,52 +853,57 @@ struct ExtensionView: View {
     var body: some View {
         let view = session.view
         let actions = session.actions
-        VStack(spacing: 0) {
-            if view?.type == "Form" {
-                PanelHeader(
-                    title: view?.string("navigationTitle") ?? session.command.title,
-                    icon: session.command.icon,
-                    assetsPath: session.command.assetsPath,
-                    isLoading: view?.bool("isLoading") ?? false
-                )
-            } else {
-                SearchBar(
-                    placeholder: view?.string("searchBarPlaceholder") ?? (session.isList ? "Search…" : session.command.title),
-                    text: $session.searchText,
-                    focusToken: model.focusToken,
-                    isLoading: view?.bool("isLoading") ?? (view == nil)
-                ) {
-                    if let dropdown = view?.slot("searchBarAccessory") {
-                        DropdownView(node: dropdown, session: session)
+        ZStack {
+            VStack(spacing: 0) {
+                if view?.type == "Form" {
+                    PanelHeader(
+                        title: view?.string("navigationTitle") ?? session.command.title,
+                        icon: session.command.icon,
+                        assetsPath: session.command.assetsPath,
+                        isLoading: view?.bool("isLoading") ?? false
+                    )
+                } else {
+                    SearchBar(
+                        placeholder: view?.string("searchBarPlaceholder") ?? (session.isList ? "Search…" : session.command.title),
+                        text: $session.searchText,
+                        focusToken: model.focusToken,
+                        isLoading: view?.bool("isLoading") ?? (view == nil)
+                    ) {
+                        if let dropdown = view?.slot("searchBarAccessory") {
+                            DropdownView(node: dropdown, session: session)
+                        }
+                    }
+                }
+                Group {
+                    if let view {
+                        switch view.type {
+                        case "List", "Grid": ListBody(session: session, view: view)
+                        case "Detail": DetailBody(node: view, assetsPath: session.command.assetsPath)
+                        case "Form": FormBody(session: session, focusToken: model.focusToken)
+                        default: Placeholder(title: "\(view.type) isn't supported yet", detail: "Floe renders List, Grid, Detail and Form.", systemImage: "hammer")
+                        }
+                    } else {
+                        Color.clear
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .bottomTrailing) {
+                    if session.actionMenuOpen {
+                        ActionMenu(session: session)
+                    }
+                }
+                .thawAnimation(ThawMotion.quick, value: session.actionMenuOpen)
+                Footer(primary: actions.first?.string("title"), primaryKey: view?.type == "Form" ? "⌘↵" : "↵", hasActions: actions.count > 1) {
+                    if let toast = session.toast {
+                        ToastView(session: session, toast: toast)
+                    } else {
+                        IconView(value: session.command.icon ?? "icon:Terminal", assetsPath: session.command.assetsPath, size: 16)
+                        Text(view?.string("navigationTitle") ?? session.command.title).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
             }
-            Group {
-                if let view {
-                    switch view.type {
-                    case "List", "Grid": ListBody(session: session, view: view)
-                    case "Detail": DetailBody(node: view, assetsPath: session.command.assetsPath)
-                    case "Form": FormBody(session: session, focusToken: model.focusToken)
-                    default: Placeholder(title: "\(view.type) isn't supported yet", detail: "Floe renders List, Grid, Detail and Form.", systemImage: "hammer")
-                    }
-                } else {
-                    Color.clear
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay(alignment: .bottomTrailing) {
-                if session.actionMenuOpen {
-                    ActionMenu(session: session)
-                }
-            }
-            .thawAnimation(ThawMotion.quick, value: session.actionMenuOpen)
-            Footer(primary: actions.first?.string("title"), primaryKey: view?.type == "Form" ? "⌘↵" : "↵", hasActions: actions.count > 1) {
-                if let toast = session.toast {
-                    ToastView(toast: toast)
-                } else {
-                    IconView(value: session.command.icon ?? "icon:Terminal", assetsPath: session.command.assetsPath, size: 16)
-                    Text(view?.string("navigationTitle") ?? session.command.title).foregroundStyle(.secondary).lineLimit(1)
-                }
+            if let alert = session.alert {
+                ConfirmAlertOverlay(session: session, alert: alert)
             }
         }
     }
@@ -361,6 +920,7 @@ struct Placeholder: View {
 }
 
 struct ToastView: View {
+    @ObservedObject var session: ExtensionSession
     let toast: ToastState
     var body: some View {
         HStack(spacing: 7) {
@@ -373,6 +933,60 @@ struct ToastView: View {
             if let message = toast.message {
                 Text(message).foregroundStyle(.secondary).lineLimit(1)
             }
+            if let primary = toast.primaryTitle {
+                Button(primary) { session.runToastAction(primary: true) }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                KeyCap("⌘↵")
+            }
+            if let secondary = toast.secondaryTitle {
+                Button(secondary) { session.runToastAction(primary: false) }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// An in-panel `confirmAlert` dialog: a scrim over the content with a centered card.
+struct ConfirmAlertOverlay: View {
+    @ObservedObject var session: ExtensionSession
+    let alert: AlertState
+    @FocusState private var confirmFocused: Bool
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.15)
+            VStack(alignment: .leading, spacing: ThawSpacing.row) {
+                Text(alert.title)
+                    .font(ThawType.heading)
+                if let message = alert.message, !message.isEmpty {
+                    Text(message)
+                        .font(ThawType.body)
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: ThawSpacing.base) {
+                    Spacer(minLength: 0)
+                    Button(alert.dismissTitle) { session.resolveAlert(false) }
+                        .keyboardShortcut(.cancelAction)
+                    if alert.isDestructive {
+                        Button(alert.primaryTitle) { session.resolveAlert(true) }
+                            .foregroundStyle(.red)
+                            .keyboardShortcut(.defaultAction)
+                            .focused($confirmFocused)
+                    } else {
+                        Button(alert.primaryTitle) { session.resolveAlert(true) }
+                            .buttonStyle(.borderedProminent)
+                            .keyboardShortcut(.defaultAction)
+                            .focused($confirmFocused)
+                    }
+                }
+                .padding(.top, ThawSpacing.tight)
+            }
+            .padding(ThawSpacing.gutter)
+            .frame(width: 340)
+            .background(.background, in: RoundedRectangle(cornerRadius: ThawRadius.card, style: .continuous))
+            .onAppear { confirmFocused = true }
         }
     }
 }
