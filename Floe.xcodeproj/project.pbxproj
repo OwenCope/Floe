@@ -65,6 +65,7 @@
 		538B5734D434262AA51C0789 /* MarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97FB08D3CFBC2414EE5DBFE /* MarkdownView.swift */; };
 		5476B0439709CF8DF747ED41 /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2586ADD4A7E5A2899FE239C7 /* Selection.swift */; };
 		553CA566F3573D1B855CA623 /* Model+Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B92AFF31F28A7B38B57533 /* Model+Clipboard.swift */; };
+		55781EB74199BB1FA1342D00 /* SettingsSalvage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BC8BADB46258DEB8AE9E40 /* SettingsSalvage.swift */; };
 		57448B25E790E1ABE6AAA787 /* Updates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB035C39E569BB620F7844F /* Updates.swift */; };
 		5763E5DB3E3316E5A5FB9C6F /* AnswerSearchProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B21D1572BEDAB065D80604 /* AnswerSearchProviders.swift */; };
 		586B027C00406193718A4457 /* RootSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5C8BB52FDA4181A2A6D1DB /* RootSearch.swift */; };
@@ -230,6 +231,7 @@
 		26F6717C76B587E7D9893E90 /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 		26FC03A029A34D38B9446379 /* BackgroundScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundScheduler.swift; sourceTree = "<group>"; };
 		2773C6E3783917FF5AFFAC4E /* AskAISearchProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskAISearchProvider.swift; sourceTree = "<group>"; };
+		27BC8BADB46258DEB8AE9E40 /* SettingsSalvage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSalvage.swift; sourceTree = "<group>"; };
 		2D1677EB1C22495EA2049A1A /* FileSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchView.swift; sourceTree = "<group>"; };
 		2D6F4E8DCF13BAB295B0E243 /* Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
 		30B7F201C3069FA974E88002 /* ViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewState.swift; sourceTree = "<group>"; };
@@ -570,6 +572,7 @@
 				0EE91FCE25C5B0CA343E30A9 /* SettingsCatalog.swift */,
 				12590EA11A0CFF4478B99322 /* SettingsMerge.swift */,
 				F083CEE0A4DB35A8DBC44B67 /* SettingsMode.swift */,
+				27BC8BADB46258DEB8AE9E40 /* SettingsSalvage.swift */,
 				B0F9AD2AB64B9F4E07E881FF /* SettingsSearchEntries.swift */,
 				AD6E736E94FFB03FFF4F6845 /* SettingsTransfer.swift */,
 				888F73FD3AD3B70CCCED4500 /* SettingsView.swift */,
@@ -1032,6 +1035,7 @@
 				812D7F552D2AFB08DB00480E /* SettingsMerge.swift in Sources */,
 				E8F562A6C0BF3A1DCBFEDB33 /* SettingsMode.swift in Sources */,
 				FE11195D111F7CC7EA39CF8E /* SettingsProcess.swift in Sources */,
+				55781EB74199BB1FA1342D00 /* SettingsSalvage.swift in Sources */,
 				3363EA52A0ACF53EE624C1A2 /* SettingsSearchEntries.swift in Sources */,
 				3708D44C226149ED3BCE44C0 /* SettingsSearchNavigation.swift in Sources */,
 				1DA318B37ECA5A026EFA2D65 /* SettingsTransfer.swift in Sources */,

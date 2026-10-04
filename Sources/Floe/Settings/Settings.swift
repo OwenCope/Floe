@@ -89,10 +89,10 @@ final class AppSettings: ObservableObject {
 
     private struct Stored: Codable {
         var toggleHotkey: KeyCombination?
-        var commandHotkeys: [String: KeyCombination]
-        var aliases: [String: String]
-        var disabledExtensions: Set<String>
-        var includeRaycastExtensions: Bool
+        var commandHotkeys: [String: KeyCombination]?
+        var aliases: [String: String]?
+        var disabledExtensions: Set<String>?
+        var includeRaycastExtensions: Bool?
         var popToRootDelay: Int?
         var favorites: [String]?
         var rememberMenuBarQuery: Bool?
@@ -145,9 +145,7 @@ final class AppSettings: ObservableObject {
     /// A test passes false for `savesAfterEdits`, so the moment of each save is its own to choose.
     init(defaults: UserDefaults = .standard, savesAfterEdits: Bool = true) {
         self.defaults = defaults
-        if let data = defaults.data(forKey: Self.defaultsKey),
-           let stored = try? JSONDecoder().decode(Stored.self, from: data)
-        {
+        if let data = defaults.data(forKey: Self.defaultsKey), let stored = Self.read(data) {
             apply(stored)
             seen = data
         }
@@ -175,8 +173,17 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// The stored settings, less any one whose value cannot be read: that one takes its default, the rest stay.
+    private static func read(_ data: Data) -> Stored? {
+        guard let salvaged = SettingsSalvage.decode(Stored.self, from: data) else { return nil }
+        if !salvaged.dropped.isEmpty {
+            Log.app.warning("Settings that could not be read took their defaults: \(salvaged.dropped.sorted().joined(separator: ", "))")
+        }
+        return salvaged.value
+    }
+
     private func take(_ data: Data) {
-        guard let stored = try? JSONDecoder().decode(Stored.self, from: data) else { return }
+        guard let stored = Self.read(data) else { return }
         isReloading = true
         apply(stored)
         isReloading = false
@@ -213,10 +220,10 @@ final class AppSettings: ObservableObject {
 
     private func apply(_ stored: Stored) {
         toggleHotkey = stored.toggleHotkey
-        commandHotkeys = stored.commandHotkeys
-        aliases = stored.aliases
-        disabledExtensions = stored.disabledExtensions
-        includeRaycastExtensions = stored.includeRaycastExtensions
+        commandHotkeys = stored.commandHotkeys ?? [:]
+        aliases = stored.aliases ?? [:]
+        disabledExtensions = stored.disabledExtensions ?? []
+        includeRaycastExtensions = stored.includeRaycastExtensions ?? true
         popToRootDelay = stored.popToRootDelay ?? popToRootDelay
         favorites = stored.favorites ?? []
         rememberMenuBarQuery = stored.rememberMenuBarQuery ?? false
@@ -259,7 +266,10 @@ final class AppSettings: ObservableObject {
 
     /// Replaces every setting with an exported copy and saves it.
     func importJSON(_ data: Data) throws {
-        try apply(JSONDecoder().decode(Stored.self, from: data))
+        guard let stored = Self.read(data) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        apply(stored)
         save()
     }
 
