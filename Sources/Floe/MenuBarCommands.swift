@@ -30,8 +30,13 @@ import SwiftUI
     private final class MenuDispatch: NSObject {
         var onAction: ((Int) -> Void)?
         var onRetry: (() -> Void)?
-        @objc func fire(_ sender: NSMenuItem) { onAction?(sender.tag) }
-        @objc func retry(_: NSMenuItem) { onRetry?() }
+        @objc func fire(_ sender: NSMenuItem) {
+            onAction?(sender.tag)
+        }
+
+        @objc func retry(_: NSMenuItem) {
+            onRetry?()
+        }
     }
 
     init(model: LauncherModel) {
@@ -63,7 +68,9 @@ import SwiftUI
     }
 
     func stopAll() {
-        for id in entries.keys { remove(id) }
+        for id in entries.keys {
+            remove(id)
+        }
     }
 
     private func start(_ command: ExtensionCommand) {
@@ -150,7 +157,9 @@ import SwiftUI
             case "MenuBarExtra.Separator":
                 menu.addItem(.separator())
             case "MenuBarExtra.Section":
-                if menu.numberOfItems > 0 { menu.addItem(.separator()) }
+                if menu.numberOfItems > 0 {
+                    menu.addItem(.separator())
+                }
                 menu.addItem(NSMenuItem.sectionHeader(title: child.string("title") ?? ""))
                 addNodes(child.content, to: menu, entry: entry)
             case "MenuBarExtra.Submenu":
@@ -158,7 +167,9 @@ import SwiftUI
                 let submenu = NSMenu()
                 addNodes(child.content, to: submenu, entry: entry)
                 sub.submenu = submenu
-                if let icon = child.props["icon"] { sub.image = statusImage(icon, assetsPath: entry.command.assetsPath) }
+                if let icon = child.props["icon"] {
+                    sub.image = statusImage(icon, assetsPath: entry.command.assetsPath)
+                }
                 menu.addItem(sub)
             default:
                 break
@@ -168,9 +179,15 @@ import SwiftUI
 
     private func makeItem(_ node: Node, entry: Entry) -> NSMenuItem {
         let item = NSMenuItem(title: node.string("title") ?? "", action: nil, keyEquivalent: "")
-        if let subtitle = node.string("subtitle") { item.subtitle = subtitle }
-        if let tooltip = node.string("tooltip") { item.toolTip = tooltip }
-        if let icon = node.props["icon"] { item.image = statusImage(icon, assetsPath: entry.command.assetsPath) }
+        if let subtitle = node.string("subtitle") {
+            item.subtitle = subtitle
+        }
+        if let tooltip = node.string("tooltip") {
+            item.toolTip = tooltip
+        }
+        if let icon = node.props["icon"] {
+            item.image = statusImage(icon, assetsPath: entry.command.assetsPath)
+        }
         if node.handlers.contains("onAction") {
             item.target = entry.dispatch
             item.action = #selector(MenuDispatch.fire(_:))
@@ -185,7 +202,9 @@ import SwiftUI
     /// directly, anything fancier renders through IconView at 16pt.
     private func statusImage(_ value: Any?, assetsPath: String) -> NSImage? {
         if let dict = value as? [String: Any] {
-            if let path = dict["fileIcon"] as? String { return NSWorkspace.shared.icon(forFile: path) }
+            if let path = dict["fileIcon"] as? String {
+                return NSWorkspace.shared.icon(forFile: path)
+            }
             if let source = dict["source"] as? [String: Any] {
                 let dark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
                 return statusImage(dark ? source["dark"] ?? source["light"] : source["light"] ?? source["dark"], assetsPath: assetsPath)
@@ -216,9 +235,13 @@ import SwiftUI
 
     private static func find(id: Int, in node: Node?) -> Node? {
         guard let node else { return nil }
-        if node.id == id { return node }
+        if node.id == id {
+            return node
+        }
         for child in node.children {
-            if let found = find(id: id, in: child) { return found }
+            if let found = find(id: id, in: child) {
+                return found
+            }
         }
         return nil
     }
@@ -228,7 +251,9 @@ import SwiftUI
         if NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
             let url = URL(fileURLWithPath: path)
             let dark = url.deletingPathExtension().path + "@dark." + url.pathExtension
-            if FileManager.default.fileExists(atPath: dark) { return dark }
+            if FileManager.default.fileExists(atPath: dark) {
+                return dark
+            }
         }
         return FileManager.default.fileExists(atPath: path) ? path : nil
     }

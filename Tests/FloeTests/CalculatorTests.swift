@@ -18,12 +18,12 @@ struct CalculatorTests {
 
     @Test(arguments: [("18% of 240", 43.2), ("(2+3)*4", 20), ("2^10", 1024), ("(1+2", 3), ("10 / 4", 2.5)])
     func evaluatesArithmetic(query: String, expected: Double) throws {
-        #expect(abs(try number(query) - expected) < 0.0001)
+        #expect(try abs(number(query) - expected) < 0.0001)
     }
 
     @Test func convertsUnits() throws {
-        #expect(abs(try number("5 km in mi") - 3.10686) < 0.01)
-        #expect(abs(try number("100 f to c") - 37.78) < 0.01)
+        #expect(try abs(number("5 km in mi") - 3.10686) < 0.01)
+        #expect(try abs(number("100 f to c") - 37.78) < 0.01)
     }
 
     @Test(arguments: ["42", "hello world", "1/0", "safari", ""])

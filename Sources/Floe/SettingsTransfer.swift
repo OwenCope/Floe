@@ -59,8 +59,8 @@ enum SettingsTransfer {
               let settings = object["settings"] as? [String: Any]
         else { throw TransferError.notAnExport }
         guard fileVersion <= version else { throw TransferError.newerVersion(fileVersion) }
-        return Archive(
-            settings: try JSONSerialization.data(withJSONObject: settings),
+        return try Archive(
+            settings: JSONSerialization.data(withJSONObject: settings),
             preferences: object["extensionPreferences"] as? [String: [String: Any]] ?? [:],
             // Optional, so files written before secret keys were recorded still load.
             secretKeys: object["secretKeys"] as? [String: [String]] ?? [:]

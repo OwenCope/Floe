@@ -110,7 +110,9 @@ final class CalendarAgenda {
 
     private func loadIfStale() {
         guard !isLoading else { return }
-        if let loadedAt, Date().timeIntervalSince(loadedAt) < Self.cacheLifetime { return }
+        if let loadedAt, Date().timeIntervalSince(loadedAt) < Self.cacheLifetime {
+            return
+        }
         isLoading = true
         let store = store
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in

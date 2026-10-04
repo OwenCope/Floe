@@ -30,6 +30,7 @@ enum HostRequest: Sendable, Equatable {
             false
         }
     }
+
     /// `getSelectedText`: the frontmost app's selected text.
     case selectedText
     /// `getSelectedFinderItems`: the Finder's selection, when Finder is frontmost.

@@ -20,8 +20,8 @@ struct ToastState: Equatable {
     let style: String
     let title: String
     let message: String?
-    var primaryTitle: String? = nil
-    var secondaryTitle: String? = nil
+    var primaryTitle: String?
+    var secondaryTitle: String?
 }
 
 /// An in-panel confirmation dialog from `confirmAlert`. The id is the host request it answers.
@@ -107,7 +107,9 @@ final class ExtensionSession: ObservableObject {
     }
 
     /// Set while the host is running.
-    var isRunning: Bool { processID != nil }
+    var isRunning: Bool {
+        processID != nil
+    }
 
     func send(_ message: [String: Any]) {
         transport(message)

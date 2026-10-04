@@ -146,9 +146,14 @@ final class ClipboardHistoryStore: ObservableObject {
            !objects.isEmpty
         {
             return ClipboardEntry(
-                id: UUID(), kind: .file, text: nil,
-                filePaths: objects.map { ($0 as URL).path }, imageFile: nil,
-                date: Date(), pinned: false, sourceApp: sourceApp
+                id: UUID(),
+                kind: .file,
+                text: nil,
+                filePaths: objects.map { ($0 as URL).path },
+                imageFile: nil,
+                date: Date(),
+                pinned: false,
+                sourceApp: sourceApp
             )
         }
         if let data = board.data(forType: .tiff) ?? board.data(forType: .png),
@@ -165,12 +170,16 @@ final class ClipboardHistoryStore: ObservableObject {
                 return nil
             }
             let hash = png.prefix(64).base64EncodedString()
-            let entry = ClipboardEntry(
-                id: UUID(), kind: .image, text: hash,
-                filePaths: nil, imageFile: name,
-                date: Date(), pinned: false, sourceApp: sourceApp
+            return ClipboardEntry(
+                id: UUID(),
+                kind: .image,
+                text: hash,
+                filePaths: nil,
+                imageFile: name,
+                date: Date(),
+                pinned: false,
+                sourceApp: sourceApp
             )
-            return entry
         }
         guard let string = board.string(forType: .string), !string.isEmpty else { return nil }
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -178,15 +187,25 @@ final class ClipboardHistoryStore: ObservableObject {
            scheme == "http" || scheme == "https", !url.host.isNilOrEmpty
         {
             return ClipboardEntry(
-                id: UUID(), kind: .link, text: trimmed,
-                filePaths: nil, imageFile: nil,
-                date: Date(), pinned: false, sourceApp: sourceApp
+                id: UUID(),
+                kind: .link,
+                text: trimmed,
+                filePaths: nil,
+                imageFile: nil,
+                date: Date(),
+                pinned: false,
+                sourceApp: sourceApp
             )
         }
         return ClipboardEntry(
-            id: UUID(), kind: kindForText(string), text: string,
-            filePaths: nil, imageFile: nil,
-            date: Date(), pinned: false, sourceApp: sourceApp
+            id: UUID(),
+            kind: kindForText(string),
+            text: string,
+            filePaths: nil,
+            imageFile: nil,
+            date: Date(),
+            pinned: false,
+            sourceApp: sourceApp
         )
     }
 
@@ -265,7 +284,9 @@ final class ClipboardHistoryStore: ObservableObject {
         for entry in entries.sorted(by: { $0.date < $1.date }) where !entry.pinned {
             removeImageFile(entry.imageFile)
             entries.removeAll { $0.id == entry.id }
-            if totalBytes() <= Self.maxBytes { break }
+            if totalBytes() <= Self.maxBytes {
+                break
+            }
         }
     }
 
@@ -377,7 +398,7 @@ final class ClipboardHistoryStore: ObservableObject {
     }
 }
 
-private extension Optional where Wrapped == String {
+private extension String? {
     var isNilOrEmpty: Bool {
         self?.isEmpty ?? true
     }

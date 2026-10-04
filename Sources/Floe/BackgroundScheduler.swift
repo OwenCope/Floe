@@ -31,11 +31,15 @@ import Foundation
             timers[id]?.invalidate()
             timers.removeValue(forKey: id)
             intervals.removeValue(forKey: id)
-            if let run = runs.removeValue(forKey: id) { run.forceStop() }
+            if let run = runs.removeValue(forKey: id) {
+                run.forceStop()
+            }
         }
         for command in wanted {
             guard let interval = command.interval else { continue }
-            if timers[command.id] != nil, intervals[command.id] == interval { continue }
+            if timers[command.id] != nil, intervals[command.id] == interval {
+                continue
+            }
             timers[command.id]?.invalidate()
             let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.fire(command) }
@@ -47,10 +51,14 @@ import Foundation
     }
 
     func stopAll() {
-        for timer in timers.values { timer.invalidate() }
+        for timer in timers.values {
+            timer.invalidate()
+        }
         timers.removeAll()
         intervals.removeAll()
-        for run in runs.values { run.forceStop() }
+        for run in runs.values {
+            run.forceStop()
+        }
         runs.removeAll()
     }
 
@@ -62,14 +70,18 @@ import Foundation
             return
         }
         guard command.mode == "no-view" else { return }
-        if let run = runs[command.id], run.isRunning { return }
+        if let run = runs[command.id], run.isRunning {
+            return
+        }
         let session = ExtensionSession(command: command, launchType: "background")
         session.onMessage = { [weak self, weak session] message in
             guard let self, let session else { return }
             switch message["type"] as? String {
             case "exit", "close", "crashed":
                 session.forceStop()
-                if runs[command.id] === session { runs.removeValue(forKey: command.id) }
+                if runs[command.id] === session {
+                    runs.removeValue(forKey: command.id)
+                }
             case "hud", "open", "copy", "paste":
                 model.handleBackgroundMessage(message)
             default:
@@ -80,8 +92,12 @@ import Foundation
         session.start()
         DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self, weak session] in
             guard let self, let session else { return }
-            if session.isRunning { session.forceStop() }
-            if runs[command.id] === session { runs.removeValue(forKey: command.id) }
+            if session.isRunning {
+                session.forceStop()
+            }
+            if runs[command.id] === session {
+                runs.removeValue(forKey: command.id)
+            }
         }
     }
 }

@@ -9,7 +9,9 @@ import Foundation
 
 struct StoreListing: Identifiable, Hashable {
     let name: String
-    var id: String { name }
+    var id: String {
+        name
+    }
 }
 
 struct StoreCommand: Identifiable, Hashable {
@@ -17,7 +19,9 @@ struct StoreCommand: Identifiable, Hashable {
     let title: String
     let description: String?
     let mode: String
-    var id: String { name }
+    var id: String {
+        name
+    }
 }
 
 struct StoreDetails: Hashable {
@@ -47,7 +51,7 @@ final class ExtensionStore: ObservableObject {
     private static let recordFileName = ".floe-store.json"
     private static let cacheLifetime: TimeInterval = 24 * 3600
     private static let repoAPI = "https://api.github.com/repos/raycast/extensions"
-    nonisolated private static let rawBase = "https://raw.githubusercontent.com/raycast/extensions/main/extensions"
+    private static nonisolated let rawBase = "https://raw.githubusercontent.com/raycast/extensions/main/extensions"
 
     private var catalogURL: URL {
         Paths.support.appendingPathComponent(Self.catalogFileName)
@@ -84,7 +88,9 @@ final class ExtensionStore: ObservableObject {
     }
 
     func details(for name: String) async -> StoreDetails? {
-        if let cached = detailsCache[name] { return cached }
+        if let cached = detailsCache[name] {
+            return cached
+        }
         guard let url = URL(string: "\(Self.rawBase)/\(name)/package.json") else { return nil }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
@@ -152,7 +158,9 @@ final class ExtensionStore: ObservableObject {
 
     func hasUpdate(_ name: String) async -> Bool {
         guard isInstalled(name), let recorded = Self.recordedCommit(for: name) else { return false }
-        if let cached = latestShaCache[name] { return cached != recorded }
+        if let cached = latestShaCache[name] {
+            return cached != recorded
+        }
         guard let url = URL(string: "\(Self.repoAPI)/commits?path=extensions/\(name)&per_page=1") else { return false }
         do {
             let request = Self.apiRequest(url: url)
@@ -176,16 +184,21 @@ final class ExtensionStore: ObservableObject {
     }
 
     private static func fetchExtensionNames() async throws -> [String] {
-        let (rootData, _) = try await URLSession.shared.data(
-            for: apiRequest(url: URL(string: "\(repoAPI)/git/trees/main")!))
+        guard let rootURL = URL(string: "\(repoAPI)/git/trees/main") else {
+            throw StoreFailure(message: "Could not find the extensions folder in the Raycast repository.")
+        }
+        let (rootData, _) = try await URLSession.shared.data(for: apiRequest(url: rootURL))
         guard let root = try JSONSerialization.jsonObject(with: rootData) as? [String: Any],
               let entries = root["tree"] as? [[String: Any]],
               let sha = entries.first(where: { ($0["path"] as? String) == "extensions" && ($0["type"] as? String) == "tree" })?["sha"] as? String
         else { throw StoreFailure(message: "Could not find the extensions folder in the Raycast repository.") }
-        let (listData, _) = try await URLSession.shared.data(
-            for: apiRequest(url: URL(string: "\(repoAPI)/git/trees/\(sha)")!))
+        guard let listURL = URL(string: "\(repoAPI)/git/trees/\(sha)") else {
+            throw StoreFailure(message: "Could not find the extensions folder in the Raycast repository.")
+        }
+        let (listData, _) = try await URLSession.shared.data(for: apiRequest(url: listURL))
         guard let list = try JSONSerialization.jsonObject(with: listData) as? [String: Any],
-              let folders = list["tree"] as? [[String: Any]] else {
+              let folders = list["tree"] as? [[String: Any]]
+        else {
             throw StoreFailure(message: "Could not list the extensions in the Raycast repository.")
         }
         return folders
@@ -212,13 +225,19 @@ final class ExtensionStore: ObservableObject {
 
     // MARK: - Details parsing
 
-    nonisolated static func parseDetails(name: String, manifest: [String: Any]) -> StoreDetails {
+    static nonisolated func parseDetails(name: String, manifest: [String: Any]) -> StoreDetails {
         let title = manifest["title"] as? String ?? name
         let description = manifest["description"] as? String
         let author: String? = {
-            if let value = manifest["author"] as? String { return value }
-            if let dict = manifest["author"] as? [String: Any] { return dict["name"] as? String }
-            if let owner = manifest["owner"] as? String { return owner }
+            if let value = manifest["author"] as? String {
+                return value
+            }
+            if let dict = manifest["author"] as? [String: Any] {
+                return dict["name"] as? String
+            }
+            if let owner = manifest["owner"] as? String {
+                return owner
+            }
             return nil
         }()
         let iconURL = iconURL(for: name, icon: manifest["icon"])
@@ -228,19 +247,21 @@ final class ExtensionStore: ObservableObject {
                 name: commandName,
                 title: command["title"] as? String ?? commandName,
                 description: command["description"] as? String,
-                mode: command["mode"] as? String ?? "view")
+                mode: command["mode"] as? String ?? "view"
+            )
         }
-        return StoreDetails(name: name, title: title, description: description,
-                            author: author, iconURL: iconURL, commands: commands)
+        return StoreDetails(name: name, title: title, description: description, author: author, iconURL: iconURL, commands: commands)
     }
 
-    nonisolated static func iconURL(for name: String, icon: Any?) -> URL? {
+    static nonisolated func iconURL(for name: String, icon: Any?) -> URL? {
         guard let file = icon as? String, !file.isEmpty,
               !file.hasPrefix("icon:"), !file.hasPrefix("http"), !file.hasPrefix("data:") else { return nil }
         let fileName = file.split(separator: "/").last.map(String.init) ?? file
         // An installed copy has the file locally; otherwise fetch it, encoded (icon names may contain spaces).
         let local = Paths.extensions.appendingPathComponent(name).appendingPathComponent("assets").appendingPathComponent(fileName)
-        if FileManager.default.fileExists(atPath: local.path) { return local }
+        if FileManager.default.fileExists(atPath: local.path) {
+            return local
+        }
         let encoded = fileName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? fileName
         return URL(string: "\(rawBase)/\(name)/assets/\(encoded)")
     }
@@ -273,18 +294,16 @@ final class ExtensionStore: ObservableObject {
             .appendingPathComponent("floe-store-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: workDir, withIntermediateDirectories: true)
         let git = gitExecutable()
-        try await runTool(executable: git, arguments: [
-            "clone", "--depth", "1", "--filter=blob:none", "--sparse",
-            "https://github.com/raycast/extensions", workDir.path,
-        ], context: "Clone failed")
-        try await runTool(executable: git, arguments: ["-C", workDir.path, "sparse-checkout", "set", "extensions/\(name)"],
-                          context: "Checkout failed")
+        let clone = ["clone", "--depth", "1", "--filter=blob:none", "--sparse", "https://github.com/raycast/extensions", workDir.path]
+        try await runTool(executable: git, arguments: clone, context: "Clone failed")
+        let checkout = ["-C", workDir.path, "sparse-checkout", "set", "extensions/\(name)"]
+        try await runTool(executable: git, arguments: checkout, context: "Checkout failed")
         let extensionDir = workDir.appendingPathComponent("extensions/\(name)", isDirectory: true)
         guard FileManager.default.fileExists(atPath: extensionDir.appendingPathComponent("package.json").path) else {
             throw StoreFailure(message: "Extension \"\(name)\" was not found in the Raycast repository.")
         }
-        let output = try await runTool(executable: git, arguments: ["-C", workDir.path, "rev-parse", "HEAD"],
-                                       context: "Could not read the repository commit")
+        let revision = ["-C", workDir.path, "rev-parse", "HEAD"]
+        let output = try await runTool(executable: git, arguments: revision, context: "Could not read the repository commit")
         let commit = output.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         return FetchedExtension(workDir: workDir, extensionDir: extensionDir, commit: commit)
     }
@@ -293,8 +312,7 @@ final class ExtensionStore: ObservableObject {
         guard let bun = Paths.bun else {
             throw StoreFailure(message: "Bun was not found. Install it with brew install bun.")
         }
-        try await runTool(executable: bun, arguments: ["install", "--ignore-scripts"],
-                          workingDirectory: directory, context: "Bun install failed")
+        try await runTool(executable: bun, arguments: ["install", "--ignore-scripts"], workingDirectory: directory, context: "Bun install failed")
     }
 
     /// Moves the staged copy into the extensions folder only after its
@@ -303,8 +321,7 @@ final class ExtensionStore: ObservableObject {
         Paths.prepareSupportFolders()
         let fileManager = FileManager.default
         let destination = Paths.extensions.appendingPathComponent(name, isDirectory: true)
-        let backup = Paths.extensions.appendingPathComponent(
-            "\(name).floe-backup-\(UUID().uuidString)", isDirectory: true)
+        let backup = Paths.extensions.appendingPathComponent("\(name).floe-backup-\(UUID().uuidString)", isDirectory: true)
         var movedAside = false
         do {
             if fileManager.fileExists(atPath: destination.path) {
@@ -318,7 +335,9 @@ final class ExtensionStore: ObservableObject {
             }
             throw StoreFailure(message: "Could not install \"\(name)\": \(lastLine(error.localizedDescription))")
         }
-        if movedAside { try? fileManager.removeItem(at: backup) }
+        if movedAside {
+            try? fileManager.removeItem(at: backup)
+        }
         let record = Record(name: name, commit: commit, installedAt: Date())
         if let data = try? JSONEncoder().encode(record) {
             try? data.write(to: destination.appendingPathComponent(recordFileName), options: .atomic)
@@ -326,11 +345,15 @@ final class ExtensionStore: ObservableObject {
     }
 
     private static func gitExecutable() -> String {
-        if FileManager.default.isExecutableFile(atPath: "/usr/bin/git") { return "/usr/bin/git" }
+        if FileManager.default.isExecutableFile(atPath: "/usr/bin/git") {
+            return "/usr/bin/git"
+        }
         let path = ProcessInfo.processInfo.environment["PATH"] ?? "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
         for folder in path.split(separator: ":") {
             let candidate = URL(fileURLWithPath: String(folder)).appendingPathComponent("git").path
-            if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
+            if FileManager.default.isExecutableFile(atPath: candidate) {
+                return candidate
+            }
         }
         return "/usr/bin/git"
     }
@@ -344,21 +367,27 @@ final class ExtensionStore: ObservableObject {
         let message: String
     }
 
-    private static func lastLine(_ text: String) -> String {
+    private static nonisolated func lastLine(_ text: String) -> String {
         text.split(separator: "\n").map(String.init).last(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
             ?? "Unknown error"
     }
 
     /// Runs a tool off the main thread. Failures carry the last stderr line.
-    nonisolated private static func runTool(executable: String, arguments: [String],
-                                            workingDirectory: URL? = nil,
-                                            context: String) async throws -> ToolOutput {
+    @discardableResult
+    private static nonisolated func runTool(
+        executable: String,
+        arguments: [String],
+        workingDirectory: URL? = nil,
+        context: String
+    ) async throws -> ToolOutput {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolOutput, Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: executable)
                 process.arguments = arguments
-                if let workingDirectory { process.currentDirectoryURL = workingDirectory }
+                if let workingDirectory {
+                    process.currentDirectoryURL = workingDirectory
+                }
                 let stdoutPipe = Pipe()
                 let stderrPipe = Pipe()
                 process.standardOutput = stdoutPipe

@@ -15,11 +15,13 @@ struct SnippetsSettingsPage: View {
 
     var body: some View {
         Form {
-            ThawSection(header: { Text("Expansion") }, content: {
-                Toggle("Expand keywords as you type", isOn: $store.expansionEnabled)
-            }, footer: {
-                Text("Type a snippet's keyword in any app and Floe replaces it with the snippet. Needs Accessibility. Password fields are skipped.")
-            })
+            ThawSection(
+                header: { Text("Expansion") },
+                content: { Toggle("Expand keywords as you type", isOn: $store.expansionEnabled) },
+                footer: {
+                    Text("Type a snippet's keyword in any app and Floe replaces it with the snippet. Needs Accessibility. Password fields are skipped.")
+                }
+            )
             ThawSection("Snippets") {
                 if store.snippets.isEmpty {
                     Text("No snippets yet.").foregroundStyle(.secondary)
@@ -45,7 +47,9 @@ struct SnippetsSettingsPage: View {
         .navigationTitle("Snippets")
         .sheet(item: $editing) { snippet in
             SnippetEditor(snippet: snippet, isNew: !store.snippets.contains { $0.id == snippet.id }) { result in
-                if let result { store.upsert(result) }
+                if let result {
+                    store.upsert(result)
+                }
                 editing = nil
             } onDelete: {
                 store.remove(snippet)

@@ -80,7 +80,9 @@ enum PreferenceStore {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: Paths.data.path)) ?? []
         return names.reduce(into: [:]) { result, name in
             let values = storedValues(name)
-            if !values.isEmpty { result[name] = values }
+            if !values.isEmpty {
+                result[name] = values
+            }
         }
     }
 

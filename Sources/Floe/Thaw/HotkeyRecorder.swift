@@ -9,6 +9,7 @@
 //
 //  Ported to the launcher: binds to an optional KeyCombination instead of Thaw's Hotkey model,
 //  and uses an NSEvent monitor directly. Recording suspends `HotkeyRegistry` through `onRecordingChange`.
+//  The control has a fixed size, so every recorder is the same width whatever its label.
 
 import AppKit
 import SwiftUI
@@ -77,7 +78,9 @@ struct HotkeyRecorder<Label: View>: View {
             displaySegment
             actionSegment
         }
-        .frame(minWidth: 132, idealWidth: 132, minHeight: 24, idealHeight: 24)
+        // Fixed, unlike Thaw's: the segments are shapes and take whatever a form row offers,
+        // which is less beside a label that carries a description.
+        .frame(width: 160, height: 24)
     }
 
     private func startCapture() {

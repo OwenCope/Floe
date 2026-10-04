@@ -35,11 +35,15 @@ enum SelectionError: LocalizedError {
 
 /// The selected text of the frontmost app: what Accessibility reports, else a borrowed Command-C.
 enum SelectedText {
-    static var isTrusted: Bool { AXIsProcessTrusted() }
+    static var isTrusted: Bool {
+        AXIsProcessTrusted()
+    }
 
     static func current() async throws -> String {
         guard isTrusted else { throw SelectionError.accessibilityOff(action: "Getting the selected text") }
-        if let text = accessibilitySelectedText(), !text.isEmpty { return text }
+        if let text = accessibilitySelectedText(), !text.isEmpty {
+            return text
+        }
         return try await copiedSelectedText()
     }
 
@@ -48,15 +52,21 @@ enum SelectedText {
         let systemWide = AXUIElementCreateSystemWide()
         var app: CFTypeRef?
         guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedApplicationAttribute as CFString, &app) == .success,
-              let appElement = app as! AXUIElement?
+              let app, CFGetTypeID(app) == AXUIElementGetTypeID()
         else { return nil }
+        // swiftlint:disable:next force_cast
+        let appElement = app as! AXUIElement
         var focused: CFTypeRef?
         guard AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
-              let element = focused as! AXUIElement?
+              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID()
         else { return nil }
+        // swiftlint:disable:next force_cast
+        let element = focused as! AXUIElement
         var selected: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, "AXSelectedText" as CFString, &selected) == .success else { return nil }
-        if let text = selected as? String, !text.isEmpty { return text }
+        if let text = selected as? String, !text.isEmpty {
+            return text
+        }
         return nil
     }
 
@@ -133,7 +143,9 @@ enum SavedPasteboard {
         for item in pasteboard.pasteboardItems ?? [] {
             var dataByType: [NSPasteboard.PasteboardType: Data] = [:]
             for type in item.types {
-                if let data = item.data(forType: type) { dataByType[type] = data }
+                if let data = item.data(forType: type) {
+                    dataByType[type] = data
+                }
             }
             items.append((types: item.types, dataByType: dataByType))
         }
@@ -148,7 +160,9 @@ extension SavedPasteboard.Snapshot {
         for entry in items {
             let item = NSPasteboardItem()
             for type in entry.types {
-                if let data = entry.dataByType[type] { item.setData(data, forType: type) }
+                if let data = entry.dataByType[type] {
+                    item.setData(data, forType: type)
+                }
             }
             pasteboard.writeObjects([item])
         }
@@ -168,7 +182,7 @@ enum PasteboardContent {
         if let html, !html.isEmpty {
             wrote = pasteboard.setString(html, forType: .html) || wrote
         }
-        if !text.isEmpty || (!wrote) {
+        if !text.isEmpty || !wrote {
             wrote = pasteboard.setString(text, forType: .string) || wrote
         }
         return wrote
@@ -176,7 +190,9 @@ enum PasteboardContent {
 
     static func read(from pasteboard: NSPasteboard = .general) -> [String: String] {
         var result: [String: String] = ["text": pasteboard.string(forType: .string) ?? ""]
-        if let html = pasteboard.string(forType: .html), !html.isEmpty { result["html"] = html }
+        if let html = pasteboard.string(forType: .html), !html.isEmpty {
+            result["html"] = html
+        }
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
            let first = urls.first, first.isFileURL
         {

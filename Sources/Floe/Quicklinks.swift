@@ -51,33 +51,47 @@ final class QuicklinkStore: ObservableObject {
 
     static let defaults: [Quicklink] = [
         Quicklink(
-            name: "Google", keyword: "g",
+            name: "Google",
+            keyword: "g",
             url: "https://www.google.com/search?q={query}",
-            isFallback: true, symbol: "magnifyingglass"
+            isFallback: true,
+            symbol: "magnifyingglass"
         ),
         Quicklink(
-            name: "DuckDuckGo", keyword: "ddg",
-            url: "https://duckduckgo.com/?q={query}", symbol: "magnifyingglass.circle"
+            name: "DuckDuckGo",
+            keyword: "ddg",
+            url: "https://duckduckgo.com/?q={query}",
+            symbol: "magnifyingglass.circle"
         ),
         Quicklink(
-            name: "GitHub", keyword: "gh",
-            url: "https://github.com/search?q={query}", symbol: "chevron.left.forwardslash.chevron.right"
+            name: "GitHub",
+            keyword: "gh",
+            url: "https://github.com/search?q={query}",
+            symbol: "chevron.left.forwardslash.chevron.right"
         ),
         Quicklink(
-            name: "YouTube", keyword: "yt",
-            url: "https://www.youtube.com/results?search_query={query}", symbol: "play.rectangle"
+            name: "YouTube",
+            keyword: "yt",
+            url: "https://www.youtube.com/results?search_query={query}",
+            symbol: "play.rectangle"
         ),
         Quicklink(
-            name: "Wikipedia", keyword: "wiki",
-            url: "https://en.wikipedia.org/wiki/Special:Search?search={query}", symbol: "book"
+            name: "Wikipedia",
+            keyword: "wiki",
+            url: "https://en.wikipedia.org/wiki/Special:Search?search={query}",
+            symbol: "book"
         ),
         Quicklink(
-            name: "Apple Maps", keyword: "maps",
-            url: "maps://?q={query}", symbol: "map"
+            name: "Apple Maps",
+            keyword: "maps",
+            url: "maps://?q={query}",
+            symbol: "map"
         ),
         Quicklink(
-            name: "Translate", keyword: "tr",
-            url: "https://translate.google.com/?text={query}", symbol: "translate"
+            name: "Translate",
+            keyword: "tr",
+            url: "https://translate.google.com/?text={query}",
+            symbol: "translate"
         ),
     ]
 
@@ -102,7 +116,9 @@ final class QuicklinkStore: ObservableObject {
     }
 
     /// Fallback links in user order.
-    var fallbacks: [Quicklink] { links.filter(\.isFallback) }
+    var fallbacks: [Quicklink] {
+        links.filter(\.isFallback)
+    }
 
     /// True when no other link (besides `ignoring`) already uses this keyword.
     func isKeywordUnique(_ keyword: String, ignoring id: UUID? = nil) -> Bool {

@@ -18,7 +18,9 @@ struct ExtensionStoreSettingsPage: View {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return store.catalog }
         return store.catalog.filter { listing in
-            if listing.name.localizedCaseInsensitiveContains(trimmed) { return true }
+            if listing.name.localizedCaseInsensitiveContains(trimmed) {
+                return true
+            }
             guard let details = store.cachedDetails(for: listing.name) else { return false }
             return details.title.localizedCaseInsensitiveContains(trimmed)
         }
@@ -258,7 +260,7 @@ private struct StoreIcon: View {
             if let url {
                 AsyncImage(url: url) { phase in
                     switch phase {
-                    case .success(let image):
+                    case let .success(image):
                         image.resizable().scaledToFit()
                     default:
                         placeholder

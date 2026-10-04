@@ -89,11 +89,10 @@ targets:
       path: Resources/Info.plist
       properties:
         CFBundleDisplayName: Floe
-        # Stacked as Thaw's About page stacks copyright lines: Floe's own line,
-        # then the Thaw lines Floe is built on, matching Thaw's About exactly.
+        # Floe's own line, then the Thaw organization's. Thaw's author is credited
+        # in the Acknowledgements sheet, under Thaw.
         NSHumanReadableCopyright: |
           Copyright © 2026 René Jiménez et al.
-          Copyright © 2026 Toni Förster et al.
           © 2026 Thaw-app
         # Every web link the app opens, so none is hard-coded in source.
         FloeLinks:

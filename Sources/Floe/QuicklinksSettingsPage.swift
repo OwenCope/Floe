@@ -42,26 +42,28 @@ struct QuicklinksSettingsPage: View {
                 }
                 Button("New Quicklink") { add() }
             })
-            ThawSection(header: { Text("Fallbacks") }, content: {
-                let fallbacks = store.fallbacks
-                ForEach(fallbacks) { link in
-                    HStack(spacing: ThawSpacing.row) {
-                        QuicklinkTile(symbol: link.symbol)
-                        Text(link.name)
-                        Spacer()
-                        Button { store.move(link, by: -1) } label: {
-                            Image(systemName: "chevron.up")
+            ThawSection(
+                header: { Text("Fallbacks") },
+                content: {
+                    let fallbacks = store.fallbacks
+                    ForEach(fallbacks) { link in
+                        HStack(spacing: ThawSpacing.row) {
+                            QuicklinkTile(symbol: link.symbol)
+                            Text(link.name)
+                            Spacer()
+                            Button { store.move(link, by: -1) } label: {
+                                Image(systemName: "chevron.up")
+                            }
+                            .disabled(fallbacks.first?.id == link.id)
+                            Button { store.move(link, by: 1) } label: {
+                                Image(systemName: "chevron.down")
+                            }
+                            .disabled(fallbacks.last?.id == link.id)
                         }
-                        .disabled(fallbacks.first?.id == link.id)
-                        Button { store.move(link, by: 1) } label: {
-                            Image(systemName: "chevron.down")
-                        }
-                        .disabled(fallbacks.last?.id == link.id)
                     }
-                }
-            }, footer: {
-                Text("Shown under your results when you search.")
-            })
+                },
+                footer: { Text("Shown under your results when you search.") }
+            )
         }
         .formStyle(.grouped)
         .navigationTitle("Quicklinks")
@@ -70,10 +72,16 @@ struct QuicklinksSettingsPage: View {
         }
         .alert("Delete this quicklink?", isPresented: Binding(
             get: { pendingDelete != nil },
-            set: { if !$0 { pendingDelete = nil } }
+            set: {
+                if !$0 {
+                    pendingDelete = nil
+                }
+            }
         )) {
             Button("Delete", role: .destructive) {
-                if let link = pendingDelete { store.remove(link) }
+                if let link = pendingDelete {
+                    store.remove(link)
+                }
                 pendingDelete = nil
             }
             Button("Cancel", role: .cancel) { pendingDelete = nil }
@@ -129,11 +137,19 @@ struct QuicklinksSettingsPage: View {
 
     private var validationError: String? {
         let keyword = draft.keyword.trimmingCharacters(in: .whitespaces)
-        if draft.name.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter a name." }
-        if keyword.isEmpty { return "Enter a keyword." }
-        if keyword.contains(where: \.isWhitespace) { return "Keywords cannot contain spaces." }
-        if !store.isKeywordUnique(keyword, ignoring: editingID) { return "That keyword is already used." }
-        guard let url = URL(string: draft.url), url.scheme != nil, !url.scheme!.isEmpty else {
+        if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
+            return "Enter a name."
+        }
+        if keyword.isEmpty {
+            return "Enter a keyword."
+        }
+        if keyword.contains(where: \.isWhitespace) {
+            return "Keywords cannot contain spaces."
+        }
+        if !store.isKeywordUnique(keyword, ignoring: editingID) {
+            return "That keyword is already used."
+        }
+        guard let url = URL(string: draft.url), let scheme = url.scheme, !scheme.isEmpty else {
             return "Enter a URL with a scheme, like https://."
         }
         return nil
@@ -176,7 +192,8 @@ private struct QuicklinkTile: View {
         RoundedRectangle(cornerRadius: 6, style: .continuous)
             .fill(LinearGradient(
                 colors: [Color.orange.mix(with: .white, by: 0.18), .orange],
-                startPoint: .top, endPoint: .bottom
+                startPoint: .top,
+                endPoint: .bottom
             ))
             .overlay {
                 Image(systemName: symbol)

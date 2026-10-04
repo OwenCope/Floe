@@ -62,7 +62,7 @@ final class OAuthBroker: NSObject {
             self,
             andSelector: #selector(handleGetURLEvent(_:_:)),
             forEventClass: AEEventClass(kInternetEventClass),
-            andEventID: AEEventID(kAEGetURL),
+            andEventID: AEEventID(kAEGetURL)
         )
     }
 

@@ -19,9 +19,15 @@ enum Calculator {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         guard trimmed.rangeOfCharacter(from: .decimalDigits) != nil else { return nil }
-        if let conversion = evaluateConversion(trimmed) { return conversion }
-        if let percentOf = evaluatePercentOf(trimmed) { return percentOf }
-        if let plusMinus = evaluatePlusMinusPercent(trimmed) { return plusMinus }
+        if let conversion = evaluateConversion(trimmed) {
+            return conversion
+        }
+        if let percentOf = evaluatePercentOf(trimmed) {
+            return percentOf
+        }
+        if let plusMinus = evaluatePlusMinusPercent(trimmed) {
+            return plusMinus
+        }
         guard looksLikeCalculation(trimmed) else { return nil }
         guard let value = parseExpression(trimmed) else { return nil }
         guard value.isFinite else { return nil }
@@ -38,12 +44,19 @@ enum Calculator {
 
     private static func looksLikeCalculation(_ query: String) -> Bool {
         let lower = query.lowercased()
-        if lower.contains("%") || lower.contains("×") || lower.contains("÷") { return true }
+        if lower.contains("%") || lower.contains("×") || lower.contains("÷") {
+            return true
+        }
         if query.contains("+") || query.contains("*") || query.contains("/") || query.contains("^")
-            || query.contains("(") || query.contains(")") { return true }
-        if query.contains("-") { return true }
+            || query.contains("(") || query.contains(")")
+        {
+            return true
+        }
+        if query.contains("-") {
+            return true
+        }
         let words = lower.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
-        let keywords: Set<String> = ["sqrt", "sin", "cos", "tan", "log", "ln", "abs", "round", "floor", "ceil", "pi", "e", "of"]
+        let keywords: Set = ["sqrt", "sin", "cos", "tan", "log", "ln", "abs", "round", "floor", "ceil", "pi", "e", "of"]
         return words.contains(where: { keywords.contains($0) })
     }
 
@@ -166,7 +179,9 @@ enum Calculator {
 
     private static func singular(_ s: String) -> String {
         var key = s.replacingOccurrences(of: "°", with: "")
-        if key.hasSuffix("s") && key.count > 2 { key = String(key.dropLast()) }
+        if key.hasSuffix("s"), key.count > 2 {
+            key = String(key.dropLast())
+        }
         return key
     }
 
@@ -253,7 +268,9 @@ enum Calculator {
             .replacingOccurrences(of: ",", with: "")
         let open = text.filter { $0 == "(" }.count
         let close = text.filter { $0 == ")" }.count
-        if open > close { text += String(repeating: ")", count: open - close) }
+        if open > close {
+            text += String(repeating: ")", count: open - close)
+        }
         var parser = ExpressionParser(text: text.lowercased())
         guard let value = parser.parse(), parser.atEnd else { return nil }
         return value
@@ -272,23 +289,29 @@ private struct ExpressionParser {
 
     private var tokens: [Token] = []
     private var index = 0
-    var atEnd: Bool { index >= tokens.count }
+    var atEnd: Bool {
+        index >= tokens.count
+    }
 
     init(text: String) {
-        var chars = Array(text)
+        let chars = Array(text)
         var i = 0
         var out: [Token] = []
         while i < chars.count {
             let c = chars[i]
-            if c == " " || c == "\t" { i += 1; continue }
+            if c == " " || c == "\t" {
+                i += 1; continue
+            }
             if c.isNumber || c == "." {
                 var j = i
                 var hasDigit = false
-                while j < chars.count && (chars[j].isNumber || chars[j] == ".") {
-                    if chars[j].isNumber { hasDigit = true }
+                while j < chars.count, chars[j].isNumber || chars[j] == "." {
+                    if chars[j].isNumber {
+                        hasDigit = true
+                    }
                     j += 1
                 }
-                if hasDigit, let value = Double(String(chars[i..<j])) {
+                if hasDigit, let value = Double(String(chars[i ..< j])) {
                     out.append(.number(value))
                     i = j
                     continue
@@ -297,8 +320,10 @@ private struct ExpressionParser {
             }
             if c.isLetter {
                 var j = i
-                while j < chars.count && chars[j].isLetter { j += 1 }
-                out.append(.name(String(chars[i..<j])))
+                while j < chars.count, chars[j].isLetter {
+                    j += 1
+                }
+                out.append(.name(String(chars[i ..< j])))
                 i = j
                 continue
             }
@@ -326,7 +351,7 @@ private struct ExpressionParser {
 
     private mutating func parseAdd() -> Double? {
         guard var lhs = parseMul() else { return nil }
-        while let token = peek(), case .op(let c) = token, (c == "+" || c == "-") {
+        while let token = peek(), case let .op(c) = token, c == "+" || c == "-" {
             index += 1
             guard let rhs = parseMul(), rhs.isFinite else { return nil }
             lhs = c == "+" ? lhs + rhs : lhs - rhs
@@ -338,20 +363,20 @@ private struct ExpressionParser {
     private mutating func parseMul() -> Double? {
         guard var lhs = parsePow() else { return nil }
         while let token = peek() {
-            if case .op(let c) = token, (c == "*" || c == "/") {
+            if case let .op(c) = token, c == "*" || c == "/" {
                 index += 1
                 guard let rhs = parsePow(), rhs.isFinite else { return nil }
                 if c == "/" {
                     guard rhs != 0 else { return nil }
-                    lhs = lhs / rhs
+                    lhs /= rhs
                 } else {
-                    lhs = lhs * rhs
+                    lhs *= rhs
                 }
                 guard lhs.isFinite else { return nil }
             } else if isFactorStart(token) {
                 // Implicit multiplication: 2(3+4), 2 pi
                 guard let rhs = parsePow(), rhs.isFinite else { return nil }
-                lhs = lhs * rhs
+                lhs *= rhs
                 guard lhs.isFinite else { return nil }
             } else {
                 break
@@ -380,17 +405,21 @@ private struct ExpressionParser {
     }
 
     private mutating func parseUnary() -> Double? {
-        if let token = peek(), case .op(let c) = token, (c == "-" || c == "+") {
+        if let token = peek(), case let .op(c) = token, c == "-" || c == "+" {
             index += 1
             guard let value = parseUnary(), value.isFinite else { return nil }
             return c == "-" ? -value : value
         }
-        if let token = peek(), case .name(let name) = token {
-            if name == "pi" { index += 1; return applyPostfix(Double.pi) }
-            if name == "e" { index += 1; return applyPostfix(M_E) }
+        if let token = peek(), case let .name(name) = token {
+            if name == "pi" {
+                index += 1; return applyPostfix(Double.pi)
+            }
+            if name == "e" {
+                index += 1; return applyPostfix(M_E)
+            }
             if isFunction(name) {
                 index += 1
-                guard var arg = parseUnary(), arg.isFinite else { return nil }
+                guard let arg = parseUnary(), arg.isFinite else { return nil }
                 guard let result = applyFunction(name, arg), result.isFinite else { return nil }
                 return applyPostfix(result)
             }
@@ -406,7 +435,7 @@ private struct ExpressionParser {
         var result = value
         while let token = peek(), token == .percent {
             index += 1
-            result = result / 100
+            result /= 100
         }
         return result
     }
@@ -414,13 +443,15 @@ private struct ExpressionParser {
     private mutating func parsePrimary() -> Double? {
         guard let token = peek() else { return nil }
         switch token {
-        case .number(let v):
+        case let .number(v):
             index += 1
             return v
         case .lparen:
             index += 1
             guard let value = parseAdd() else { return nil }
-            if peek() == .rparen { index += 1 }
+            if peek() == .rparen {
+                index += 1
+            }
             return value
         default:
             return nil

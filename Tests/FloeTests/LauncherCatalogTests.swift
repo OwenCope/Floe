@@ -45,6 +45,8 @@ private actor ControlledScanner: CatalogScanning {
     private var appGates: [Gate] = []
     private var commandGates: [Gate] = []
     nonisolated let startedScans = ScanCounter()
+    /// Command scans alone, for a test that needs to know one has reached the scanner before starting the next.
+    nonisolated let startedCommandScans = ScanCounter()
     nonisolated let receivedIncludeRaycast = RaycastRecorder()
 
     init(apps: [[AppEntry]], commands: [[ExtensionCommand]]) {
@@ -65,6 +67,7 @@ private actor ControlledScanner: CatalogScanning {
         let gate = Gate()
         commandGates.append(gate)
         startedScans.increment()
+        startedCommandScans.increment()
         await gate.wait()
         return commandResults.isEmpty ? [] : commandResults.removeFirst()
     }
@@ -269,7 +272,8 @@ struct LauncherCatalogTests {
         let scanner = ControlledScanner(apps: [], commands: [[planets], [weather]])
         let model = LauncherModel(scanner: scanner, settings: makeSettings())
         model.startCatalogLoading()
-        await waitFor("scanner.startedScans.value >= 1") { scanner.startedScans.value >= 1 }
+        // Results are handed out in the order scans reach the scanner, so the first must be there before the second starts.
+        await waitFor("the first command scan") { scanner.startedCommandScans.value >= 1 }
 
         let firstDone = Gate()
         let secondDone = Gate()
@@ -277,7 +281,7 @@ struct LauncherCatalogTests {
         Task { await model.waitForCommands(); await secondDone.open() }
 
         model.reloadCommands()
-        await waitFor("scanner.startedScans.value >= 2") { scanner.startedScans.value >= 2 }
+        await waitFor("the second command scan") { scanner.startedCommandScans.value >= 2 }
         await scanner.openCommandScan(at: 0)
         await scanner.openCommandScan(at: 1)
         await firstDone.wait()

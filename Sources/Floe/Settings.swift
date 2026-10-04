@@ -135,7 +135,7 @@ final class AppSettings: ObservableObject {
 
     /// Replaces every setting with an exported copy and saves it.
     func importJSON(_ data: Data) throws {
-        apply(try JSONDecoder().decode(Stored.self, from: data))
+        try apply(JSONDecoder().decode(Stored.self, from: data))
         save()
     }
 

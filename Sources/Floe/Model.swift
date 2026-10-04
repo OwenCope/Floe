@@ -120,7 +120,9 @@ final class LauncherModel: ObservableObject {
     }
 
     /// Every enabled command, including menu-bar commands; controllers read this and filter by mode.
-    var enabledCommands: [ExtensionCommand] { commands }
+    var enabledCommands: [ExtensionCommand] {
+        commands
+    }
 
     /// True when a command can run unattended: no missing required preferences or arguments.
     func canRunUnattended(_ command: ExtensionCommand) -> Bool {
@@ -536,7 +538,9 @@ final class LauncherModel: ObservableObject {
             return tokens.allSatisfy { haystack.contains($0) }
         }
         return matching.sorted { lhs, rhs in
-            if lhs.pinned != rhs.pinned { return lhs.pinned }
+            if lhs.pinned != rhs.pinned {
+                return lhs.pinned
+            }
             return lhs.date > rhs.date
         }
     }
@@ -574,7 +578,6 @@ final class LauncherModel: ObservableObject {
     func toggleClipboardPin(_ entry: ClipboardEntry) {
         ClipboardHistoryStore.shared.togglePin(entry)
     }
-
 
     // MARK: File search
 
@@ -856,13 +859,9 @@ final class LauncherModel: ObservableObject {
         }
         self.session = session
         session.start()
-        sourceWatcher = HotReload.watchedFolder(for: command).flatMap { folder in
-            DirectoryWatcher(directory: folder, isRelevant: HotReload.restarts) { [weak self, weak session] paths in
-                DispatchQueue.main.async {
-                    guard let self, let session else { return }
-                    self.reload(session, changed: paths)
-                }
-            }
+        sourceWatcher = HotReload.watcher(for: command) { [weak self, weak session] paths in
+            guard let self, let session else { return }
+            self.reload(session, changed: paths)
         }
     }
 
@@ -1118,7 +1117,7 @@ final class LauncherModel: ObservableObject {
                 return true
             }
             switch event.keyCode {
-            case 36, 76 where flags == .command:
+            case 36 where flags == .command, 76 where flags == .command:
                 revealSelectedFile()
             case 36, 76:
                 openSelectedFile()

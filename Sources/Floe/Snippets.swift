@@ -34,9 +34,15 @@ struct Snippet: Codable, Identifiable, Equatable {
     /// Nil when a keyword can be used, otherwise why it can't.
     static func keywordProblem(_ keyword: String, id: UUID, among snippets: [Snippet]) -> String? {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.count < 2 { return "Keywords need at least 2 characters." }
-        if trimmed.contains(where: \.isWhitespace) { return "Keywords can't contain spaces." }
-        if snippets.contains(where: { $0.id != id && $0.keyword == trimmed }) { return "Another snippet uses that keyword." }
+        if trimmed.count < 2 {
+            return "Keywords need at least 2 characters."
+        }
+        if trimmed.contains(where: \.isWhitespace) {
+            return "Keywords can't contain spaces."
+        }
+        if snippets.contains(where: { $0.id != id && $0.keyword == trimmed }) {
+            return "Another snippet uses that keyword."
+        }
         return nil
     }
 
@@ -50,8 +56,13 @@ struct Snippet: Codable, Identifiable, Equatable {
 final class SnippetStore: ObservableObject {
     static let shared = SnippetStore()
 
-    @Published var snippets: [Snippet] = [] { didSet { save() } }
-    @Published var expansionEnabled = true { didSet { save() } }
+    @Published var snippets: [Snippet] = [] {
+        didSet { save() }
+    }
+
+    @Published var expansionEnabled = true {
+        didSet { save() }
+    }
 
     private struct Saved: Codable {
         var snippets: [Snippet]

@@ -238,6 +238,7 @@ struct RootView: View {
                 }
             }
         }
+        .buttonStyle(SearchPanelButtonStyle())
         .padding(.horizontal, ThawSpacing.inset)
         .padding(.vertical, ThawSpacing.row)
     }
@@ -536,7 +537,9 @@ struct ClipboardHistoryView: View {
 
     private func rowSubtitle(for entry: ClipboardEntry) -> String {
         var parts: [String] = [Self.timeFormatter.string(from: entry.date)]
-        if let app = entry.sourceApp { parts.append(app) }
+        if let app = entry.sourceApp {
+            parts.append(app)
+        }
         if entry.kind == .link, let text = entry.text, let host = URL(string: text)?.host {
             parts.append(host)
         }
@@ -582,8 +585,12 @@ struct ClipboardHistoryView: View {
             }
         }
         var groups: [DayGroup] = []
-        if !today.isEmpty { groups.append(DayGroup(title: "Today", entries: today)) }
-        if !yesterday.isEmpty { groups.append(DayGroup(title: "Yesterday", entries: yesterday)) }
+        if !today.isEmpty {
+            groups.append(DayGroup(title: "Today", entries: today))
+        }
+        if !yesterday.isEmpty {
+            groups.append(DayGroup(title: "Yesterday", entries: yesterday))
+        }
         for day in byDay.keys.sorted(by: >) {
             groups.append(DayGroup(title: Self.dateFormatter.string(from: day), entries: byDay[day] ?? []))
         }
@@ -740,9 +747,8 @@ struct FilePreview: View {
     let file: FileResult
 
     private var values: URLResourceValues {
-        (try? file.url.resourceValues(forKeys: [.localizedTypeDescriptionKey, .fileSizeKey,
-                                               .isDirectoryKey, .contentModificationDateKey]))
-            ?? URLResourceValues()
+        let keys: Set<URLResourceKey> = [.localizedTypeDescriptionKey, .fileSizeKey, .isDirectoryKey, .contentModificationDateKey]
+        return (try? file.url.resourceValues(forKeys: keys)) ?? URLResourceValues()
     }
 
     var body: some View {
@@ -837,7 +843,8 @@ struct FileThumbnail: View {
             fileAt: url,
             size: CGSize(width: 512, height: 512),
             scale: NSScreen.main?.backingScaleFactor ?? 2,
-            representationTypes: .thumbnail)
+            representationTypes: .thumbnail
+        )
         if let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) {
             thumbnail = representation.nsImage
         }
@@ -1431,8 +1438,15 @@ struct IconView: View {
         let width = max(1, Int((CGFloat(source.width) * scale).rounded()))
         let height = max(1, Int((CGFloat(source.height) * scale).rounded()))
         let space = CGColorSpace(name: CGColorSpace.sRGB) ?? source.colorSpace ?? CGColorSpaceCreateDeviceRGB()
-        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                                      space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: space,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
         else { return image }
         context.interpolationQuality = .high
         context.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))

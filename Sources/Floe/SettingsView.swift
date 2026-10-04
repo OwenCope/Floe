@@ -31,7 +31,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
                 defer: false
             )
             window.title = "Floe Settings"
-            window.titlebarAppearsTransparent = true
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
             window.contentMinSize = Self.minimumSize
@@ -296,8 +295,8 @@ struct GeneralSettingsView: View {
         panel.allowedContentTypes = [.json]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            let archive = SettingsTransfer.Archive(
-                settings: try settings.exportedJSON(),
+            let archive = try SettingsTransfer.Archive(
+                settings: settings.exportedJSON(),
                 preferences: PreferenceStore.allStoredValues(),
                 secretKeys: PreferenceStore.secretKeys(for: model.allCommands)
             )

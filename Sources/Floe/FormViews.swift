@@ -332,7 +332,9 @@ struct AppPickerField<Title: View>: View {
                 }
                 Divider()
                 Button("Other…") {
-                    if let path = ModalGuard.chooseApp() { value = path }
+                    if let path = ModalGuard.chooseApp() {
+                        value = path
+                    }
                 }
             } label: {
                 HStack(spacing: 6) {
@@ -347,10 +349,12 @@ struct AppPickerField<Title: View>: View {
             .fixedSize()
             .accessibilityLabel("\(chosen?.name ?? "not set")")
         } label: { label }
-        .task {
-            apps = InstalledApps.list()
-            // Show a default given by bundle id or name as the app's path, so it saves the same way.
-            if let match = AppPickerValue.match(value, in: apps), match.path != value { value = match.path }
-        }
+            .task {
+                apps = InstalledApps.list()
+                // Show a default given by bundle id or name as the app's path, so it saves the same way.
+                if let match = AppPickerValue.match(value, in: apps), match.path != value {
+                    value = match.path
+                }
+            }
     }
 }

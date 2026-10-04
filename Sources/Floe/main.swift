@@ -28,8 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem?
     private var showItem: NSMenuItem?
     private var appWatcher: AppFolderWatcher?
-    private var menuBarCommands: MenuBarCommands!
-    private var backgroundScheduler: BackgroundScheduler!
+    /// Kept for the app's lifetime: dropping the token leaves the monitor running but unreachable,
+    /// which `leaks` reports.
+    private var keyMonitor: Any?
+    private var menuBarCommands: MenuBarCommands?
+    private var backgroundScheduler: BackgroundScheduler?
 
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(settings.showInDock ? .regular : .accessory)
@@ -54,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.showHUD = { ThawHUD.show(text: $0) }
         model.openSettings = { [weak self] in self?.settingsWindow.show(extensionName: $0) }
 
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, self.panel.isKeyWindow else { return event }
             return self.model.handleKey(event) ? nil : event
         }
@@ -74,6 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "q")
         item.menu = menu
         statusItem = item
+        NSApp.mainMenu = makeMainMenu()
 
         appWatcher = AppFolderWatcher { [weak self] in self?.model.reloadApps() }
         settings.$toggleHotkey.combineLatest(settings.$commandHotkeys, model.$allCommands, model.$apps)
@@ -103,15 +107,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.$allCommands
             .sink { _ in DispatchQueue.main.async { FloeShortcuts.updateAppShortcutParameters() } }
             .store(in: &cancellables)
-        menuBarCommands = MenuBarCommands(model: model)
-        backgroundScheduler = BackgroundScheduler(model: model, menuBarCommands: menuBarCommands)
+        let menuBarCommands = MenuBarCommands(model: model)
+        let backgroundScheduler = BackgroundScheduler(model: model, menuBarCommands: menuBarCommands)
+        self.menuBarCommands = menuBarCommands
+        self.backgroundScheduler = backgroundScheduler
         model.$allCommands.combineLatest(settings.$disabledExtensions)
             .sink { [weak self] _, _ in
                 // After the publishers' willSet, so enabledCommands reads the new values.
                 DispatchQueue.main.async {
                     guard let self else { return }
-                    self.menuBarCommands.sync(self.model.enabledCommands)
-                    self.backgroundScheduler.sync(self.model.enabledCommands)
+                    self.menuBarCommands?.sync(self.model.enabledCommands)
+                    self.backgroundScheduler?.sync(self.model.enabledCommands)
                 }
             }
             .store(in: &cancellables)
@@ -163,12 +169,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    @objc private func openAbout() {
+    @objc func openAbout() {
         hide()
         settingsWindow.show(page: .about)
     }
 
-    @objc private func openSettings() {
+    @objc func openSettings() {
         hide()
         settingsWindow.show()
     }

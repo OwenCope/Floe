@@ -14,7 +14,9 @@ struct FileResult: Identifiable, Equatable {
     let displayPath: String
     let contentType: String?
     let lastUsed: Date?
-    var id: String { url.path }
+    var id: String {
+        url.path
+    }
 }
 
 final class FileSearch: ObservableObject {
@@ -86,10 +88,16 @@ final class FileSearch: ObservableObject {
             }
             guard let fileURL = url else { continue }
             let path = fileURL.path
-            if path.contains("/Library/") { continue }
-            if fileURL.pathComponents.contains(where: { $0.hasPrefix(".") }) { continue }
+            if path.contains("/Library/") {
+                continue
+            }
+            if fileURL.pathComponents.contains(where: { $0.hasPrefix(".") }) {
+                continue
+            }
             // Apps already have their own scope.
-            if fileURL.lastPathComponent.hasSuffix(".app") { continue }
+            if fileURL.lastPathComponent.hasSuffix(".app") {
+                continue
+            }
             let folder = fileURL.deletingLastPathComponent().path
             let displayPath = folder.hasPrefix(home) ? "~" + folder.dropFirst(home.count) : folder
             files.append(FileResult(
@@ -106,14 +114,18 @@ final class FileSearch: ObservableObject {
     }
 
     private func stopQuery() {
-        for observer in observers { NotificationCenter.default.removeObserver(observer) }
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
         observers = []
         metadataQuery?.stop()
         metadataQuery = nil
     }
 
     deinit {
-        for observer in observers { NotificationCenter.default.removeObserver(observer) }
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
         metadataQuery?.stop()
     }
 }

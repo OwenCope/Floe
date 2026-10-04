@@ -19,7 +19,9 @@ enum SystemCommand: String, CaseIterable, Identifiable {
     case hideOtherApps
     case quitAllApps
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var title: String {
         switch self {
@@ -129,7 +131,8 @@ enum SystemCommand: String, CaseIterable, Identifiable {
                     alert.addButton(withTitle: "Open Settings")
                     alert.addButton(withTitle: "Cancel")
                     if alert.runModal() == .alertFirstButtonReturn,
-                       let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+                       let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")
+                    {
                         NSWorkspace.shared.open(url)
                     }
                 } else {
@@ -145,7 +148,8 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         let workspace = NSWorkspace.shared
         let frontmostPID = workspace.frontmostApplication?.processIdentifier
         for app in workspace.runningApplications
-            where app.activationPolicy == .regular && app.processIdentifier != frontmostPID {
+            where app.activationPolicy == .regular && app.processIdentifier != frontmostPID
+        {
             app.hide()
         }
     }
@@ -154,9 +158,15 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         let me = ProcessInfo.processInfo.processIdentifier
         let myself = Bundle.main.bundleIdentifier
         for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
-            if app.processIdentifier == me { continue }
-            if app.bundleIdentifier == "com.apple.finder" { continue }
-            if let myself, app.bundleIdentifier == myself { continue }
+            if app.processIdentifier == me {
+                continue
+            }
+            if app.bundleIdentifier == "com.apple.finder" {
+                continue
+            }
+            if let myself, app.bundleIdentifier == myself {
+                continue
+            }
             app.terminate()
         }
     }

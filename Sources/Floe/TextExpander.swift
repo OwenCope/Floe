@@ -6,8 +6,8 @@
 //  Licensed under the GNU AGPLv3
 
 import AppKit
-import Carbon
 import ApplicationServices
+import Carbon
 
 /// Expands snippet keywords typed in other apps. Watches keystrokes with a
 /// listen-only event tap, then deletes the keyword and pastes the expansion.
@@ -15,7 +15,7 @@ import ApplicationServices
     static let shared = TextExpander()
 
     /// Marks events this expander posts itself, so they are never treated as typed input.
-    private static let magicUserData: Int64 = 0x466C6F65
+    private static let magicUserData: Int64 = 0x466C_6F65
     private static let maxBufferLength = 32
     private static let deleteKeyCode: CGKeyCode = 51
 
@@ -87,7 +87,9 @@ import ApplicationServices
 
     /// Re-enables the tap after the system disables it for timeout or heavy input.
     func reenable() {
-        if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: true)
+        }
     }
 
     nonisolated func handleTap(type: CGEventType, event: CGEvent) {
@@ -98,15 +100,19 @@ import ApplicationServices
 
     private func handle(type: CGEventType, event: CGEvent) {
         guard type == .keyDown else { return }
-        if event.getIntegerValueField(.eventSourceUserData) == Self.magicUserData { return }
+        if event.getIntegerValueField(.eventSourceUserData) == Self.magicUserData {
+            return
+        }
         guard SnippetStore.shared.expansionEnabled else { return }
-        if IsSecureEventInputEnabled() { return }
+        if IsSecureEventInputEnabled() {
+            return
+        }
         if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier {
             buffer = ""
             return
         }
         // Modifier shortcuts act on the app, they are not typed text.
-        if !event.flags.intersection([.maskCommand, .maskControl, .maskAlternate]).isEmpty {
+        if !event.flags.isDisjoint(with: [.maskCommand, .maskControl, .maskAlternate]) {
             buffer = ""
             return
         }
@@ -136,7 +142,7 @@ import ApplicationServices
     }
 
     private func delete(count: Int) {
-        for _ in 0..<count {
+        for _ in 0 ..< count {
             for keyDown in [true, false] {
                 let event = CGEvent(keyboardEventSource: nil, virtualKey: Self.deleteKeyCode, keyDown: keyDown)
                 event?.setIntegerValueField(.eventSourceUserData, value: Self.magicUserData)
@@ -147,7 +153,7 @@ import ApplicationServices
 }
 
 private func tapCallback(
-    proxy: CGEventTapProxy,
+    proxy _: CGEventTapProxy,
     type: CGEventType,
     event: CGEvent,
     refcon: UnsafeMutableRawPointer?

@@ -19,6 +19,22 @@ enum HotReload {
         return command.extensionDir
     }
 
+    /// Watches the folder of an open command; nil when there is none to watch. `onSave` is handed the
+    /// saved paths on the main queue, so it may hold what only the main thread touches.
+    static func watcher(for command: ExtensionCommand, onSave: @escaping @MainActor ([String]) -> Void) -> DirectoryWatcher? {
+        watchedFolder(for: command).flatMap { folder in
+            DirectoryWatcher(
+                directory: folder,
+                isRelevant: { restarts($0) },
+                onChange: { paths in
+                    DispatchQueue.main.async {
+                        MainActor.assumeIsolated { onSave(paths) }
+                    }
+                }
+            )
+        }
+    }
+
     /// Whether a change to this path, relative to the extension's folder, shows in a restarted command.
     /// A change the watcher could not name counts.
     static func restarts(_ relativePath: String) -> Bool {
