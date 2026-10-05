@@ -9,50 +9,77 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 
 ## [Unreleased]
 
-**macOS 26 and later · No release yet: build from source**
+**macOS 26 and later · First release**
 
-### Added
+Please report issues at [github.com/thaw-app/Floe/issues](https://github.com/thaw-app/Floe/issues).
 
-- One hotkey opens a search over applications, extension commands, script commands, quicklinks and System Settings panes, ranked by how often and how recently each is used. Matched letters are drawn in a stronger weight.
-- Raycast extensions run unmodified on a Bun runtime inside the app, including the ones Raycast has already installed. Forms, preferences, arguments, toasts, confirmation dialogs, background and interval commands, and menu bar commands work. Passwords go in the Keychain.
-- An Extension Store page browses, installs and updates extensions.
-- Menu bar item search lists the menu bar's items and opens their menus from the keyboard.
-- Clipboard history, snippets with text expansion, quicklinks with fallback searches, emoji and symbols, file search, calendar events, and a calculator with unit conversion.
-- System commands (sleep, lock, empty Trash) and toggles for Wi-Fi, mute and keeping the Mac awake.
-- An Actions menu (⌘K) on applications and files: quit, force quit, show in Finder, open with, copy, move to Trash.
-- Scopes in the root search: `files invoice`, `clipboard meeting`, `menu wifi`, `tabs invoice`.
-- Optional search sources, off until turned on in Privacy: files and open browser tabs (Safari, Dia, Helium) add up to three rows to an ordinary search.
-- Preferred apps: a terminal, an editor and a notes app. Files, folders and the Finder selection open in the ones already in use, and `note` followed by text goes to Apple Notes, Antinote, or any app with a URL scheme.
-- A preferred clipboard app: Clipboard History opens the clipboard manager already in use (Raycast by name, any other app, or a link), and Floe saves no copies while one is chosen. The history Floe already has stays on disk.
-- Ask AI: `ask` and a question, or the Ask AI row under any search, shows one answer in the launcher. No history is kept.
-- AI sources: the `claude` or `codex` tool, Apple Intelligence on the Mac, or an OpenAI-compatible API (OpenAI, OpenRouter, Ollama, LM Studio). A switch keeps all AI on the Mac, and one extension can be pinned to a source of its own.
-- Thaw 3's actions in the search when Thaw is installed, and a switch that makes the launcher follow Thaw's menu bar appearance.
-- Appearance settings: Thaw 3's glass styles, a tint, a border, a shadow, and a compact layout that is only the search bar until you type.
-- A Privacy page with the permissions and their reasons, the search sources, and everything Floe contacts over the network.
-- `Floe --pick` lends the search panel to any script: it reads lines on standard input and prints the one chosen.
+Floe is a launcher for macOS that runs Raycast extensions unmodified and hands work to the apps you already use. This is the first release. It is early: the list of what is not built yet is in the [README](https://github.com/thaw-app/Floe#not-built-yet).
+
+### What's next
+
+- Sign-in (OAuth) for extensions. They use a token preference until then.
+- `launchCommand`, deeplinks, AI tools and the grid layout for extensions.
+- Currency conversion, searching your notes and searching an app's menus.
+
+---
+
+### Features
+
+#### Search
+
+- One hotkey opens a search over applications, extension commands, script commands, quicklinks and System Settings panes, ranked by how often and how recently each is used.
+- Scattered letters match, graded by word starts and runs, and the matched letters are drawn in a stronger weight.
 - Aliases and hotkeys for applications, commands and the menu bar search. Favorites stay at the top.
+- Scopes narrow a search to one place: `files invoice`, `clipboard meeting`, `menu wifi`, `tabs invoice`.
+- Optional search sources, off until turned on in Privacy: files and open browser tabs (Safari, Dia, Helium) add up to three rows to an ordinary search.
+- An Actions menu (⌘K) on applications and files: quit, force quit, show in Finder, open with, copy, move to Trash.
+- `Floe --pick` lends the search panel to any script: it reads lines on standard input and prints the one chosen.
+
+#### Extensions
+
+- Raycast extensions run unmodified on a Bun runtime inside the app, including the ones Raycast has already installed.
+- Forms, preferences, arguments, toasts, confirmation dialogs, and background and interval commands work. Passwords go in the Keychain.
+- An Extension Store page browses, installs and updates extensions.
+- Menu bar commands are added to the menu bar by hand, from the search or from Settings. None starts on its own at launch.
+- When a command throws, crashes or hangs, Floe shows the log and lets you run it again.
+
+#### Built in
+
+- Clipboard history, snippets with text expansion, quicklinks with fallback searches, emoji and symbols, file search, calendar events, and a calculator with unit conversion.
+- Menu bar item search lists the menu bar's items and opens their menus from the keyboard.
+- System commands (sleep, lock, empty Trash) and toggles for Wi-Fi, mute and keeping the Mac awake.
+- System Settings panes open from the search, with the icons System Settings shows.
+
+#### Your own apps
+
+- Preferred apps: a terminal, an editor and a notes app. Files, folders and the Finder selection open in the ones already in use, and `note` followed by text goes to Apple Notes, Antinote, or any app with a URL scheme.
+- A preferred clipboard app: with a clipboard manager chosen, Clipboard History opens it (Raycast by name, any other app, or a link), and Floe saves no copies of its own.
+
+#### AI
+
+- Ask AI: `ask` and a question, or the Ask AI row under any search, shows one answer in the launcher, with a line that says who answered and whether it stayed on the Mac. No history is kept.
+- AI sources: the `claude` or `codex` tool, Apple Intelligence on the Mac, or an OpenAI-compatible API (OpenAI, OpenRouter, Ollama, LM Studio).
+- A switch keeps all AI on the Mac, and one extension can be pinned to a source of its own. No source ever falls back to another.
+
+#### With Thaw
+
+- Thaw 3's actions are in the search when Thaw is installed: the hidden sections, swap, Zen Mode, the Thaw Bar, the layout and the application menus.
+- The launcher can follow Thaw's menu bar appearance: its tint, glass, border and shadow.
+
+#### Appearance and settings
+
+- Thaw 3's glass styles, a tint, a border and a shadow for the launcher, and a compact layout that is only the search bar until you type.
+- A Privacy page with the permissions and their reasons, the search sources, and everything Floe contacts over the network.
 - What’s New, in the About page’s menu, shows these release notes in the app.
 - Detailed logging, off by default, writes a log to `~/Library/Logs/Floe` for troubleshooting. What is typed or asked is never logged.
 
-### Changed
+### Contributors
 
-- Menu bar commands are added to the menu bar by hand, from the search or from Settings. None starts on its own at launch.
-- Browser sign-in (OAuth) for extensions is parked. Extensions use a token preference until it has been tested against real providers.
-- Settings opens in a process of its own, which ends when the window closes and gives its memory back. It has its own Dock icon while it is open.
+- Floe is built by René Jiménez (@diazdesandi).
+- Owen Cope (@OwenCope) wrote the built-in search features, the extension APIs behind them and the Extension Store ([#6](https://github.com/thaw-app/Floe/pull/6)).
+- Floe shares ThawUI and much of its design with Thaw, which René builds with Toni Förster (@stonerl), Amir Zarrinkafsh (@nightah) and the Thaw contributors.
+- Jordy Spruit, for letting Floe use code from Droppy Code.
+- @unsecretised, for the first bug report ([#3](https://github.com/thaw-app/Floe/issues/3)).
+- Everyone who starred the repository and offered to help before there was anything to download.
 
-### Fixed
-
-- The settings window's toolbar no longer lets scrolled content show through. ([#3](https://github.com/thaw-app/Floe/issues/3))
-- ⌘A, ⌘C, ⌘V, ⌘W and ⌘Q work in the search field and in Settings.
-- Return in the file search opens the file instead of revealing it in Finder.
-- The settings gear keeps its size in every bottom bar.
-- The system's password and one-time-code AutoFill no longer attaches to the search field.
-
-### Development
-
-- `Sources/Floe` and its tests are sorted into folders by area.
-- The root search is built from providers, scopes and sources that each answer a query on their own.
-- swift-subprocess, swift-algorithms, swift-async-algorithms, swift-markdown and swift-argument-parser replace hand-written code.
-- `Floe --bench-search` times the catalog scan and each keystroke; `--bench-settings` times each settings page.
-- `Floe --settings` is the settings process. The launcher starts it and the two keep in step over distributed notifications, all listed in `ProcessLink.swift`.
-- A watchdog writes a report to `~/Library/Logs/Floe` when the main thread stops answering.
+Thank you. This release would not exist without you.

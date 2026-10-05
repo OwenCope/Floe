@@ -540,7 +540,7 @@ struct ChangelogDocumentShownReleasesTests {
         let document = try ChangelogDocument.parse(String(contentsOf: file, encoding: .utf8))
         let newest = try #require(ChangelogDocument.displayReleases(in: document).first)
         #expect(newest.facts != nil)
-        #expect(newest.sections.map(\.title).contains("Added"))
+        #expect(newest.sections.map(\.title).contains("Features"))
         #expect(newest.sections.allSatisfy { !$0.themes.isEmpty })
     }
 }
