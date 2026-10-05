@@ -31,6 +31,7 @@ extension LauncherModel {
             isInMenuBar(command) ? "Remove from Menu Bar" : "Add to Menu Bar"
         case .clipboardEntry: "Paste"
         case .askAI: "Ask"
+        case .sshHost: "Connect"
         case .menuBarItem: "Click Item"
         case .browserTab(.tab): "Switch to Tab"
         default: "Open"
@@ -78,6 +79,8 @@ extension LauncherModel {
             })
         case let .file(file):
             actions += FileActions.actions(for: file.url, host: actionHost)
+        case let .sshHost(host, _):
+            actions += SSHHostActions.actions(for: host, host: actionHost)
         case let .clipboardEntry(entry):
             actions.append(ItemAction(title: "Copy", symbol: "doc.on.doc") { [weak self] in self?.clipboardHistory.copy(entry) })
         default:

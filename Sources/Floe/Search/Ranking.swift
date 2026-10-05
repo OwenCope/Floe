@@ -20,6 +20,15 @@ enum Fuzzy {
     }
 }
 
+extension RootItem {
+    var isApp: Bool {
+        if case .app = self {
+            return true
+        }
+        return false
+    }
+}
+
 /// Orders the root search. Usage and settings come in as plain values, so this stays free of stored state.
 enum Ranking {
     /// Use count weighted by recency: an item opened often but not lately fades behind one used today.

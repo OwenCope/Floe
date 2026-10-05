@@ -83,8 +83,7 @@ struct FieldSpec: Identifiable, Decodable, Sendable {
     }
 }
 
-/// An array that keeps the elements that decode and drops the rest, so one malformed entry
-/// doesn't hide the whole manifest.
+/// An array that keeps the elements that decode and drops the rest: one bad entry must not hide the manifest.
 struct Lossy<Element: Decodable>: Decodable {
     private struct Skipped: Decodable {}
 
@@ -236,6 +235,8 @@ enum RootItem: Identifiable {
     /// A question for the chosen AI source. Its id leaves the question out, so nothing stores it.
     case askAI(String)
     case webAddress(WebAddress)
+    /// A host of the SSH configuration, with the terminal it opens in.
+    case sshHost(SSHHost, terminal: ResolvedApp?)
 
     static let menuBarSearchKey = "builtin:menubar-search"
     static let emojiSearchKey = "builtin:emoji-search"
@@ -271,6 +272,7 @@ enum RootItem: Identifiable {
         case .menuBarAccess: "menubar-access"
         case .askAI: "ask-ai"
         case .webAddress: "web-address"
+        case let .sshHost(host, _): host.id
         }
     }
 
@@ -307,6 +309,7 @@ enum RootItem: Identifiable {
         case .menuBarAccess: "Floe needs Accessibility to list your menu bar items"
         case let .askAI(question): "Ask AI \u{201C}\(question)\u{201D}"
         case let .webAddress(address): "Open \(address.text)"
+        case let .sshHost(host, _): host.alias
         }
     }
 
@@ -328,6 +331,8 @@ enum RootItem: Identifiable {
             return event.subtitle
         case let .snippet(snippet):
             return snippet.firstLine
+        case let .sshHost(host, _):
+            return host.subtitle
         default:
             return nil
         }
@@ -336,7 +341,7 @@ enum RootItem: Identifiable {
     /// Key for aliases and hotkeys; commands keep their historical "extension/command" key.
     var settingsKey: String? {
         switch self {
-        case .app: id
+        case .app, .sshHost: id
         case let .command(command): command.id
         case let .script(script): script.id
         case .menuBarSearch: Self.menuBarSearchKey
@@ -374,6 +379,7 @@ enum RootItem: Identifiable {
         case .menuBarItem, .menuBarAccess: "Menu Bar"
         case .askAI: "AI"
         case .webAddress: "Web Address"
+        case .sshHost: "SSH"
         }
     }
 
@@ -387,14 +393,8 @@ enum RootItem: Identifiable {
         case let .finderSelection(role, _): role.keywords
         case .clipboardApp: AppRole.clipboard.keywords
         case let .snippet(snippet): [snippet.keyword]
+        case let .sshHost(host, _): host.keywords
         default: []
         }
-    }
-
-    var isApp: Bool {
-        if case .app = self {
-            return true
-        }
-        return false
     }
 }

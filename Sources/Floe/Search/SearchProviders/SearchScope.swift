@@ -15,6 +15,8 @@ protocol SearchScope {
     var title: String { get }
     /// What the empty list says when nothing matches.
     var emptyTitle: String { get }
+    /// The text a query hands the scope; nil when the query is not one for it.
+    func text(in context: SearchContext) -> String?
     /// The rows that are known at once.
     func results(for text: String, context: SearchContext) -> [RootItem]
     /// Rows that take time to find. Each batch replaces the rows shown; nil when `results` is all there is.
@@ -22,6 +24,10 @@ protocol SearchScope {
 }
 
 extension SearchScope {
+    func text(in context: SearchContext) -> String? {
+        context.text(after: keyword)
+    }
+
     func updates(for _: String, context _: SearchContext) -> AsyncStream<[RootItem]>? {
         nil
     }
@@ -45,15 +51,16 @@ struct ScopeMatch {
 extension RootSearch {
     /// Each model gets its own: a scope may hold the search it is running.
     static func standardScopes() -> [any SearchScope] {
-        [FileSearchScope(), ClipboardSearchScope(), MenuBarSearchScope()]
+        [FileSearchScope(), ClipboardSearchScope(), MenuBarSearchScope(), SSHSearchScope()]
     }
 
     /// The scope a query names with its keyword (see `SearchContext.text(after:)`). The first scope
     /// that answers to the word decides, whether or not there is text for it.
     static func scope(in context: SearchContext, scopes: [any SearchScope]) -> ScopeMatch? {
-        let query = context.trimmed.lowercased()
+        // The space is added back, so a scope that lists everything for its keyword alone is asked too.
+        let query = context.trimmed.lowercased() + " "
         guard let scope = scopes.first(where: { query.hasPrefix($0.keyword.lowercased() + " ") }),
-              let text = context.text(after: scope.keyword)
+              let text = scope.text(in: context)
         else { return nil }
         return ScopeMatch(scope: scope, text: text)
     }

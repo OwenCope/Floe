@@ -51,7 +51,7 @@ enum AppRole: String, CaseIterable, Identifiable {
     /// The line under the role's picker in Settings.
     var detail: String {
         switch self {
-        case .terminal: "Opens a folder from the Actions menu or from Finder."
+        case .terminal: "Opens a folder from the Actions menu or from Finder, and the SSH hosts you pick in the search."
         case .editor: "Opens a file or a folder from the Actions menu or from Finder."
         case .notes: "Type “note” and then your text in the search to send it there."
         case .clipboard: "Opens from Clipboard History in the search. With another app chosen, Floe saves no copies and keeps the history it has."

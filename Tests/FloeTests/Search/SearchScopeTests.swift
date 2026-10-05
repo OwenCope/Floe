@@ -339,9 +339,9 @@ struct SearchScopeTests {
         #expect(scans.value == 1)
     }
 
-    @Test func theStandardScopesAreFilesClipboardAndMenu() {
-        #expect(RootSearch.standardScopes().map(\.keyword) == ["files", "clipboard", "menu"])
-        #expect(RootSearch.standardScopes().map(\.title) == ["Files", "Clipboard History", "Menu Bar Items"])
+    @Test func theStandardScopesAreFilesClipboardMenuAndSSH() {
+        #expect(RootSearch.standardScopes().map(\.keyword) == ["files", "clipboard", "menu", "ssh"])
+        #expect(RootSearch.standardScopes().map(\.title) == ["Files", "Clipboard History", "Menu Bar Items", "SSH Hosts"])
     }
 
     // MARK: The new rows

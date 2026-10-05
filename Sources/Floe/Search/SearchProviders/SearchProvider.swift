@@ -26,6 +26,8 @@ struct SearchContext {
     /// Where the Clipboard History command goes: Floe's own history, or the app chosen for the role.
     var clipboardDestination = ClipboardDestination.floe
     var settingsPanes: [SystemSettingsPane] = []
+    /// The hosts of the SSH configuration; empty when there is none.
+    var sshHosts: [SSHHost] = []
     var snippets: [Snippet] = []
     var quicklinks: [Quicklink] = []
     /// The names the user gave menu bar items, by item id.

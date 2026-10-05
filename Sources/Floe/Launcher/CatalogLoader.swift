@@ -13,6 +13,7 @@ protocol CatalogScanning: Sendable {
     func scanCommands(includeRaycast: Bool) async -> [ExtensionCommand]
     func scanScripts() async -> ScriptScan
     func scanSettingsPanes() async -> [SystemSettingsPane]
+    func scanSSHHosts() async -> [SSHHost]
 }
 
 extension CatalogScanning {
@@ -21,6 +22,10 @@ extension CatalogScanning {
     }
 
     func scanSettingsPanes() async -> [SystemSettingsPane] {
+        []
+    }
+
+    func scanSSHHosts() async -> [SSHHost] {
         []
     }
 }
@@ -32,6 +37,7 @@ struct CatalogSnapshot: Sendable {
     var scripts: [ScriptCommand] = []
     var scriptFailures: [ScriptFailure] = []
     var settingsPanes: [SystemSettingsPane] = []
+    var sshHosts: [SSHHost] = []
 }
 
 /// Runs the existing synchronous scanners away from the main actor. The actor only serializes the
@@ -52,5 +58,9 @@ actor CatalogLoader: CatalogScanning {
 
     func scanSettingsPanes() async -> [SystemSettingsPane] {
         SystemSettingsPane.scan()
+    }
+
+    func scanSSHHosts() async -> [SSHHost] {
+        SSHConfig.hosts(files: .user)
     }
 }

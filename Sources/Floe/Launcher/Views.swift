@@ -334,6 +334,13 @@ struct RootIcon: View {
             SymbolTile(symbol: AskAI.symbol)
         case .webAddress:
             SymbolTile(symbol: "globe")
+        case let .sshHost(_, terminal):
+            // The terminal's icon says where the connection opens.
+            if let terminal {
+                AppIconView(path: terminal.url.path, size: 24)
+            } else {
+                SymbolTile(symbol: "terminal")
+            }
         }
     }
 }

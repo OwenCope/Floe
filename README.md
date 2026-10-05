@@ -30,7 +30,7 @@
 - **One hotkey, one search.** Applications, commands, quicklinks and System Settings panes, ranked by how often and how recently you use them. Aliases, hotkeys and favorites for the ones you use most.
 - **Raycast extensions, unmodified.** Including the ones Raycast has already installed, on a Bun runtime inside the app, with an Extension Store page to install and update them.
 - **The basics, built in.** Clipboard history, snippets, emoji, file search, calendar, a calculator with unit conversion, system commands, and the menu bar's items from the keyboard.
-- **Your own apps, not replacements for them.** Pick the terminal, editor, notes app and clipboard manager you already use, and Floe hands work to them.
+- **Your own apps, not replacements for them.** Pick the terminal, editor, notes app and clipboard manager you already use, and Floe hands work to them, down to a host from your SSH configuration, which opens in your terminal.
 - **Ask AI.** `ask` and a question shows one answer in the launcher. You choose who answers: a command line tool you are already signed in to (`claude`, `codex`, `opencode` or `pi`), Apple Intelligence on your Mac, or an OpenAI-compatible API. A switch keeps all AI on your Mac.
 - **Works with [Thaw](https://github.com/thaw-app/Thaw).** Thaw 3's actions are in the search, and the launcher can follow Thaw's menu bar appearance.
 - **Private.** No analytics, no telemetry, no account. The Privacy page in Settings lists every permission and everything Floe contacts.

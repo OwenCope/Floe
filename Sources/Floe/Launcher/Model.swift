@@ -28,6 +28,10 @@ final class LauncherModel: ObservableObject {
     @Published private(set) var allScripts: [ScriptCommand] = []
     /// System Settings' panes, found once at launch: they only change with the system.
     private var settingsPanes: [SystemSettingsPane] = []
+    /// The hosts of the SSH configuration, read again each time the panel opens.
+    private var sshHosts: [SSHHost] = []
+    /// How a host's connection is opened. Tests replace it, so they open nothing.
+    var sshConnector = SSHConnector.system
     /// Files in the Scripts folder that failed to parse, for the settings pane.
     @Published private(set) var scriptFailures: [ScriptFailure] = []
     /// True until the first apps and commands scans have both published, or a snapshot was injected.
@@ -159,6 +163,7 @@ final class LauncherModel: ObservableObject {
             allScripts = snapshot.scripts
             scriptFailures = snapshot.scriptFailures
             settingsPanes = snapshot.settingsPanes
+            sshHosts = snapshot.sshHosts
             hasLoadedApps = true
             hasLoadedCommands = true
             hasLoadedScripts = true
@@ -186,6 +191,24 @@ final class LauncherModel: ObservableObject {
     private func finishSettingsPanes(_ panes: [SystemSettingsPane]) {
         settingsPanes = panes
         // Nothing to redraw without a query: the panes are only searched for.
+        if !query.isEmpty {
+            refresh()
+        }
+    }
+
+    @discardableResult
+    func reloadSSHHosts() -> Task<Void, Never> {
+        Task { [weak self, scanner] in
+            let hosts = await scanner.scanSSHHosts()
+            await self?.finishSSHHosts(hosts)
+        }
+    }
+
+    @MainActor
+    private func finishSSHHosts(_ hosts: [SSHHost]) {
+        guard hosts != sshHosts else { return }
+        sshHosts = hosts
+        // Nothing to redraw without a query: the hosts are only searched for.
         if !query.isEmpty {
             refresh()
         }
@@ -331,6 +354,7 @@ final class LauncherModel: ObservableObject {
         context.preferredApps = preferredApps
         context.clipboardDestination = clipboardDestination
         context.settingsPanes = settingsPanes
+        context.sshHosts = sshHosts
         context.snippets = SnippetStore.shared.snippets
         context.quicklinks = QuicklinkStore.shared.links
         context.menuBarItemNames = settings.menuBarItemNames
@@ -480,6 +504,10 @@ final class LauncherModel: ObservableObject {
             if !Thaw.perform(action) {
                 showHUD("Thaw isn't installed")
             }
+        case let .sshHost(host, terminal):
+            hidePanel()
+            reset()
+            SSHConnection.connect(to: host, terminal: terminal, using: sshConnector) { [weak self] in self?.showHUD($0) }
         case let .settingsPane(pane):
             if let url = pane.url {
                 NSWorkspace.shared.open(url)
@@ -695,6 +723,7 @@ final class LauncherModel: ObservableObject {
         pendingReset?.cancel()
         pendingReset = nil
         reloadScripts()
+        reloadSSHHosts()
     }
 
     /// Runs the command that failed again, with the same arguments.

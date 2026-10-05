@@ -50,6 +50,7 @@ struct PrivacySettingsPane: View {
                         Text(source.detail)
                     }
                 }
+                row("SSH Hosts", "Floe reads the host names in your SSH configuration to find them in the search, and connects by handing the name to your terminal.")
             }
             ThawSection("Network Access") {
                 if let host = PrivacyNetwork.updateHost {

@@ -48,6 +48,7 @@
 		3363EA52A0ACF53EE624C1A2 /* SettingsSearchEntries.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F9AD2AB64B9F4E07E881FF /* SettingsSearchEntries.swift */; };
 		347892F3937807F6287BE452 /* Diagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C2101DB96C414B73B7329F /* Diagnostics.swift */; };
 		353A52B29E333F36719A0E14 /* HangWatchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4B4D2BFD7E89034E454C8A /* HangWatchdog.swift */; };
+		355DA22669B7A18AA6DA4377 /* SSHHosts.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6EFD0EAE310EE1C88BF029 /* SSHHosts.swift */; };
 		361E83BBF8F979512CD7AEF3 /* OnboardingSequencer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEDEE9B782C234A4509ADE9E /* OnboardingSequencer.swift */; };
 		3708D44C226149ED3BCE44C0 /* SettingsSearchNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96930AAEECE7733AB82EE655 /* SettingsSearchNavigation.swift */; };
 		38510714DE1C1296051ADCA4 /* PreferredApps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 534A56A698DEE1BC017447F0 /* PreferredApps.swift */; };
@@ -88,6 +89,7 @@
 		692B392B1C4097AAA7635316 /* UpdatesLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70891E9ABBE4E3EFF52220DE /* UpdatesLink.swift */; };
 		6949E79181513479011C9C02 /* PropFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DCFAEAF70527DFBFD4F4FF1 /* PropFormat.swift */; };
 		6958B0B9E6D87E2783CFD57A /* GlassSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A48EE7BCE3DB6DB75403FC86 /* GlassSupport.swift */; };
+		69AA9DBF6BCB09577B11454A /* SSHConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2609D6E7C4247E7397CA71E3 /* SSHConnection.swift */; };
 		69FA09CF14D792E717C7D569 /* Permission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44808651241F3E3186FE6311 /* Permission.swift */; };
 		6CE5AA11626589F4B28D14B8 /* FormViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D5E9CBA2030703F9BE0381 /* FormViews.swift */; };
 		6D1ED192BA73E3475E34A4F3 /* SystemToggles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B1D4654727383118E8D4C8E /* SystemToggles.swift */; };
@@ -169,6 +171,7 @@
 		C3FFE71F491A2342821B1284 /* PanelSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1DA7F52B1E57FBB729318A /* PanelSections.swift */; };
 		C4C12A00B310C94204401BBB /* PermissionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC0C0537C1703FB936504D4 /* PermissionViews.swift */; };
 		C6498EE31AE4D16010D5A257 /* HotkeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C88D79A84B3FAC5F8E4332D /* HotkeyRegistry.swift */; };
+		C7736ACC6DCFDB827967C091 /* SSHSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1799F047450A092C64765090 /* SSHSearch.swift */; };
 		C970B52A7B428A83D32F4329 /* SystemSettingsPanes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CF65BDA95BF501847A21BE /* SystemSettingsPanes.swift */; };
 		CABB2AAE0CB58A33DCC1A8A0 /* LauncherLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56AB9468971A521D2FC58DD1 /* LauncherLayout.swift */; };
 		CBE78561206450FCCE7D2DC4 /* SectionSearchProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0097F0CFA320C91859D542 /* SectionSearchProviders.swift */; };
@@ -236,6 +239,7 @@
 		15C58F7C4EE16D5BE5631A37 /* ReadingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingWindow.swift; sourceTree = "<group>"; };
 		15CFC538C631DB3824BC675A /* MenuBarPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPresenter.swift; sourceTree = "<group>"; };
 		15F463C41E01C04BDA443705 /* UpdateChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChannel.swift; sourceTree = "<group>"; };
+		1799F047450A092C64765090 /* SSHSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHSearch.swift; sourceTree = "<group>"; };
 		18AE47F6CBCD4D215A877C26 /* ChangelogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangelogView.swift; sourceTree = "<group>"; };
 		1AF1D982AAAE8FF36B96F53F /* UpdateLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLogic.swift; sourceTree = "<group>"; };
 		1BF8D4B47628BB959BFF6E65 /* QuicklinksSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuicklinksSettingsPage.swift; sourceTree = "<group>"; };
@@ -250,6 +254,7 @@
 		256E2AB529436340BCA900F5 /* LauncherAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherAppearance.swift; sourceTree = "<group>"; };
 		2586ADD4A7E5A2899FE239C7 /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
 		25F2DC8F8AD9102C51C395BF /* Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notes.swift; sourceTree = "<group>"; };
+		2609D6E7C4247E7397CA71E3 /* SSHConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHConnection.swift; sourceTree = "<group>"; };
 		26F6717C76B587E7D9893E90 /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 		26FC03A029A34D38B9446379 /* BackgroundScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundScheduler.swift; sourceTree = "<group>"; };
 		2773C6E3783917FF5AFFAC4E /* AskAISearchProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskAISearchProvider.swift; sourceTree = "<group>"; };
@@ -417,6 +422,7 @@
 		F4257EAD07B3E6055799A088 /* MarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
 		F620CB08D86E04F0386FD245 /* CatalogLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLoader.swift; sourceTree = "<group>"; };
 		F7A3F75C4D5BA5A1EF2838C8 /* AcknowledgementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcknowledgementsView.swift; sourceTree = "<group>"; };
+		FA6EFD0EAE310EE1C88BF029 /* SSHHosts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHHosts.swift; sourceTree = "<group>"; };
 		FA8B7D0D47E3C50C9CB1F9D0 /* AITool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITool.swift; sourceTree = "<group>"; };
 		FB2BEB2F9AA1BBC21A580C5B /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
 		FB366C323BC449BC6B784D8D /* PrivacySettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsPane.swift; sourceTree = "<group>"; };
@@ -552,6 +558,8 @@
 				E68175260331547C85A71EBA /* ScriptCommands.swift */,
 				2586ADD4A7E5A2899FE239C7 /* Selection.swift */,
 				62EF04609C8CF763BA977245 /* Snippets.swift */,
+				2609D6E7C4247E7397CA71E3 /* SSHConnection.swift */,
+				FA6EFD0EAE310EE1C88BF029 /* SSHHosts.swift */,
 				AA43444C49957E7742747429 /* SystemCommands.swift */,
 				70CF65BDA95BF501847A21BE /* SystemSettingsPanes.swift */,
 				0B1D4654727383118E8D4C8E /* SystemToggles.swift */,
@@ -790,6 +798,7 @@
 				D18EAB03BB404684596361CB /* SearchScope.swift */,
 				AA9F61DE53E08844E504B2A4 /* SearchSource.swift */,
 				EF0097F0CFA320C91859D542 /* SectionSearchProviders.swift */,
+				1799F047450A092C64765090 /* SSHSearch.swift */,
 				6D5F5C90069D40A3353B1435 /* TabSearchSource.swift */,
 				C79E1E2A29B7742FF154E618 /* TypedLocationSearchProvider.swift */,
 			);
@@ -1076,6 +1085,9 @@
 				7010C68F03A8AC111BA76ABA /* ReadingPage.swift in Sources */,
 				22BDA1B7F111A307F7D250EB /* ReadingWindow.swift in Sources */,
 				586B027C00406193718A4457 /* RootSearch.swift in Sources */,
+				69AA9DBF6BCB09577B11454A /* SSHConnection.swift in Sources */,
+				355DA22669B7A18AA6DA4377 /* SSHHosts.swift in Sources */,
+				C7736ACC6DCFDB827967C091 /* SSHSearch.swift in Sources */,
 				9BCA580FCA8421373D07A616 /* ScopeRows.swift in Sources */,
 				132B83E8D45E3CE01CD04852 /* ScriptCommands.swift in Sources */,
 				4902891941C787A1667EB50E /* SearchBench.swift in Sources */,

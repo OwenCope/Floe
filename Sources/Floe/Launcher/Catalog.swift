@@ -131,7 +131,8 @@ extension CatalogSnapshot {
             commands: ExtensionCommand.scan(includeRaycast: includeRaycast),
             scripts: scripts.commands,
             scriptFailures: scripts.failures,
-            settingsPanes: SystemSettingsPane.scan()
+            settingsPanes: SystemSettingsPane.scan(),
+            sshHosts: SSHConfig.hosts(files: .user)
         )
     }
 }
