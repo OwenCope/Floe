@@ -15,7 +15,7 @@ extension SearchPaneLabel {
     static let extensionStore = SearchPaneLabel(title: "Extension Store", symbol: "bag")
     static let appearance = SearchPaneLabel(title: "Appearance", symbol: "paintbrush")
     static let privacy = SearchPaneLabel(title: "Privacy", symbol: "hand.raised")
-    static let about = SearchPaneLabel(title: "About", symbol: "info.circle")
+    static let about = SearchPaneLabel(title: "About", symbol: "cube")
 }
 
 extension SearchEntry {
@@ -150,9 +150,14 @@ extension SearchIndex {
                 "version",
                 "build",
                 "commit",
+                "update",
+                "what's new",
+                "release notes",
+                "changelog",
                 "license",
                 "credits",
                 "acknowledgements",
+                "contributors",
                 "source code",
                 "github",
                 "discord",

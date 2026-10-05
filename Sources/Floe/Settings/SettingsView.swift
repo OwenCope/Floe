@@ -163,7 +163,7 @@ private struct SettingsSidebarPaneList: View {
             Row(page: .appearance, title: "Appearance", symbol: "paintbrush", icon: nil, assetsPath: ""),
             Row(page: .privacy, title: "Privacy", symbol: "hand.raised", icon: nil, assetsPath: ""),
         ] + extensions + [
-            Row(page: .about, title: "About", symbol: "info.circle", icon: nil, assetsPath: ""),
+            Row(page: .about, title: "About", symbol: "cube", icon: nil, assetsPath: ""),
         ]
     }
 

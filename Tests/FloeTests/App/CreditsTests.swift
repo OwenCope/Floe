@@ -6,6 +6,7 @@
 //  Licensed under the GNU AGPLv3
 
 @testable import Floe
+import Foundation
 import Testing
 
 /// Credits.swift is written by scripts/generate-credits.py; these catch a script change that breaks the list.
@@ -17,7 +18,7 @@ struct CreditsTests {
         }
     }
 
-    @Test func namesAreUniqueBecauseTheSheetUsesThemAsIdentifiers() {
+    @Test func namesAreUniqueBecauseThePageUsesThemAsIdentifiers() {
         #expect(Set(Credits.all.map(\.id)).count == Credits.all.count)
     }
 
@@ -31,6 +32,34 @@ struct CreditsTests {
     @Test func droppyCodeIsCreditedInTheWordsItsLicenseAsksFor() {
         let credit = Credits.all.first { $0.name == "Droppy Code" }
         #expect(credit?.detail.contains("Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app") == true)
+    }
+
+    @Test func onlyDroppyCodeIsUsedByPermission() {
+        let withPermission = Credits.all.filter { $0.detail.localizedCaseInsensitiveContains("permission") }
+        #expect(withPermission.map(\.name) == ["Droppy Code"])
+    }
+
+    @Test func thawIsCreditedWithThePagesFloeTakesFromIt() {
+        let credit = Credits.all.first { $0.name == "Thaw" }
+        #expect(credit?.detail.contains("the About and acknowledgements pages") == true)
+        #expect(credit?.detail.hasSuffix("Copyright © 2026 Toni Förster et al. GPL-3.0.") == true)
+    }
+
+    @Test func originsAreTheProjectsFloeCarriesCodeFromAndTheRestAreLibraries() {
+        #expect(Credits.origins.map(\.name) == ["Thaw", "Droppy Code"])
+        #expect(Credits.origins.count + Credits.libraries.count == Credits.all.count)
+        #expect(Credits.libraries.allSatisfy { $0.group == .library })
+    }
+
+    @Test func theContributorsAreFloesOwnWithTheirGitHubProfiles() {
+        #expect(Credits.contributors.map(\.label) == ["René Jiménez (@diazdesandi)", "Owen Cope (@OwenCope)"])
+        #expect(Credits.contributors.map(\.profile) == [URL(string: "https://github.com/diazdesandi"), URL(string: "https://github.com/OwenCope")])
+        #expect(Set(Credits.contributors.map(\.id)).count == Credits.contributors.count)
+    }
+
+    @Test func aLinkIsPrintedAsItsHostAndPath() throws {
+        let url = try #require(URL(string: "https://github.com/thaw-app/Thaw"))
+        #expect(AcknowledgementsView.displayText(for: url) == "github.com/thaw-app/Thaw")
     }
 
     @Test func theTrademarkNoteNamesRaycast() {

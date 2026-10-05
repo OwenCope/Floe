@@ -102,7 +102,7 @@ final class SettingsAppDelegate: NSObject, NSApplicationDelegate {
                 .sink { [weak self] _ in self?.endIfDue() }
                 .store(in: &cancellables)
             OnboardingWindowController.shared.onClose = { [weak self] in self?.endIfDue() }
-            ReleaseNotesWindow.onClose = { [weak self] in self?.endIfDue() }
+            ReadingWindow.onClose = { [weak self] in self?.endIfDue() }
         }
         NSAppleEventManager.shared().setEventHandler(
             self,
@@ -157,10 +157,10 @@ final class SettingsAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Ends the process once the window is closed, unless a window opened from it (the welcome,
-    /// the release notes) is still up or an install it started is still going.
+    /// the release notes, the acknowledgements) is still up or an install it started is still going.
     private func endIfDue() {
         let (otherWindowOpen, installing) = MainActor.assumeIsolated {
-            (OnboardingWindowController.shared.isOpen || ReleaseNotesWindow.isOpen, !ExtensionStore.shared.busy.isEmpty)
+            (OnboardingWindowController.shared.isOpen || ReadingWindow.isAnyOpen, !ExtensionStore.shared.busy.isEmpty)
         }
         if SettingsExit.isDue(windowOpen: window.isOpen, otherWindowOpen: otherWindowOpen, installing: installing) {
             end()

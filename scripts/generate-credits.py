@@ -6,10 +6,10 @@ Usage, from anywhere:
 
 Writes two files:
     CREDITS.md                  the list for the repository, with versions
-    Sources/Floe/App/Credits.swift  the same list for the About page's Credits sheet
+    Sources/Floe/App/Credits.swift  the same list for the acknowledgements page that About opens
 
 Adapted from Thaw's script of the same name, which builds CREDITS.md from a translators export.
-Floe has no translations yet, so this one lists what the app is built from. Versions are read
+Floe has no translations yet, so this one lists who builds the app and what it is built from. Versions are read
 from the files that pin them, so run it again after changing a dependency:
     Package.resolved      Swift packages
     runtime/package.json  the extension runtime's packages
@@ -45,18 +45,22 @@ class Dependency(NamedTuple):
     key: str = ""
     # Left out of the credits until its version can be found, for dependencies still being added.
     optional: bool = False
+    # "origin" for a project Floe carries code from, which the page credits apart from the libraries.
+    group: str = "library"
 
 
 DEPENDENCIES = [
     Dependency("Thaw", "thaw", "GPL-3.0",
-               "ThawUI, ThawConcurrency, the hotkey code, the HUD, the glass styles, the Privacy pane, the diagnostic logger, the release notes reader and the search panel design. "
-               "Copyright © 2026 Toni Förster et al"),
+               "ThawUI, ThawConcurrency, the hotkey code, the HUD, the glass styles, the Privacy pane, the About and "
+               "acknowledgements pages, the diagnostic logger, the release notes reader and the search panel design. "
+               "Copyright © 2026 Toni Förster et al", group="origin"),
     # The license asks for this exact credit line wherever Floe lists what it is built from.
     Dependency("Droppy Code", "droppyCode", "AGPL-3.0",
                "Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell "
                "environment, its process runner, the tools and the streamed API request that answer AI.ask "
                "and Ask AI, its reading of the claude tool's streamed answer, "
-               "its hang watchdog and the folder watcher behind hot reload, each modified for Floe"),
+               "its hang watchdog and the folder watcher behind hot reload, each modified for Floe and used with "
+               "his permission", group="origin"),
     Dependency("CompactSlider", "compactSlider", "MIT", "Used by ThawUI", "swift", "compactslider"),
     Dependency("Sparkle", "sparkle", "MIT", "Checks for updates and installs them", "swift", "sparkle",
                optional=True),
@@ -81,6 +85,18 @@ DEPENDENCIES = [
                "runtime", "react-reconciler"),
     Dependency("Raycast extensions", "raycastExtensions", "each extension keeps its own license",
                "The API Floe implements"),
+]
+
+
+class Contributor(NamedTuple):
+    name: str
+    # The GitHub account, without the @.
+    handle: str
+
+
+CONTRIBUTORS = [
+    Contributor("René Jiménez", "diazdesandi"),
+    Contributor("Owen Cope", "OwenCope"),
 ]
 
 TRADEMARK = "Raycast is a trademark of Raycast Technologies Inc. Floe is not affiliated with Raycast."
@@ -146,10 +162,14 @@ def render_markdown(entries: list, links: dict) -> str:
     lines = [
         "# Credits",
         "",
-        "What Floe is built from. This file is written by `scripts/generate-credits.py`;",
-        "change the script and run it again instead of editing the list.",
+        "Who builds Floe and what it is built from. This file is written by `scripts/generate-credits.py`;",
+        "change the script and run it again instead of editing the lists.",
+        "",
+        "## Contributors",
         "",
     ]
+    lines += [f"- {person.name} ([@{person.handle}](https://github.com/{person.handle}))" for person in CONTRIBUTORS]
+    lines += ["", "## Built from", ""]
     for dependency, version in entries:
         url = links.get(dependency.link)
         name = f"[{dependency.name}]({url})" if url else dependency.name
@@ -173,22 +193,54 @@ SWIFT_HEADER = """\
 
 // Written by scripts/generate-credits.py. Change the script and run it again instead of editing this file.
 
-/// One project Floe is built from, as the About page's Credits sheet lists it.
+import Foundation
+
+/// One project Floe is built from, as the acknowledgements page lists it.
 struct Credit: Identifiable {
+    /// An origin is a project Floe carries code from; a library is one it links or runs.
+    enum Group {
+        case origin, library
+    }
+
     let name: String
     let detail: String
     /// Names an entry in Info.plist's FloeLinks.
     let link: String
+    let group: Group
 
     var id: String { name }
 }
 
+/// Someone who builds Floe.
+struct Contributor: Identifiable {
+    let name: String
+    /// The GitHub account, without the @.
+    let handle: String
+
+    var id: String { handle }
+
+    var profile: URL? {
+        URL(string: "https://github.com/\(handle)")
+    }
+}
+
 enum Credits {
+    static let contributors: [Contributor] = [
+{contributors}    ]
+
     static let all: [Credit] = [
 """
 
 SWIFT_FOOTER = """\
     ]
+
+    static var origins: [Credit] {{
+        all.filter {{ $0.group == .origin }}
+    }}
+
+    static var libraries: [Credit] {{
+        all.filter {{ $0.group == .library }}
+    }}
 
     static let trademark = {trademark}
 }}
@@ -198,10 +250,15 @@ SWIFT_FOOTER = """\
 def render_swift(entries: list) -> str:
     rows = [
         f"        Credit(name: {swift_string(dependency.name)}, detail: {swift_string(detail(dependency))}, "
-        f"link: {swift_string(dependency.link)}),\n"
+        f"link: {swift_string(dependency.link)}, group: .{dependency.group}),\n"
         for dependency, _ in entries
     ]
-    return SWIFT_HEADER + "".join(rows) + SWIFT_FOOTER.format(trademark=swift_string(TRADEMARK))
+    people = [
+        f"        Contributor(name: {swift_string(person.name)}, handle: {swift_string(person.handle)}),\n"
+        for person in CONTRIBUTORS
+    ]
+    header = SWIFT_HEADER.replace("{contributors}", "".join(people))
+    return header + "".join(rows) + SWIFT_FOOTER.format(trademark=swift_string(TRADEMARK))
 
 
 def warn_about_missing_links(entries: list, links: dict) -> None:

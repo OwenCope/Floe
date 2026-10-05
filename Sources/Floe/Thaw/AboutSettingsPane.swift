@@ -7,9 +7,10 @@
 //
 //  Floe changes © 2026 René Jiménez, under the same license.
 //
-//  Ported to Floe from Thaw 3: Floe has no changelog yet, so What's New is left out, and the
-//  "more" menu keeps the destinations Floe has. Credits open Floe's own acknowledgements. The
-//  updates card shows only in a build that can update (see UpdatesManager.isAvailable).
+//  Ported to Floe from Thaw 3. What's New and Credits open in ReadingWindow, since Floe's settings
+//  are a process of their own without Thaw's window scenes. The "more" menu and the footer keep the
+//  destinations Floe has, and the updates card shows only in a build that can update (see
+//  UpdatesManager.isAvailable).
 
 import AppKit
 import SwiftUI
@@ -50,8 +51,9 @@ enum AppInfo {
     }
 }
 
-/// The About page: who Floe is and which build this is, then help actions.
-/// Project links and copyright form a quiet footer.
+/// The About page: who Floe is and which build this is, then one card for
+/// updates, then news and help actions. Project links and copyright form a
+/// quiet footer.
 struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -68,7 +70,6 @@ struct AboutSettingsPane: View {
     @State private var didCopy = false
     @State private var copyFeedbackTask: Task<Void, Never>?
     @State private var menuAnchor = MoreMenuAnchor()
-    @State private var isShowingCredits = false
 
     var body: some View {
         ScrollView {
@@ -99,9 +100,6 @@ struct AboutSettingsPane: View {
         }
         .onDisappear {
             copyFeedbackTask?.cancel()
-        }
-        .sheet(isPresented: $isShowingCredits) {
-            CreditsView()
         }
         .navigationTitle("About")
     }
@@ -176,13 +174,13 @@ struct AboutSettingsPane: View {
 
     private var actions: some View {
         HStack(spacing: 8) {
+            Button("What’s New") {
+                ReadingWindow.releaseNotes.show()
+            }
             Button("Report a Bug") {
                 if let url = AppInfo.issuesURL {
                     openURL(url)
                 }
-            }
-            Button("Extensions Folder") {
-                NSWorkspace.shared.activateFileViewerSelecting([Paths.extensions])
             }
             // A plain button that pops the menu, so it takes the same style,
             // size and corner as its neighbours; a SwiftUI Menu does not.
@@ -211,14 +209,14 @@ struct AboutSettingsPane: View {
                     footerSeparator
                 }
                 Button {
-                    isShowingCredits = true
+                    ReadingWindow.acknowledgements.show()
                 } label: {
                     Text("Credits").underline()
                 }
                 if let url = AppInfo.link("sponsor") {
                     footerSeparator
                     Link(destination: url) {
-                        Text("Sponsor").underline()
+                        Text("Support Floe").underline()
                     }
                 }
                 if let url = AppInfo.link("thaw") {
@@ -253,6 +251,9 @@ struct AboutSettingsPane: View {
             return entry
         }
         let openURL = openURL
+        menu.addItem(item(String(localized: "Extensions Folder"), "puzzlepiece.extension") {
+            NSWorkspace.shared.activateFileViewerSelecting([Paths.extensions])
+        })
         menu.addItem(item(String(localized: "Data Folder"), "folder") {
             NSWorkspace.shared.activateFileViewerSelecting([Paths.data])
         })
@@ -269,8 +270,7 @@ struct AboutSettingsPane: View {
             }
         })
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "What’s New"), "doc.text") { ReleaseNotesWindow.show() })
-        menu.addItem(item(String(localized: "Acknowledgements"), "text.book.closed") { isShowingCredits = true })
+        menu.addItem(item(String(localized: "Acknowledgements"), "text.book.closed") { ReadingWindow.acknowledgements.show() })
         guard let anchor = menuAnchor.view else { return }
         // The anchor's own coordinate system is not flipped, so minY is its
         // bottom edge and the menu opens just below the button.
@@ -305,7 +305,7 @@ struct AboutSettingsPane: View {
             }
             Divider()
             updateRow(UpdateText.lastChecked(updatesManager.lastUpdateCheckDate), isSecondary: true) {
-                Button("Check for Updates…") {
+                Button("Check Now") {
                     updatesManager.checkForUpdates()
                 }
                 .buttonStyle(.settingsGlass)
@@ -372,37 +372,6 @@ struct AboutSettingsPane: View {
             didCopy = false
             copyFeedbackTask = nil
         }
-    }
-}
-
-/// What Floe is built from. The list is Credits.all, which scripts/generate-credits.py writes
-/// from the dependencies, so this sheet and CREDITS.md stay the same.
-private struct CreditsView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: ThawSpacing.inset) {
-            Text("Acknowledgements").font(ThawType.heading)
-            ForEach(Credits.all) { credit in
-                VStack(alignment: .leading, spacing: 2) {
-                    if let url = AppInfo.link(credit.link) {
-                        Link(credit.name, destination: url)
-                    } else {
-                        Text(credit.name)
-                    }
-                    Text(credit.detail).font(.callout).foregroundStyle(ThawInk.supporting)
-                }
-            }
-            Text(Credits.trademark)
-                .font(.footnote)
-                .foregroundStyle(ThawInk.supporting)
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(24)
-        .frame(width: 420)
     }
 }
 

@@ -149,6 +149,10 @@ struct SearchIndexTests {
         #expect(SearchIndex.paneEntries.contains { $0.pane == pane })
     }
 
+    @Test func aboutHasThawsSymbolInTheSearchResults() {
+        #expect(SearchPaneLabel.about == SearchPaneLabel(title: "About", symbol: "cube"))
+    }
+
     @Test func entriesForAPaneAreOnlyThatPanes() {
         let general = SearchIndex.entries(for: .general)
         #expect(general.count == SearchIndex.generalEntries.count + 1)
@@ -233,6 +237,10 @@ struct SearchModelTests {
         ("bun", "general.runtime"),
         ("applications", "pane.applications"),
         ("about", "pane.about"),
+        ("credits", "pane.about"),
+        ("acknowledgements", "pane.about"),
+        ("release notes", "pane.about"),
+        ("changelog", "pane.about"),
         ("general", "pane.general"),
     ])
     func aSettingIsTheFirstResultForItsOwnWords(query: String, id: String) {
