@@ -40,19 +40,19 @@ final class MenuBarSearchScope: SearchScope {
         }
         let scan = scan
         let names = context.menuBarItemNames
-        return AsyncStream { [weak self] continuation in
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                let found = scan()
-                DispatchQueue.main.async { [weak self] in
-                    if let self {
-                        extras = found
-                        scannedAt = Date()
-                        continuation.yield(rows(for: text, names: names))
-                    }
-                    continuation.finish()
+        let (stream, continuation) = AsyncStream<[RootItem]>.makeStream()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let found = scan()
+            DispatchQueue.main.async { [weak self] in
+                if let self {
+                    extras = found
+                    scannedAt = Date()
+                    continuation.yield(rows(for: text, names: names))
                 }
+                continuation.finish()
             }
         }
+        return stream
     }
 
     private func rows(for text: String, names: [String: String]) -> [RootItem] {

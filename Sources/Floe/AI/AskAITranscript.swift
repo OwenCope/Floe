@@ -55,8 +55,7 @@ struct AskAITranscript: View, Equatable {
 
     @ViewBuilder
     private var pending: some View {
-        switch state {
-        case let .failed(message):
+        if case let .failed(message) = state {
             ThawEmptyState(
                 systemImage: "exclamationmark.triangle",
                 title: "No answer",
@@ -64,7 +63,7 @@ struct AskAITranscript: View, Equatable {
                 actionTitle: "Ask Again",
                 action: askAgain
             )
-        default:
+        } else {
             ThawEmptyState(
                 systemImage: AskAI.symbol,
                 title: "Waiting for the answer…",

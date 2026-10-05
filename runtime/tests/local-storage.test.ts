@@ -52,7 +52,7 @@ describe("LocalStorage", () => {
             fs.writeFileSync(`${target}.${process.pid}.tmp`, content.slice(0, content.length / 2));
             throw new Error("killed");
         };
-        await expect(async () => storage.setItem("lost", "x".repeat(4096))).toThrow("killed");
+        await expect(storage.setItem("lost", "x".repeat(4096))).rejects.toThrow("killed");
         expect(onDisk()).toEqual({ kept: "yes" });
         expect(await createLocalStorage(() => file).getItem("kept")).toBe("yes");
     });

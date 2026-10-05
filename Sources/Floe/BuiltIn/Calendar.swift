@@ -40,7 +40,7 @@ final class CalendarAgenda {
     static let shared = CalendarAgenda()
 
     /// Called on the main queue when newly loaded events could change the results.
-    var onChange: () -> Void = {}
+    var onChange: () -> Void = { /* set by the launcher's model */ }
 
     private static let triggers = String(
         localized: "calendar, today, meetings, events, agenda, next meeting",

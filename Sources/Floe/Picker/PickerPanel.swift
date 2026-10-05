@@ -63,7 +63,9 @@ final class PickSession: ObservableObject {
     @Published private(set) var results: [PickItem]
     @Published var selection = 0
     /// Ends the process: the chosen item, or nil when the picker is dismissed.
-    var finish: (PickItem?) -> Void = { _ in }
+    var finish: (PickItem?) -> Void = { _ in
+        // Set by `PickerMode.run` before the panel is shown.
+    }
 
     init(items: [PickItem], prompt: String, query: String) {
         self.items = items

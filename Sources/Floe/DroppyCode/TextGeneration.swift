@@ -115,7 +115,9 @@ nonisolated enum TextGeneration {
     static func run(_ prompt: String, engine: Engine, environment: [String: String] = LoginEnvironment.current) async throws -> String {
         switch engine {
         case .opencode, .pi:
-            return try await run(prompt, engine: engine, environment: environment) { _ in /* only the whole answer is wanted */ }
+            return try await run(prompt, engine: engine, environment: environment) { _ in
+                // Only the whole answer is wanted.
+            }
         case .claude, .codex:
             break
         }

@@ -31,8 +31,10 @@ final class SettingsProcess {
     var lastPage: String?
     /// Called on the main thread when the process has ended, however it ended.
     var onExit: () -> Void = { /* set by the link */ }
-    /// Asks the running process to come forward. Set by the link, which owns the messages.
-    var bringForward: (String) -> Void = { _ in }
+    /// Asks the running process to come forward.
+    var bringForward: (String) -> Void = { _ in
+        // Set by the link, which owns the messages.
+    }
 
     /// The running settings process, which is the only sender the launcher listens to.
     var pid: Int32? {

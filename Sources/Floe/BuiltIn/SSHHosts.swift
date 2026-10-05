@@ -206,15 +206,18 @@ nonisolated enum SSHConfig {
         }
         let found = path.split(separator: "/").map(String.init).reduce([""]) { folders, name in
             guard name.contains("*") || name.contains("?") else { return folders.map { $0 + "/" + name } }
-            return folders.flatMap { folder in
-                files.list(folder.isEmpty ? "/" : folder)
-                    // As in a shell, a wildcard does not find hidden files.
-                    .filter { matches(name, $0) && (!$0.hasPrefix(".") || name.hasPrefix(".")) }
-                    .sorted()
-                    .map { folder + "/" + $0 }
-            }
+            return folders.flatMap { paths(in: $0, named: name, files: files) }
         }
         // One spelling per file, so a file that includes itself by another path is still seen as a cycle.
         return found.map { URL(fileURLWithPath: $0, isDirectory: false).standardized.path }
+    }
+
+    /// The paths in a folder whose name matches one with "*" or "?", in order.
+    private static func paths(in folder: String, named name: String, files: SSHConfigFiles) -> [String] {
+        files.list(folder.isEmpty ? "/" : folder)
+            // As in a shell, a wildcard does not find hidden files.
+            .filter { matches(name, $0) && (!$0.hasPrefix(".") || name.hasPrefix(".")) }
+            .sorted()
+            .map { folder + "/" + $0 }
     }
 }

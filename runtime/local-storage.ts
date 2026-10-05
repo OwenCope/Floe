@@ -2,7 +2,6 @@
 import fs from "node:fs";
 
 type Items = Record<string, any>;
-const done: Promise<void> = Promise.resolve();
 
 /// The file operations, replaceable so a test can count them or make one fail.
 export const storagePersistence = {
@@ -37,7 +36,7 @@ export function createLocalStorage(file: () => string) {
     function load(): Items {
         const path = file();
         const stamp = storagePersistence.stamp(path);
-        if (known && known.file === path && known.stamp === stamp) return known.items;
+        if (known?.file === path && known.stamp === stamp) return known.items;
         let items: Items = {};
         if (stamp !== undefined) {
             try {
@@ -67,25 +66,23 @@ export function createLocalStorage(file: () => string) {
         getItem<T = string>(key: string): Promise<T | undefined> {
             return Promise.resolve(load()[key] as T | undefined);
         },
-        setItem(key: string, value: unknown): Promise<void> {
+        // The writers are async so a failed write rejects; thrown from a plain function it would get past a caller's catch().
+        async setItem(key: string, value: unknown): Promise<void> {
             save({ ...load(), [key]: value });
-            return done;
         },
-        removeItem(key: string): Promise<void> {
+        async removeItem(key: string): Promise<void> {
             const items = load();
-            if (!(key in items)) return done;
+            if (!(key in items)) return;
             const rest = { ...items };
             delete rest[key];
             save(rest);
-            return done;
         },
         allItems<T = Items>(): Promise<T> {
             // A copy: what the caller does to it must not reach the next read.
             return Promise.resolve({ ...load() } as T);
         },
-        clear(): Promise<void> {
+        async clear(): Promise<void> {
             save({});
-            return done;
         },
     };
 }

@@ -128,12 +128,13 @@ final class AskAIModel: ObservableObject {
         }
         // Only the turns go along: the prompt, the messages or the transcript is made off the main actor, with the request.
         let conversation = AIConversation(earlier: fitted.kept, question: question)
+        let emit: @Sendable (String) async -> Void = { [weak self] text in
+            await MainActor.run { [weak self] in self?.receive(text, generation: started) }
+        }
         let task = Task { @MainActor [weak self] in
             let result: Result<String, Error>
             do {
-                result = try await .success(request(conversation) { [weak self] text in
-                    await MainActor.run { [weak self] in self?.receive(text, generation: started) }
-                })
+                result = try await .success(request(conversation, emit))
             } catch {
                 result = .failure(error)
             }

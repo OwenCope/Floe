@@ -171,8 +171,10 @@ final class ProcessLink: NSObject {
     let role: Role
     private let gate: LinkGate
     private let transport: Transport
-    /// Set by the owner before `start()`.
-    var handler: (LinkMessage) -> Void = { _ in }
+    /// What a received message is handed to.
+    var handler: (LinkMessage) -> Void = { _ in
+        // Set by the owner before `start()`.
+    }
 
     init(role: Role, gate: LinkGate, transport: Transport = .distributed) {
         self.role = role

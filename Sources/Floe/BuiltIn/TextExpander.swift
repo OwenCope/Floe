@@ -160,12 +160,10 @@ private nonisolated func tapCallback(
     event: CGEvent,
     refcon: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
-    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-        if let refcon {
-            let expander = Unmanaged<TextExpander>.fromOpaque(refcon).takeUnretainedValue()
-            // Safe: the tap's source is on the main run loop.
-            MainActor.assumeIsolated { expander.reenable() }
-        }
+    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput, let refcon {
+        let expander = Unmanaged<TextExpander>.fromOpaque(refcon).takeUnretainedValue()
+        // Safe: the tap's source is on the main run loop.
+        MainActor.assumeIsolated { expander.reenable() }
     }
     if let refcon, type == .keyDown {
         Unmanaged<TextExpander>.fromOpaque(refcon).takeUnretainedValue().handleTap(type: type, event: event)

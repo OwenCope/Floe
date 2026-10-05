@@ -208,13 +208,10 @@ nonisolated enum ScriptRunner {
             } else if let open = quote, character == open {
                 quote = nil
                 inWord = true
-            } else if quote != nil {
-                current.append(character)
-                inWord = true
-            } else if character == "\"" || character == "'" {
+            } else if quote == nil, character == "\"" || character == "'" {
                 quote = character
                 inWord = true
-            } else if character.isWhitespace {
+            } else if quote == nil, character.isWhitespace {
                 if inWord {
                     result.append(current)
                     current = ""

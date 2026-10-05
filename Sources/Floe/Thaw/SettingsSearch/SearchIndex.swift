@@ -40,6 +40,14 @@ struct SearchPaneLabel: Equatable {
     }
 }
 
+// MARK: - SearchPane
+
+/// A pane an entry can sit on, with the label its group of results is shown under.
+struct SearchPane {
+    let page: SettingsPage
+    let label: SearchPaneLabel
+}
+
 // MARK: - SearchEntry
 
 /// One searchable row in the settings search index.
@@ -61,8 +69,7 @@ struct SearchEntry: Identifiable {
         id: String,
         title: String,
         descriptionText: String? = nil,
-        pane: SettingsPage,
-        paneLabel: SearchPaneLabel,
+        pane: SearchPane,
         section: String? = nil,
         keywords: [String] = [],
         anchor: String? = nil
@@ -70,8 +77,8 @@ struct SearchEntry: Identifiable {
         self.id = id
         self.title = title
         self.descriptionText = descriptionText
-        self.pane = pane
-        self.paneLabel = paneLabel
+        self.pane = pane.page
+        self.paneLabel = pane.label
         self.section = section
         self.keywords = keywords
         self.anchor = anchor

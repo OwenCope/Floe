@@ -13,8 +13,12 @@ enum AutoFillOptOut {
     /// AppKit offers no switch, so the controller's entry points are made to do nothing. A missing class or method is skipped.
     static func install() {
         guard let controller = NSClassFromString("NSAutoFillHeuristicController") else { return }
-        let nothing: @convention(block) (AnyObject) -> Void = { _ in }
-        let nothingWithArgument: @convention(block) (AnyObject, AnyObject?) -> Void = { _, _ in }
+        let nothing: @convention(block) (AnyObject) -> Void = { _ in
+            // Stands in for the controller's method, so AutoFill is never offered.
+        }
+        let nothingWithArgument: @convention(block) (AnyObject, AnyObject?) -> Void = { _, _ in
+            // The same, for the entry points that take an argument.
+        }
         let entryPoints: [(String, Any)] = [
             ("_showOrHideAutoFillForCurrentTextInputContextIfAppropriate", nothing),
             ("showOrHideAutoFillForCurrentTextInputContextIfAppropriate", nothing),

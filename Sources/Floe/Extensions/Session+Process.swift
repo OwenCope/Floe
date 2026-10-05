@@ -18,15 +18,7 @@ extension ExtensionSession {
             return
         }
         let argumentsJSON = (try? JSONSerialization.data(withJSONObject: arguments)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        // The login shell's environment, not the app's own: launched from Finder, the app has a PATH
-        // without brew, git or node, and extensions run those.
-        let variables = Self.hostVariables(
-            LoginEnvironment.current,
-            preferences: try? JSONSerialization.data(withJSONObject: PreferenceStore.resolvedValues(for: command)),
-            hasAI: AIAnswer.isAvailable(for: command.extensionName),
-            launchType: launchType
-        )
-        let environment = Environment.custom(Dictionary(uniqueKeysWithValues: variables.map { (Environment.Key(stringLiteral: $0.key), $0.value) }))
+        let environment = hostEnvironment()
         // Cancelling the task sends SIGTERM, then SIGKILL: a host stuck in synchronous code ignores SIGTERM.
         var options = PlatformOptions()
         options.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(1))]
@@ -41,6 +33,18 @@ extension ExtensionSession {
         let hostArguments = Arguments(["--smol", Paths.host.path, command.extensionDir.path, command.name, argumentsJSON])
         // One decoder per host: it owns the partial bytes between chunks and keeps decoding off the main actor.
         let decoder = HostMessageDecoder()
+        let started: @Sendable (pid_t) async -> Void = { [weak self] identifier in
+            await MainActor.run { [weak self] in self?.hostStarted(identifier) }
+        }
+        let deliver: @Sendable (DecodedHostMessage) async -> Void = { [weak self] message in
+            await MainActor.run { [weak self] in self?.apply(message) }
+        }
+        let output: @Sendable (Data) async -> Void = { data in
+            await decoder.deliver(data, applying: deliver)
+        }
+        let errors: @Sendable (Data) async -> Void = { [weak self] data in
+            await MainActor.run { [weak self] in self?.appendLog(data) }
+        }
         hostTask = Task { @concurrent [weak self] in
             do {
                 let result = try await Subprocess.run(
@@ -52,17 +56,8 @@ extension ExtensionSession {
                     output: .sequence,
                     error: .sequence
                 ) { execution in
-                    await MainActor.run { [weak self] in self?.hostStarted(execution.processIdentifier.value) }
-                    try await Self.relay(
-                        execution,
-                        outgoing: outgoing,
-                        output: { [weak self] data in
-                            await decoder.deliver(data) { [weak self] message in
-                                await MainActor.run { [weak self] in self?.apply(message) }
-                            }
-                        },
-                        errors: { [weak self] data in await MainActor.run { [weak self] in self?.appendLog(data) } }
-                    )
+                    await started(execution.processIdentifier.value)
+                    try await Self.relay(execution, outgoing: outgoing, output: output, errors: errors)
                     // The host closed its output, so nothing more will be read from its input.
                     messages.finish()
                 }
@@ -72,6 +67,18 @@ extension ExtensionSession {
                 await MainActor.run { [weak self] in self?.hostFailed(error) }
             }
         }
+    }
+
+    /// The login shell's environment, not the app's own: launched from Finder, the app has a PATH
+    /// without brew, git or node, and extensions run those.
+    private func hostEnvironment() -> Environment {
+        let variables = Self.hostVariables(
+            LoginEnvironment.current,
+            preferences: try? JSONSerialization.data(withJSONObject: PreferenceStore.resolvedValues(for: command)),
+            hasAI: AIAnswer.isAvailable(for: command.extensionName),
+            launchType: launchType
+        )
+        return Environment.custom(Dictionary(uniqueKeysWithValues: variables.map { (Environment.Key(stringLiteral: $0.key), $0.value) }))
     }
 
     /// Feeds the host's stdin and hands on what it prints, until it closes its output.

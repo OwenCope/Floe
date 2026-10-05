@@ -20,10 +20,10 @@ xcodebuild -project Floe.xcodeproj -scheme Floe -configuration Debug -derivedDat
 args=()
 while IFS= read -r source; do
     data="$OBJECTS/$(basename "$source" .swift).stringsdata"
-    if [ -f "$data" ]; then args+=(--stringsdata "$data"); fi
+    if [[ -f "$data" ]]; then args+=(--stringsdata "$data"); fi
 done < <(find Sources/Floe -name '*.swift' | sort)
 
-if [ "${1:-}" = "--check" ]; then
+if [[ "${1:-}" == "--check" ]]; then
     copy=$(mktemp -d)/Localizable.xcstrings
     cp "$CATALOG" "$copy"
     xcrun xcstringstool sync "$copy" "${args[@]}"

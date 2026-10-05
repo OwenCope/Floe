@@ -314,7 +314,7 @@ describe("coalesced writes", () => {
         expect(timers.length, "one write is scheduled for the whole burst").toBe(1);
 
         runTimers();
-        expect(written.length).toBe(1);
+        expect(written).toHaveLength(1);
         expect(path.basename(written[0].file)).toBe("cache-burst.json");
         expect(JSON.parse(written[0].content)).toEqual({ version: 1, entries: [["a", "3"], ["c", "4"]] });
         expect(new Cache({ namespace: "burst" }).get("c")).toBe("4");
@@ -326,7 +326,7 @@ describe("coalesced writes", () => {
         runTimers();
         const finalBytes = fs.statSync(path.join(support.supportPath, "cache-amplification.json")).size;
         expect(finalBytes).toBeGreaterThan(100 * 32 * 1024);
-        expect(written.length).toBe(1);
+        expect(written).toHaveLength(1);
         expect(writtenBytes(), "writing per insert cost fifty times the final snapshot").toBe(finalBytes);
     });
 
@@ -337,7 +337,7 @@ describe("coalesced writes", () => {
             runTimers();
         }
         const finalBytes = fs.statSync(path.join(support.supportPath, "cache-ticks.json")).size;
-        expect(written.length).toBe(4);
+        expect(written).toHaveLength(4);
         expect(writtenBytes()).toBeLessThan(3 * finalBytes);
     });
 
@@ -345,10 +345,10 @@ describe("coalesced writes", () => {
         const cache = new Cache({ namespace: "shutdown" });
         cache.set("k", "v");
         flushCaches();
-        expect(written.length).toBe(1);
+        expect(written).toHaveLength(1);
         expect(JSON.parse(fs.readFileSync(path.join(support.supportPath, "cache-shutdown.json"), "utf8")).entries).toEqual([["k", "v"]]);
 
-        expect(timers.length).toBe(0);
+        expect(timers).toHaveLength(0);
         flushCaches();
         expect(written.length, "an unchanged cache is not written again").toBe(1);
     });
@@ -357,10 +357,10 @@ describe("coalesced writes", () => {
         const cache = new Cache({ namespace: "again" });
         cache.set("k", "1");
         runTimers();
-        expect(timers.length).toBe(0);
+        expect(timers).toHaveLength(0);
 
         cache.set("k", "2");
-        expect(timers.length).toBe(1);
+        expect(timers).toHaveLength(1);
         runTimers();
         expect(written.map((write) => JSON.parse(write.content).entries)).toEqual([[["k", "1"]], [["k", "2"]]]);
     });
@@ -435,7 +435,7 @@ describe("coalesced writes", () => {
         const cache = new Cache({ namespace: "old-format" });
         expect(cache.get("alpha")).toBe("1");
         expect(cache.get("beta")).toBe("2");
-        expect(timers.length).toBe(0);
+        expect(timers).toHaveLength(0);
 
         cache.set("gamma", "3");
         runTimers();
@@ -447,7 +447,7 @@ describe("coalesced writes", () => {
         const first = new Cache({ namespace: "shared" });
         first.set("k", "v");
         expect(new Cache({ namespace: "shared" }).get("k")).toBe("v");
-        expect(written.length).toBe(1);
+        expect(written).toHaveLength(1);
     });
 
     test("a failed write is logged, never thrown, and the next mutation tries again", () => {

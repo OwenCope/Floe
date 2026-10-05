@@ -147,7 +147,9 @@ final class SettingsAppDelegate: NSObject, NSApplicationDelegate {
         launcherWatch = watch
         // SIGTERM is how the launcher ends it: taken here so an edit made a moment ago is still saved.
         // An empty handler and not SIG_IGN, which the tools the Extension Store runs would inherit.
-        signal(SIGTERM) { _ in /* the source below acts on it */ }
+        signal(SIGTERM) { _ in
+            // The signal source below acts on it.
+        }
         let termination = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
         termination.setEventHandler { [weak self] in self?.end() }
         termination.resume()

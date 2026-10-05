@@ -108,7 +108,7 @@ private struct SnippetEditor: View {
         .frame(width: 460, height: 440)
         .alert("Delete \u{201C}\(snippet.name)\u{201D}?", isPresented: $confirmingDelete) {
             Button("Delete", role: .destructive, action: onDelete)
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) { /* the alert closes itself */ }
         }
     }
 }

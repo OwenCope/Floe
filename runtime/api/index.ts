@@ -238,7 +238,7 @@ const liveToasts = new Map<number, Toast>();
 export class Toast {
   static readonly Style = { Success: "success", Failure: "failure", Animated: "animated" } as const;
   private readonly id = nextToastId++;
-  private options: Props;
+  private readonly options: Props;
   constructor(options: Props) {
     this.options = { ...options };
     liveToasts.set(this.id, this);
@@ -345,7 +345,7 @@ function clipboardParams(content: ClipboardContent): { text?: string; html?: str
   if (typeof content === "object" && content !== null) {
     return { text: content.text, html: content.html, file: content.file };
   }
-  return { text: String(content) };
+  return { text: typeof content === "string" ? content : String(content) };
 }
 
 export const Clipboard = {

@@ -24,7 +24,15 @@ enum UpdateRequest: Equatable {
         case let .setChecks(isOn): "checks:\(isOn ? 1 : 0)"
         case let .setDownloads(isOn): "downloads:\(isOn ? 1 : 0)"
         case let .setChannel(channel): "channel:\(channel.rawValue)"
-        case let .consent(choice): "consent:\(choice.downloads ? 2 : choice.checks ? 1 : 0)"
+        case let .consent(choice): "consent:\(Self.consentValue(choice))"
+        }
+    }
+
+    private static func consentValue(_ choice: AutomaticUpdates) -> Int {
+        switch choice {
+        case .off: 0
+        case .check: 1
+        case .download: 2
         }
     }
 

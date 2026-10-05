@@ -88,7 +88,13 @@ enum AutomaticUpdates: Hashable, CaseIterable {
     case off, check, download
 
     init(checks: Bool, downloads: Bool) {
-        self = !checks ? .off : downloads ? .download : .check
+        if !checks {
+            self = .off
+        } else if downloads {
+            self = .download
+        } else {
+            self = .check
+        }
     }
 
     var checks: Bool {

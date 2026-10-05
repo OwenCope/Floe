@@ -49,6 +49,8 @@ class Dependency(NamedTuple):
     group: str = "library"
 
 
+APACHE_2 = "Apache-2.0"
+
 DEPENDENCIES = [
     Dependency("Thaw", "thaw", "GPL-3.0",
                "ThawUI, ThawConcurrency, the hotkey code, the HUD, the glass styles, the Privacy pane, the About and "
@@ -65,20 +67,20 @@ DEPENDENCIES = [
     Dependency("CompactSlider", "compactSlider", "MIT", "Used by ThawUI", "swift", "compactslider"),
     Dependency("Sparkle", "sparkle", "MIT", "Checks for updates and installs them", "swift", "sparkle",
                optional=True),
-    Dependency("swift-subprocess", "swiftSubprocess", "Apache-2.0", "Starts and stops the process an extension runs in",
+    Dependency("swift-subprocess", "swiftSubprocess", APACHE_2, "Starts and stops the process an extension runs in",
                "swift", "swift-subprocess"),
-    Dependency("swift-system", "swiftSystem", "Apache-2.0", "Used by swift-subprocess", "swift", "swift-system"),
-    Dependency("swift-markdown", "swiftMarkdown", "Apache-2.0", "Reads the Markdown in detail views",
+    Dependency("swift-system", "swiftSystem", APACHE_2, "Used by swift-subprocess", "swift", "swift-system"),
+    Dependency("swift-markdown", "swiftMarkdown", APACHE_2, "Reads the Markdown in detail views",
                "swift", "swift-markdown"),
     Dependency("swift-cmark", "swiftCmark", "BSD-2-Clause", "Used by swift-markdown", "swift", "swift-cmark"),
-    Dependency("swift-argument-parser", "swiftArgumentParser", "Apache-2.0", "Reads the command line options",
+    Dependency("swift-argument-parser", "swiftArgumentParser", APACHE_2, "Reads the command line options",
                "swift", "swift-argument-parser"),
-    Dependency("swift-algorithms", "swiftAlgorithms", "Apache-2.0", "Picks the best matches and drops repeats in lists",
+    Dependency("swift-algorithms", "swiftAlgorithms", APACHE_2, "Picks the best matches and drops repeats in lists",
                "swift", "swift-algorithms"),
-    Dependency("swift-numerics", "swiftNumerics", "Apache-2.0", "Used by swift-algorithms", "swift", "swift-numerics"),
-    Dependency("swift-async-algorithms", "swiftAsyncAlgorithms", "Apache-2.0",
+    Dependency("swift-numerics", "swiftNumerics", APACHE_2, "Used by swift-algorithms", "swift", "swift-numerics"),
+    Dependency("swift-async-algorithms", "swiftAsyncAlgorithms", APACHE_2,
                "Waits for typing and folder changes to settle", "swift", "swift-async-algorithms"),
-    Dependency("swift-collections", "swiftCollections", "Apache-2.0", "Used by swift-async-algorithms",
+    Dependency("swift-collections", "swiftCollections", APACHE_2, "Used by swift-async-algorithms",
                "swift", "swift-collections"),
     Dependency("Bun", "bun", "MIT", "Runs extensions"),
     Dependency("React", "react", "MIT", "Renders extensions", "runtime", "react"),

@@ -43,7 +43,7 @@ final class ExtensionStore: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: String?
     @Published private(set) var busy: Set<String> = []
-    var onInstalled: () -> Void = {}
+    var onInstalled: () -> Void = { /* set by the settings process */ }
 
     private var detailsCache: [String: StoreDetails] = [:]
     private var latestShaCache: [String: String] = [:]

@@ -46,8 +46,8 @@ function randomString(length: number): string {
 
 function base64url(bytes: Uint8Array): string {
   let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  for (const byte of bytes) binary += String.fromCodePoint(byte);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
 async function s256Challenge(verifier: string): Promise<string> {
@@ -149,11 +149,10 @@ function toPlainTokens(input: TokenSet | TokenSetInit | RawTokenResponse): Recor
     };
   }
   const record = input as Record<string, unknown>;
-  const updatedAt = record.updatedAt instanceof Date
-    ? record.updatedAt.toISOString()
-    : typeof record.updatedAt === "string"
-      ? record.updatedAt
-      : new Date().toISOString();
+  let updatedAt: string;
+  if (record.updatedAt instanceof Date) updatedAt = record.updatedAt.toISOString();
+  else if (typeof record.updatedAt === "string") updatedAt = record.updatedAt;
+  else updatedAt = new Date().toISOString();
   if (typeof record.access_token === "string") {
     return {
       accessToken: record.access_token,
@@ -183,7 +182,7 @@ export type PKCEClientOptions = {
 };
 
 export class PKCEClient {
-  private options: Partial<PKCEClientOptions>;
+  private readonly options: Partial<PKCEClientOptions>;
 
   constructor(options?: Partial<PKCEClientOptions>) {
     this.options = options ?? {};

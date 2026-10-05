@@ -34,10 +34,11 @@ fi
 [[ -n "${tag:-}" ]] || { echo "no tag selected" >&2; exit 1; }
 
 ask() { # ask <prompt> <default-y|default-n>
+    local prompt="$1" default="$2"
     local reply suffix="[y/N]"
-    [[ "$2" == y ]] && suffix="[Y/n]"
-    read -r -p "$1 $suffix " reply
-    reply="${reply:-$2}"
+    [[ "$default" == y ]] && suffix="[Y/n]"
+    read -r -p "$prompt $suffix " reply
+    reply="${reply:-$default}"
     [[ "$reply" =~ ^[Yy] ]]
 }
 

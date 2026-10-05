@@ -18,6 +18,17 @@ extension SearchPaneLabel {
     static let about = SearchPaneLabel(title: String(localized: "About", bundle: .floe, comment: "The name of a settings page."), symbol: "cube")
 }
 
+extension SearchPane {
+    static let general = SearchPane(page: .general, label: .general)
+    static let applications = SearchPane(page: .applications, label: .applications)
+    static let quicklinks = SearchPane(page: .quicklinks, label: .quicklinks)
+    static let snippets = SearchPane(page: .snippets, label: .snippets)
+    static let extensionStore = SearchPane(page: .extensionStore, label: .extensionStore)
+    static let appearance = SearchPane(page: .appearance, label: .appearance)
+    static let privacy = SearchPane(page: .privacy, label: .privacy)
+    static let about = SearchPane(page: .about, label: .about)
+}
+
 extension String {
     /// The search terms in one translated list. A translator writes as many as the language needs, with commas between them.
     nonisolated var searchTerms: [String] {
@@ -39,7 +50,6 @@ extension SearchEntry {
             title: title,
             descriptionText: description,
             pane: .appearance,
-            paneLabel: .appearance,
             section: section,
             keywords: keywords
         )
@@ -58,7 +68,6 @@ extension SearchEntry {
             title: title,
             descriptionText: description,
             pane: .quicklinks,
-            paneLabel: .quicklinks,
             section: section,
             keywords: keywords
         )
@@ -77,7 +86,6 @@ extension SearchEntry {
             title: title,
             descriptionText: description,
             pane: .general,
-            paneLabel: .general,
             section: section,
             keywords: keywords
         )
@@ -99,7 +107,6 @@ extension SearchIndex {
             title: String(localized: "Appearance", bundle: .floe, comment: "The name of a settings page."),
             descriptionText: String(localized: "Tint, border and shadow for the launcher panel.", bundle: .floe),
             pane: .appearance,
-            paneLabel: .appearance,
             keywords: String(
                 localized: "appearance, glass, tint, colour, color, gradient, border, shadow, theme, style",
                 bundle: .floe,
@@ -111,7 +118,6 @@ extension SearchIndex {
             title: String(localized: "Privacy", bundle: .floe, comment: "The name of a settings page."),
             descriptionText: String(localized: "Permissions and what Floe contacts.", bundle: .floe),
             pane: .privacy,
-            paneLabel: .privacy,
             keywords: String(
                 localized: "privacy, permissions, network, analytics, tracking, data",
                 bundle: .floe,
@@ -122,7 +128,6 @@ extension SearchIndex {
             id: "pane.general",
             title: String(localized: "General", bundle: .floe, comment: "The name of a settings page."),
             pane: .general,
-            paneLabel: .general,
             keywords: String(
                 localized: "settings, preferences, options",
                 bundle: .floe,
@@ -134,7 +139,6 @@ extension SearchIndex {
             title: String(localized: "Applications", bundle: .floe, comment: "The name of a settings page."),
             descriptionText: String(localized: "Aliases and hotkeys for apps.", bundle: .floe),
             pane: .applications,
-            paneLabel: .applications,
             keywords: String(
                 localized: "apps, alias, hotkey, shortcut, keyboard, filter",
                 bundle: .floe,
@@ -146,7 +150,6 @@ extension SearchIndex {
             title: String(localized: "Quicklinks", bundle: .floe, comment: "The name of a settings page."),
             descriptionText: String(localized: "Keywords and fallbacks for web search.", bundle: .floe),
             pane: .quicklinks,
-            paneLabel: .quicklinks,
             keywords: String(
                 localized: "quicklink, quicklinks, keyword, search, web, fallback, link, url",
                 bundle: .floe,
@@ -158,7 +161,6 @@ extension SearchIndex {
             title: String(localized: "Snippets", bundle: .floe, comment: "The name of a settings page."),
             descriptionText: String(localized: "Text you paste or type by keyword.", bundle: .floe),
             pane: .snippets,
-            paneLabel: .snippets,
             keywords: String(
                 localized: "snippet, snippets, text, expansion, expand, keyword, abbreviation, template",
                 bundle: .floe,
@@ -170,7 +172,6 @@ extension SearchIndex {
             title: String(localized: "Extension Store", bundle: .floe, comment: "The name of a settings page."),
             descriptionText: String(localized: "Install, update and remove extensions from the Raycast store.", bundle: .floe),
             pane: .extensionStore,
-            paneLabel: .extensionStore,
             keywords: String(
                 localized: "store, install, update, remove, download, extensions, browse, raycast",
                 bundle: .floe,
@@ -181,7 +182,6 @@ extension SearchIndex {
             id: "pane.about",
             title: String(localized: "About", bundle: .floe, comment: "The name of a settings page."),
             pane: .about,
-            paneLabel: .about,
             keywords: String(
                 localized: "version, build, commit, update, what's new, release notes, changelog, license, credits, acknowledgements, source code, github, discord, report a bug, data folder",
                 bundle: .floe,
@@ -381,7 +381,6 @@ extension SearchIndex {
             id: "privacy.\(id)",
             title: title,
             pane: .privacy,
-            paneLabel: .privacy,
             section: section,
             keywords: keywords
         )
@@ -746,15 +745,16 @@ extension SearchIndex {
     private static func entries(forExtension commands: [ExtensionCommand]) -> [SearchEntry] {
         guard let first = commands.first else { return [] }
         let name = first.extensionName
-        let pane = SettingsPage.extensionPage(name)
-        let label = SearchPaneLabel(title: first.extensionTitle, icon: first.icon ?? "icon:Terminal", assetsPath: first.assetsPath)
+        let pane = SearchPane(
+            page: .extensionPage(name),
+            label: SearchPaneLabel(title: first.extensionTitle, icon: first.icon ?? "icon:Terminal", assetsPath: first.assetsPath)
+        )
 
         var entries = [
             SearchEntry(
                 id: "extension.\(name)",
                 title: first.extensionTitle,
                 pane: pane,
-                paneLabel: label,
                 keywords: [name] + extensionTerms + (first.source == .raycast ? ["raycast"] : [])
             ),
         ]
@@ -764,7 +764,6 @@ extension SearchIndex {
                 title: field.title,
                 descriptionText: field.detail,
                 pane: pane,
-                paneLabel: label,
                 section: String(localized: "Preferences", bundle: .floe, comment: "The heading over an extension's own settings."),
                 keywords: [field.name]
             )
@@ -774,7 +773,6 @@ extension SearchIndex {
                 id: "command.\(command.id)",
                 title: command.title,
                 pane: pane,
-                paneLabel: label,
                 section: String(localized: "Command", bundle: .floe, comment: "The heading a command of an extension is listed under."),
                 keywords: [command.name],
                 anchor: command.id
@@ -785,7 +783,6 @@ extension SearchIndex {
                     title: field.title,
                     descriptionText: field.detail,
                     pane: pane,
-                    paneLabel: label,
                     section: command.title,
                     keywords: [field.name],
                     anchor: command.id
