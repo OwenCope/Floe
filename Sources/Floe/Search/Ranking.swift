@@ -31,6 +31,7 @@ extension RootItem {
     /// Other words a result answers to, matched like its title.
     var keywords: [String] {
         switch self {
+        case let .command(command): [command.extensionTitle]
         case let .system(command): command.keywords
         case let .settingsPane(pane): pane.keywords
         case let .note(action, _): action == .new ? AppRole.notes.keywords : [String(localized: "add to note", bundle: .floe, comment: "A search keyword for the row that adds text to a note. Lowercase.")]

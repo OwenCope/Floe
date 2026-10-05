@@ -360,4 +360,19 @@ struct RankingTests {
         #expect(byOwner == Fuzzy.score("codex", "CodexBar")! - 10)
         #expect(Ranking.menuBarScore(query: "zzz", name: "Tailscale", owner: "Tailscale") == nil)
     }
+
+    @Test func aCommandAnswersToItsExtensionsNameBehindATitleThatMatches() {
+        let brew: [RootItem] = [
+            .command(Fixture.command("installed", extension: "brew", title: "Show Installed")),
+            .command(Fixture.command("upgrade", extension: "brew", title: "Upgrade")),
+            Fixture.app("Brewfile"),
+            Fixture.app("Notes"),
+        ]
+        func found(_ query: String) -> [String] {
+            Ranking.search(brew, query: query, favorites: [], alias: { _ in nil }, frecency: { _ in 0 }).map(\.item.title)
+        }
+
+        #expect(found("brew") == ["Brewfile", "Show Installed", "Upgrade"])
+        #expect(found("bw") == ["Brewfile"], "scattered letters of the extension's name do not find its commands")
+    }
 }
