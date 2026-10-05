@@ -64,8 +64,6 @@ struct LauncherPanelState: Equatable {
     var queryIsEmpty = true
 
     static let fullSize = NSSize(width: 750, height: 474)
-    /// Thaw's inspector panel is 600 × 400; the launcher needs room for extension detail panes.
-    static let menuBarSearchSize = NSSize(width: 600, height: 400)
     /// The search bar is 65 tall with less space under it than above; 2 more evens them out.
     static let collapsedHeight: CGFloat = 67
     /// Between the two pieces: the step between siblings, so they read as one launcher.
@@ -78,9 +76,6 @@ struct LauncherPanelState: Equatable {
 
     /// The one place the panel's size is decided.
     func contentSize(in layout: LauncherLayout) -> NSSize {
-        if menuBarSearch {
-            return Self.menuBarSearchSize
-        }
         return isCollapsed(in: layout) ? NSSize(width: Self.fullSize.width, height: Self.collapsedHeight) : Self.fullSize
     }
 

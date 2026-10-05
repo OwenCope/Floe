@@ -339,8 +339,9 @@ showing the panel, and `FLOE_PICK_SNAPSHOT=<file>` saves a picture of the panel 
 
 ## Menu bar item search
 
-"Search Menu Bar Items" (root search, or its hotkey in Settings › General) uses the look of Thaw 3's
-inspector search panel, the one Thaw opens from its menu bar icon. Thaw finds and opens items through MenuBarModel and its own runtime; Floe reads
+"Search Menu Bar Items" (root search, or its hotkey in Settings › General) is drawn with the launcher's own
+field, rows and bottom bar at the launcher's size, so the panel does not change shape on the way in. It does what
+Thaw 3's inspector search panel does. Thaw finds and opens items through MenuBarModel and its own runtime; Floe reads
 each app's extras menu bar through the Accessibility API and opens an item by pressing it, so it needs
 only the Accessibility permission. It shows no previews of the items, so it never asks for Screen
 Recording; items Thaw keeps hidden may not open from here.

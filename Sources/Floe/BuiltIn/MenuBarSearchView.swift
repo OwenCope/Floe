@@ -8,8 +8,7 @@
 import SwiftUI
 import ThawUI
 
-/// The menu bar search in the face of Thaw 3's inspector panel: a field in a glass capsule above the list,
-/// rows with each item's owning app and name, and a bar of actions below.
+/// The menu bar search: the launcher's own field, rows and bottom bar, so the panel reads the same in every mode.
 struct MenuBarSearchView: View {
     @ObservedObject var search: MenuBarSearchModel
     /// For the gear and the Actions menu. Not observed: nothing here is drawn from it.
@@ -17,40 +16,14 @@ struct MenuBarSearchView: View {
     let focusToken: Int
     @ObservedObject var settings: AppSettings = .shared
 
-    @Environment(\.panelPieces) private var pieces
-
     var body: some View {
-        Group {
-            if pieces == nil {
-                GlassEffectContainer {
-                    content
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .safeAreaBar(edge: .top, spacing: 0) { queryField }
-                        .safeAreaBar(edge: .bottom, spacing: 0) { bottomBar }
-                }
-            } else {
-                // The field is its own piece, so only the bottom bar is left to sit over the list.
-                PanelSections {
-                    queryField
-                } content: {
-                    content
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .safeAreaBar(edge: .bottom, spacing: 0) { bottomBar }
-                }
-            }
+        PanelSections {
+            SearchBar(placeholder: String(localized: "Search menu bar items…", bundle: .floe), text: $search.query, focusToken: focusToken, isLoading: search.isScanning) { EmptyView() }
+        } content: {
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            bottomBar
         }
-        .scrollEdgeEffectStyle(.automatic, for: .vertical)
-    }
-
-    // MARK: Query field
-
-    private var queryField: some View {
-        SearchQueryField(
-            prompt: String(localized: "Search menu bar items…", bundle: .floe),
-            text: $search.query,
-            focusToken: focusToken,
-            isLoading: search.isScanning
-        ) { EmptyView() }
     }
 
     // MARK: Content
@@ -91,19 +64,19 @@ struct MenuBarSearchView: View {
         let results = search.results
         return ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 0) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
                         // One view per item, title included: a lazy stack walks the whole list when rows vary in count.
-                        VStack(spacing: 0) {
+                        VStack(alignment: .leading, spacing: 0) {
                             if let section = result.section, index == 0 || results[index - 1].section != section {
-                                SearchSectionHeader(title: section)
+                                SectionTitle(title: section, isFirst: index == 0)
                             }
-                            InspectorItemRow(
+                            MenuBarItemRow(
                                 extra: result.extra,
                                 name: search.displayName(for: result.extra),
+                                selected: index == search.selection,
                                 renameDraft: search.renamingItem == result.extra.id ? $search.renameDraft : nil
                             )
-                            .modifier(SearchRowBackground(selected: index == search.selection))
                             .onTapGesture(count: 2) { search.open(result.extra) }
                             .onTapGesture { search.selection = index }
                         }
@@ -111,9 +84,7 @@ struct MenuBarSearchView: View {
                     }
                 }
             }
-            .scrollIndicatorsFlash(onAppear: true)
             .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
-            .scrollContentBackground(.hidden)
             .onChange(of: search.selection) {
                 if results.indices.contains(search.selection) {
                     proxy.scrollTo(results[search.selection].id)
@@ -125,14 +96,15 @@ struct MenuBarSearchView: View {
     // MARK: Bottom bar
 
     private var bottomBar: some View {
-        HStack {
+        PanelBottomBar {
             OpenSettingsButton(model: launcher)
 
             Toggle("Remember last search", isOn: $settings.rememberMenuBarQuery)
                 .toggleStyle(.switch)
                 .controlSize(.mini)
+                .fixedSize()
 
-            Spacer()
+            Spacer(minLength: 0)
 
             if search.renamingItem != nil {
                 ShortcutHintButton(title: String(localized: "Cancel", bundle: .floe)) { search.cancelRename() } hint: {
@@ -153,8 +125,53 @@ struct MenuBarSearchView: View {
                 }
             }
         }
-        .buttonStyle(SearchPanelButtonStyle())
-        .padding(ThawSpacing.compact)
-        .padding(.horizontal, ThawSpacing.tight)
+    }
+}
+
+/// One menu bar item, drawn as every result is: its app's icon, its name, and the app that owns it at the right.
+struct MenuBarItemRow: View {
+    let extra: MenuBarExtra
+    let name: String
+    let selected: Bool
+    /// Set while this row is being renamed; the field takes the title's place.
+    var renameDraft: Binding<String>?
+    @FocusState private var isEditing: Bool
+
+    var body: some View {
+        if let renameDraft {
+            // The same measures as PaletteRow, which has no field of its own.
+            HStack(spacing: 10) {
+                icon.frame(width: 24, height: 24)
+                TextField(extra.name, text: renameDraft)
+                    .textFieldStyle(.plain)
+                    .font(ThawType.body)
+                    .autocorrectionDisabled(true)
+                    .focused($isEditing)
+                    .onAppear { isEditing = true }
+                Spacer(minLength: 0)
+            }
+            .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8))
+            .modifier(SearchRowBackground(selected: selected))
+        } else {
+            PaletteRow(title: name, subtitle: nil, selected: selected) {
+                icon
+            } trailing: {
+                if extra.ownerName != name {
+                    Text(verbatim: extra.ownerName)
+                        .font(ThawType.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    @ViewBuilder private var icon: some View {
+        if let owner = extra.ownerURL {
+            AppIconView(path: owner.path, size: 24)
+        } else {
+            SymbolTile(symbol: "menubar.rectangle")
+        }
     }
 }

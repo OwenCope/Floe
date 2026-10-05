@@ -39,10 +39,10 @@ struct LauncherLayoutTests {
         #expect(state.isCollapsed(in: .compact) == false)
     }
 
-    @Test func theMenuBarSearchKeepsItsOwnSizeInBothLayouts() {
+    @Test func theMenuBarSearchIsTheSizeOfEveryOtherModeInBothLayouts() {
         let state = LauncherPanelState(menuBarSearch: true, isRootSearch: false)
-        #expect(state.contentSize(in: .extended) == NSSize(width: 600, height: 400))
-        #expect(state.contentSize(in: .compact) == NSSize(width: 600, height: 400))
+        #expect(state.contentSize(in: .extended) == LauncherPanelState.fullSize)
+        #expect(state.contentSize(in: .compact) == LauncherPanelState.fullSize, "the panel does not change size on the way in")
         #expect(LauncherPanelState(menuBarSearch: true).isCollapsed(in: .compact) == false)
     }
 
@@ -74,10 +74,11 @@ struct LauncherLayoutTests {
         #expect(collapsedOrigin.x == fullOrigin.x)
     }
 
-    @Test func theMenuBarSearchIsStillCenteredOnItsOwnHeight() {
+    @Test func theMenuBarSearchOpensWhereTheRootSearchIs() {
         let screen = NSRect(x: 0, y: 0, width: 1600, height: 1000)
         let state = LauncherPanelState(menuBarSearch: true, isRootSearch: false)
-        #expect(state.origin(in: screen, panelSize: state.windowSize(in: .compact)) == NSPoint(x: 460, y: 380))
+        let root = LauncherPanelState(queryIsEmpty: false)
+        #expect(state.origin(in: screen, panelSize: state.windowSize(in: .compact)) == root.origin(in: screen, panelSize: root.windowSize(in: .compact)))
     }
 
     @Test func resizingAWindowKeepsItsTopEdgeAndCenter() {

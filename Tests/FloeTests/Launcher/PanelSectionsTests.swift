@@ -55,7 +55,7 @@ struct PanelSectionsTests {
         #expect(LauncherPanelState().pieceHeights(in: .compact) == PanelPieceHeights(field: 67, gap: 8, results: 399, isCollapsed: true))
         #expect(LauncherPanelState().pieceHeights(in: .compact).total == 67)
         let menuBar = LauncherPanelState(menuBarSearch: true, isRootSearch: false)
-        #expect(menuBar.pieceHeights(in: .compact) == PanelPieceHeights(field: 67, gap: 8, results: 325))
+        #expect(menuBar.pieceHeights(in: .compact) == open, "the same pieces as every other mode")
     }
 
     @Test func collapsingKeepsTheResultsHeightSoTheFadeDoesNotMoveWhenTheyAppear() {

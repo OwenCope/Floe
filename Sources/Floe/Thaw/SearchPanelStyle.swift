@@ -204,45 +204,6 @@ struct KeyCapView: View {
     }
 }
 
-/// Thaw's inspector row, without its preview of the item: owning app and name.
-struct InspectorItemRow: View {
-    private static let iconLength: CGFloat = 26
-
-    let extra: MenuBarExtra
-    let name: String
-    /// Set while this row is being renamed; the inline field edits it.
-    var renameDraft: Binding<String>?
-    @FocusState private var isEditing: Bool
-
-    var body: some View {
-        HStack {
-            Label {
-                if let renameDraft {
-                    TextField(extra.name, text: renameDraft)
-                        .textFieldStyle(.plain)
-                        .autocorrectionDisabled(true)
-                        .focused($isEditing)
-                        .onAppear { isEditing = true }
-                } else {
-                    Text(name)
-                }
-            } icon: {
-                Group {
-                    if let url = extra.ownerURL {
-                        AppIconView(path: url.path, size: Self.iconLength)
-                    } else {
-                        Image(systemName: "menubar.rectangle").foregroundStyle(.secondary)
-                    }
-                }
-                .frame(width: Self.iconLength, height: Self.iconLength)
-            }
-            Spacer()
-        }
-        .padding(ThawSpacing.compact)
-        .thawHoverLift()
-    }
-}
-
 struct ShortcutHintButton<Hint: View>: View {
     let title: String
     let action: () -> Void
