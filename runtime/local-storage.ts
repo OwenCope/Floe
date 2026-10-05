@@ -29,6 +29,14 @@ export const storagePersistence = {
     },
 };
 
+/// Runs a write inside a promise, so one that fails rejects and a caller's catch() sees it.
+function writing(work: () => void): Promise<void> {
+    return new Promise((resolve) => {
+        work();
+        resolve();
+    });
+}
+
 export function createLocalStorage(file: () => string) {
     let known: { file: string; stamp: string | undefined; items: Items } | undefined;
 
@@ -60,14 +68,6 @@ export function createLocalStorage(file: () => string) {
         const path = file();
         storagePersistence.write(path, JSON.stringify(items));
         known = { file: path, stamp: storagePersistence.stamp(path), items };
-    }
-
-    /// Runs a write inside a promise, so one that fails rejects and a caller's catch() sees it.
-    function writing(work: () => void): Promise<void> {
-        return new Promise((resolve) => {
-            work();
-            resolve();
-        });
     }
 
     return {
