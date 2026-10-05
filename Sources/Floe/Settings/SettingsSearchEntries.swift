@@ -273,6 +273,7 @@ extension SearchIndex {
             section: "Preferred Apps",
             keywords: ["editor", "text editor", "code", "open in editor", "preferred app", "default app"]
         ),
+    ] + browserEntries + [
         .general(
             "notesApp",
             "Notes",

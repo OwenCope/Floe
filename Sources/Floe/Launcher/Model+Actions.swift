@@ -34,6 +34,7 @@ extension LauncherModel {
         case .sshHost: "Connect"
         case .menuBarItem: "Click Item"
         case .browserTab(.tab): "Switch to Tab"
+        case .webAddress: openInBrowserTitle
         default: "Open"
         }
     }
@@ -83,6 +84,8 @@ extension LauncherModel {
             actions += SSHHostActions.actions(for: host, host: actionHost)
         case let .clipboardEntry(entry):
             actions.append(ItemAction(title: "Copy", symbol: "doc.on.doc") { [weak self] in self?.clipboardHistory.copy(entry) })
+        case .webAddress, .quicklink:
+            actions += linkActions(for: item)
         default:
             break
         }

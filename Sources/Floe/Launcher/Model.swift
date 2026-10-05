@@ -88,6 +88,7 @@ final class LauncherModel: ObservableObject {
     /// How the terminal and the editor are looked up. Tests replace it, so they do not read this Mac's apps.
     var appLookup = AppLookup.system
     var clipboardOpener = ClipboardOpener.system
+    var linkOpener = LinkOpener.system
     var preferredApps: [RoleApp] {
         PreferredApps.apps(choice: settings.appChoice, installed: appLookup)
     }
@@ -482,7 +483,7 @@ final class LauncherModel: ObservableObject {
             openSettings(nil)
         case let .quicklink(link, queryText, _, _):
             if let destination = url(for: link, query: queryText) {
-                NSWorkspace.shared.open(destination)
+                openLink(destination)
             }
             hidePanel()
             reset()
@@ -518,7 +519,7 @@ final class LauncherModel: ObservableObject {
             paste(text: SnippetStore.shared.expanded(snippet))
         case let .event(event):
             if let destination = event.meetingURL ?? event.calendarURL {
-                NSWorkspace.shared.open(destination)
+                openLink(destination)
             }
             hidePanel()
             reset()
@@ -797,9 +798,9 @@ final class LauncherModel: ObservableObject {
         let url = URL(string: target).flatMap { $0.scheme == nil ? nil : $0 }
             ?? URL(fileURLWithPath: (target as NSString).expandingTildeInPath)
         if let application, let app = applicationURL(for: application) {
-            NSWorkspace.shared.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
+            linkOpener.open(url, app)
         } else {
-            NSWorkspace.shared.open(url)
+            openLink(url)
         }
     }
 

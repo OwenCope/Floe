@@ -46,6 +46,8 @@ final class AppSettings: ObservableObject {
     /// The apps folders and files are opened in; nil is the role's default (see AppRole).
     @Published var terminalApp: AppChoice?
     @Published var editorApp: AppChoice?
+    /// The browser web links open in; nil is whatever macOS opens them with (see `Browsers`).
+    @Published var browserApp: AppChoice?
     /// The clipboard role's choice: Floe's own history, an app, or the link that opens an app's history.
     @Published var clipboardHandler = ClipboardHandler.floe
     @Published var clipboardApp: AppChoice?
@@ -105,6 +107,7 @@ final class AppSettings: ObservableObject {
         var notesURLTemplate: String?
         var terminalApp: AppChoice?
         var editorApp: AppChoice?
+        var browserApp: AppChoice?
         var clipboardHandler: ClipboardHandler?
         var clipboardApp: AppChoice?
         var clipboardURL: String?
@@ -178,15 +181,6 @@ final class AppSettings: ObservableObject {
         }
     }
 
-    /// The stored settings, less any one whose value cannot be read: that one takes its default, the rest stay.
-    private static func read(_ data: Data) -> Stored? {
-        guard let salvaged = SettingsSalvage.decode(Stored.self, from: data) else { return nil }
-        if !salvaged.dropped.isEmpty {
-            Log.app.warning("Settings that could not be read took their defaults: \(salvaged.dropped.sorted().joined(separator: ", "))")
-        }
-        return salvaged.value
-    }
-
     private func take(_ data: Data) {
         guard let stored = Self.read(data) else { return }
         isReloading = true
@@ -240,6 +234,7 @@ final class AppSettings: ObservableObject {
         notesURLTemplate = stored.notesURLTemplate ?? notesURLTemplate
         terminalApp = stored.terminalApp
         editorApp = stored.editorApp
+        browserApp = stored.browserApp
         clipboardHandler = stored.clipboardHandler ?? .floe
         clipboardApp = stored.clipboardApp
         clipboardURL = stored.clipboardURL ?? ""
@@ -286,6 +281,7 @@ final class AppSettings: ObservableObject {
             notesURLTemplate: notesURLTemplate,
             terminalApp: terminalApp,
             editorApp: editorApp,
+            browserApp: browserApp,
             clipboardHandler: clipboardHandler,
             clipboardApp: clipboardApp,
             clipboardURL: clipboardURL,
@@ -319,6 +315,15 @@ final class AppSettings: ObservableObject {
 
 /// Export and import, in an extension so the class holds only the settings and how they are kept.
 extension AppSettings {
+    /// The stored settings, less any one whose value cannot be read: that one takes its default, the rest stay.
+    private static func read(_ data: Data) -> Stored? {
+        guard let salvaged = SettingsSalvage.decode(Stored.self, from: data) else { return nil }
+        if !salvaged.dropped.isEmpty {
+            Log.app.warning("Settings that could not be read took their defaults: \(salvaged.dropped.sorted().joined(separator: ", "))")
+        }
+        return salvaged.value
+    }
+
     /// The settings as they are saved, for an export file.
     func exportedJSON() throws -> Data {
         save()

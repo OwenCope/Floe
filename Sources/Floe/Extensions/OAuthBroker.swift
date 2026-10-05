@@ -85,7 +85,7 @@ final class OAuthBroker: NSObject {
     /// same extension replaces this one; cancelling the waiting task, the session stopping, or ten
     /// minutes passing fails it instead.
     func authorize(extensionName: String, url: URL, state: String) async throws -> String {
-        await MainActor.run { _ = NSWorkspace.shared.open(url) }
+        await MainActor.run { Browsers.openFromFloe(url) }
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 register(extensionName: extensionName, state: state) { result in

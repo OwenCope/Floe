@@ -65,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         panel = LauncherPanel(size: model.panelState.windowSize(in: settings.launcherLayout))
         panel.delegate = self
-        panel.contentView = NSHostingView(rootView: LauncherView(model: model))
+        panel.contentView = NSHostingView(rootView: LauncherView(model: model).openingLinksInTheChosenBrowser())
 
         model.hidePanel = { [weak self] in self?.hide() }
         model.showPanel = { [weak self] in self?.show() }

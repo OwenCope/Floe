@@ -43,7 +43,10 @@ struct TypedLocationSearchProviderTests {
 
     private func makeModel(usage: UsageStore = .shared) -> LauncherModel {
         let settings = AppSettings(defaults: UserDefaults(suiteName: "floe-typed-location-\(UUID().uuidString)")!)
-        return LauncherModel(settings: settings, usage: usage, snapshot: CatalogSnapshot(apps: [safari], commands: []), scopes: RootSearch.standardScopes(), sources: [])
+        let model = LauncherModel(settings: settings, usage: usage, snapshot: CatalogSnapshot(apps: [safari], commands: []), scopes: RootSearch.standardScopes(), sources: [])
+        // A Mac with no browser, so no row is named after the one on the Mac running the tests.
+        model.appLookup = AppLookup(url: { _ in nil }, plainTextApp: { nil }, exists: { _ in false }, bundleIdentifier: { _ in nil })
+        return model
     }
 
     // MARK: The rows
@@ -192,7 +195,7 @@ struct TypedLocationSearchProviderTests {
         model.toggleFavorite(row)
         #expect(model.settings.favorites.isEmpty)
         #expect(!LauncherModel.keepsItsPlace(row))
-        #expect(model.rootActions(for: row).compactMap { $0?.title } == ["Open"])
+        #expect(model.rootActions(for: row).compactMap { $0?.title } == ["Open", "Copy Address"])
     }
 
     @Test func returnOpensATypedFolderOrFileAsAFileRowDoes() throws {

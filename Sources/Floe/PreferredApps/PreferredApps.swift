@@ -19,13 +19,16 @@ struct AppLookup {
     var bundleIdentifier: (URL) -> String?
     /// The app that answers a link, if any does.
     var appForURL: (URL) -> URL? = { _ in nil }
+    /// The browsers on this Mac, as the system lists them now.
+    var browsers: () -> [URL] = { [] }
 
     static let system = AppLookup(
         url: { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) },
         plainTextApp: { NSWorkspace.shared.urlForApplication(toOpen: UTType.plainText) },
         exists: { FileManager.default.fileExists(atPath: $0.path) },
         bundleIdentifier: { Bundle(url: $0)?.bundleIdentifier },
-        appForURL: { NSWorkspace.shared.urlForApplication(toOpen: $0) }
+        appForURL: { NSWorkspace.shared.urlForApplication(toOpen: $0) },
+        browsers: { Browsers.onThisMac() }
     )
 }
 
@@ -72,6 +75,7 @@ enum PreferredApps {
         switch role {
         case .terminal: installed.url(AppRole.systemTerminal).map(ResolvedApp.init)
         case .editor: installed.plainTextApp().map(ResolvedApp.init)
+        case .browser: Browsers.systemDefault(installed: installed)
         case .notes, .clipboard: nil
         }
     }
@@ -97,6 +101,7 @@ enum PreferredApps {
                 AppOption(choice: AppChoice(bundleIdentifier: identifier, path: url.path), title: ResolvedApp(url: url).name, url: url)
             }
         }
+        options += role == .browser ? Browsers.options(installed: installed) : []
         guard let choice, !options.contains(where: { $0.id == choice.key }) else { return options }
         if let app = chosenApp(choice, installed: installed) {
             options.append(AppOption(choice: choice, title: app.name, url: app.url))
@@ -113,7 +118,7 @@ enum PreferredApps {
         let urls: [URL] = switch role.input {
         case .folder: items.map { isFolder($0) ? $0 : $0.deletingLastPathComponent() }
         case .fileOrFolder: items
-        case .text, .nothing: []
+        case .text, .nothing, .link: []
         }
         let distinct = Array(urls.uniqued(on: \.standardizedFileURL.path))
         return distinct.isEmpty ? nil : Handoff(urls: distinct, application: app.url)
@@ -136,6 +141,7 @@ extension AppSettings {
         switch role {
         case .terminal: terminalApp
         case .editor: editorApp
+        case .browser: browserApp
         case .notes: nil
         case .clipboard: clipboardHandler == .app ? clipboardApp : nil
         }

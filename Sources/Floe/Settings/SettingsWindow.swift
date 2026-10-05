@@ -43,7 +43,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             // As Thaw's windows: not a workspace, so the green button zooms, and nothing worth restoring.
             window.collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenNone])
             window.isRestorable = false
-            let content = NSHostingView(rootView: SettingsView(catalog: catalog, settings: .shared, selection: selection))
+            let content = NSHostingView(rootView: SettingsView(catalog: catalog, settings: .shared, selection: selection).openingLinksInTheChosenBrowser())
             // The panes name the window and fill its toolbar: title, subtitle and the search field.
             content.sceneBridgingOptions = [.title, .toolbars]
             window.contentView = content

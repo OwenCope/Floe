@@ -8,7 +8,7 @@
 import SwiftUI
 import ThawUI
 
-/// The app each role stands for: where folders and files are opened, where a note goes, and what keeps the clipboard history.
+/// The app each role stands for: where folders, files and web links are opened, where a note goes, and what keeps the clipboard history.
 struct PreferredAppsSettingsSection: View {
     @ObservedObject var settings: AppSettings
     var installed = AppLookup.system
@@ -17,6 +17,7 @@ struct PreferredAppsSettingsSection: View {
         ThawSection("Preferred Apps") {
             PreferredAppPicker(role: .terminal, choice: $settings.terminalApp, installed: installed)
             PreferredAppPicker(role: .editor, choice: $settings.editorApp, installed: installed)
+            PreferredAppPicker(role: .browser, choice: $settings.browserApp, installed: installed)
             NotesAppPicker(settings: settings)
             ClipboardAppPicker(settings: settings, installed: installed)
         }

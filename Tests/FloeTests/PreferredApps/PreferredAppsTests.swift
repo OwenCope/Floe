@@ -136,9 +136,9 @@ struct PreferredAppsTests {
 
     // MARK: Notes as a role
 
-    @Test func theRolesAreTheTerminalTheEditorNotesAndTheClipboardInThatOrder() {
-        #expect(AppRole.allCases.map(\.title) == ["Terminal", "Editor", "Notes", "Clipboard"])
-        #expect(AppRole.opening == [.terminal, .editor], "notes is handed text and the clipboard nothing, not files")
+    @Test func theRolesAreTheTerminalTheEditorTheBrowserNotesAndTheClipboardInThatOrder() {
+        #expect(AppRole.allCases.map(\.title) == ["Terminal", "Editor", "Browser", "Notes", "Clipboard"])
+        #expect(AppRole.opening == [.terminal, .editor], "the browser is handed links, notes text and the clipboard nothing, not files")
     }
 
     @Test func theNotesRoleOpensNoFilesAndStartsAtAppleNotes() throws {
@@ -152,7 +152,7 @@ struct PreferredAppsTests {
 
     @Test func theSettingsSearchFindsEveryRoleUnderPreferredApps() {
         let entries = SearchIndex.generalEntries.filter { $0.section == "Preferred Apps" }
-        #expect(entries.map(\.id) == ["general.terminalApp", "general.editorApp", "general.notesApp", "general.clipboardApp"])
+        #expect(entries.map(\.id) == ["general.terminalApp", "general.editorApp", "general.browserApp", "general.notesApp", "general.clipboardApp"])
         #expect(entries.map(\.title) == AppRole.allCases.map(\.title))
         #expect(entries.map(\.descriptionText) == AppRole.allCases.map(\.detail))
     }
