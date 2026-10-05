@@ -129,10 +129,10 @@ final class LauncherModel: ObservableObject {
     /// Gives a menu-bar command its status item, or takes it away again.
     func toggleMenuBarCommand(_ command: ExtensionCommand) {
         if settings.menuBarCommands.remove(command.id) != nil {
-            showHUD("Removed from Menu Bar")
+            showHUD(String(localized: "Removed from Menu Bar", bundle: .floe))
         } else {
             settings.menuBarCommands.insert(command.id)
-            showHUD("Added to Menu Bar")
+            showHUD(String(localized: "Added to Menu Bar", bundle: .floe))
         }
         refresh()
     }
@@ -387,10 +387,10 @@ final class LauncherModel: ObservableObject {
         }
         if let index = settings.favorites.firstIndex(of: item.id) {
             settings.favorites.remove(at: index)
-            showHUD("Removed from Favorites")
+            showHUD(String(localized: "Removed from Favorites", bundle: .floe))
         } else {
             settings.favorites.append(item.id)
-            showHUD("Added to Favorites")
+            showHUD(String(localized: "Added to Favorites", bundle: .floe))
         }
         refresh()
     }
@@ -438,7 +438,7 @@ final class LauncherModel: ObservableObject {
     func activate(_ item: RootItem) {
         if case let .calculator(answer) = item {
             NSPasteboard.general.copy(answer.copyText)
-            showHUD("Copied \(answer.copyText)")
+            showHUD(String(localized: "Copied \(answer.copyText)", bundle: .floe, comment: "Shown briefly after copying. The placeholder is what was copied, such as a file name."))
             return
         }
         if case let .emoji(entry) = item {
@@ -506,7 +506,7 @@ final class LauncherModel: ObservableObject {
             hidePanel()
             reset()
             if !Thaw.perform(action) {
-                showHUD("Thaw isn't installed")
+                showHUD(String(localized: "Thaw isn't installed", bundle: .floe))
             }
         case let .sshHost(host, terminal):
             hidePanel()
@@ -553,7 +553,7 @@ final class LauncherModel: ObservableObject {
     func copyEmojiResult(_ entry: EmojiResult) {
         usage.recordUse(of: EmojiResult.id(for: entry.character))
         NSPasteboard.general.copy(entry.character)
-        showHUD("Copied \(entry.character)")
+        showHUD(String(localized: "Copied \(entry.character)", bundle: .floe, comment: "Shown briefly after copying. The placeholder is what was copied, such as a file name."))
     }
 
     /// Pastes an emoji into the frontmost app: onto the clipboard plus a ⌘V once the panel is
@@ -562,7 +562,7 @@ final class LauncherModel: ObservableObject {
         usage.recordUse(of: EmojiResult.id(for: entry.character))
         NSPasteboard.general.copy(entry.character)
         guard AXIsProcessTrusted() else {
-            showHUD("Copied")
+            showHUD(String(localized: "Copied", bundle: .floe, comment: "Shown briefly after something was put on the clipboard."))
             return
         }
         hidePanel()
@@ -579,10 +579,10 @@ final class LauncherModel: ObservableObject {
     func run(_ script: ScriptCommand, argumentStrings: [String] = []) {
         if script.needsConfirmation {
             let alert = NSAlert()
-            alert.messageText = "Run \(script.title)?"
+            alert.messageText = String(localized: "Run \(script.title)?", bundle: .floe, comment: "The placeholder is the name of a script.")
             alert.informativeText = script.displayPackage
-            alert.addButton(withTitle: "Run")
-            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: String(localized: "Run", bundle: .floe, comment: "A verb on a button: run the shortcut or script."))
+            alert.addButton(withTitle: String(localized: "Cancel", bundle: .floe))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
         usage.recordUse(of: RootItem.script(script).id)
@@ -594,7 +594,7 @@ final class LauncherModel: ObservableObject {
                 result = try await ScriptRunner.run(script, arguments: argumentStrings)
             } catch {
                 await MainActor.run { [weak self] in
-                    self?.showHUD("\(script.title) failed: \(error.localizedDescription)")
+                    self?.showHUD(String(localized: "\(script.title) failed: \(error.localizedDescription)", bundle: .floe, comment: "The first placeholder is the name of a script, the second is the reason."))
                 }
                 return
             }
@@ -602,15 +602,15 @@ final class LauncherModel: ObservableObject {
                 guard let self else { return }
                 guard result.succeeded else {
                     let line = ScriptRunner.lastLine(result.errorOutput) ?? ScriptRunner.lastLine(result.output)
-                        ?? "exit code \(result.status)"
-                    showHUD("\(script.title) failed: \(line)")
+                        ?? String(localized: "exit code \(result.status)", bundle: .floe, comment: "The reason a script failed, when it printed nothing. The placeholder is a number.")
+                    showHUD(String(localized: "\(script.title) failed: \(line)", bundle: .floe, comment: "The first placeholder is the name of a script, the second is the reason."))
                     return
                 }
                 switch script.mode {
                 case .silent:
                     break
                 case .inline, .compact:
-                    let line = ScriptRunner.lastLine(result.output) ?? "Done"
+                    let line = ScriptRunner.lastLine(result.output) ?? String(localized: "Done (script finished)", defaultValue: "Done", bundle: .floe, comment: "Shown briefly when a script finished and printed nothing.")
                     showHUD(line)
                 case .fullOutput:
                     ScriptOutputWindow.show(title: script.title, output: result.trimmedOutput)
@@ -682,7 +682,7 @@ final class LauncherModel: ObservableObject {
             }
         case "crashed" where session.command.mode != "view":
             end(session)
-            showHUD("\(session.command.title) failed")
+            showHUD(String(localized: "\(session.command.title) failed", bundle: .floe, comment: "The placeholder is the name of a command."))
         case "close":
             hidePanel()
         case "hud":
@@ -745,7 +745,7 @@ final class LauncherModel: ObservableObject {
     func copyFailure() {
         guard let session, let failure = session.failure else { return }
         copy(text: "\(session.command.extensionTitle) › \(session.command.title)\n\(failure.message)\n\n\(failure.details)")
-        showHUD("Copied error details")
+        showHUD(String(localized: "Copied error details", bundle: .floe))
     }
 
     /// Back to the root search, ending any open command.
@@ -776,7 +776,7 @@ final class LauncherModel: ObservableObject {
                 KeySimulation.paste()
             }
         } else {
-            showHUD("Copied. Press ⌘V to paste.")
+            showHUD(String(localized: "Copied. Press ⌘V to paste.", bundle: .floe))
             hidePanel()
         }
     }
@@ -792,7 +792,7 @@ final class LauncherModel: ObservableObject {
         case "paste":
             // A background run never takes the keyboard from the user; it only copies.
             copy(text: message["text"] as? String ?? "", html: message["html"] as? String, file: message["file"] as? String)
-            showHUD("Copied. Press ⌘V to paste.")
+            showHUD(String(localized: "Copied. Press ⌘V to paste.", bundle: .floe))
         case "open":
             open(message["target"] as? String ?? "", application: message["application"] as? String)
         default:

@@ -34,7 +34,7 @@ struct ExtensionView: View {
             } else {
                 PanelSections {
                     SearchBar(
-                        placeholder: view?.string("searchBarPlaceholder") ?? (session.isList ? "Search…" : session.command.title),
+                        placeholder: view?.string("searchBarPlaceholder") ?? (session.isList ? String(localized: "Search…", bundle: .floe) : session.command.title),
                         text: $session.searchText,
                         focusToken: model.focusToken,
                         isLoading: view?.bool("isLoading") ?? (view == nil)
@@ -62,7 +62,7 @@ struct ExtensionView: View {
                 case "List", "Grid": ListBody(session: session, view: view)
                 case "Detail": DetailBody(node: view, assetsPath: session.command.assetsPath)
                 case "Form": FormBody(session: session, focusToken: model.focusToken)
-                default: Placeholder(title: "\(view.type) isn't supported yet", detail: "Floe renders List, Grid, Detail and Form.", systemImage: "hammer")
+                default: Placeholder(title: String(localized: "\(view.type) isn't supported yet", bundle: .floe, comment: "The placeholder is the name of a kind of view, such as Grid."), detail: String(localized: "Floe renders List, Grid, Detail and Form.", bundle: .floe, comment: "List, Grid, Detail and Form are names from the extension API and stay as written."), systemImage: "hammer")
                 }
             } else {
                 Color.clear
@@ -91,7 +91,7 @@ struct Placeholder: View {
     var detail: String?
     var systemImage = "magnifyingglass"
     var body: some View {
-        ThawEmptyState(systemImage: systemImage, title: LocalizedStringKey(title), caption: detail.map { LocalizedStringKey($0) })
+        ThawEmptyState(systemImage: systemImage, title: .verbatim(title), caption: detail.map { .verbatim($0) })
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -180,7 +180,7 @@ struct DropdownView: View {
                 Button(item.string("title") ?? "") { session.event(node, "onChange", [item.props["value"] as? String ?? ""]) }
             }
         } label: {
-            Text(current?.string("title") ?? node.string("placeholder") ?? "Select")
+            Text(current?.string("title") ?? node.string("placeholder") ?? String(localized: "Select", bundle: .floe, comment: "The label of a menu before anything is chosen in it."))
         }
         .menuStyle(.button)
         .fixedSize()
@@ -196,9 +196,9 @@ struct ActionMenu: View {
             HStack(spacing: ThawSpacing.compact) {
                 if let submenu = session.actionPath.last {
                     Image(systemName: "chevron.left").font(ThawType.caption).foregroundStyle(.secondary)
-                    Text(submenu.string("title") ?? "Submenu").fontWeight(.medium)
+                    Text(submenu.string("title") ?? String(localized: "Submenu", bundle: .floe, comment: "Stands in for a submenu's title when the extension gave none.")).fontWeight(.medium)
                 }
-                Text(session.actionQuery.isEmpty ? "Search actions…" : session.actionQuery)
+                Text(session.actionQuery.isEmpty ? String(localized: "Search actions…", bundle: .floe) : session.actionQuery)
                     .foregroundStyle(session.actionQuery.isEmpty ? .tertiary : .primary)
                 Spacer()
             }
@@ -233,7 +233,7 @@ struct ActionMenu: View {
         let action = entry.node
         return HStack(spacing: 9) {
             IconView(value: action.props["icon"], assetsPath: session.command.assetsPath, size: 15)
-            Text(action.string("title") ?? "Action")
+            Text(action.string("title") ?? String(localized: "Action", bundle: .floe, comment: "Stands in for an action's title when the extension gave none."))
                 .foregroundStyle(action.props["style"] as? String == "destructive" ? Color.red : Color.primary)
                 .lineLimit(1)
             Spacer()

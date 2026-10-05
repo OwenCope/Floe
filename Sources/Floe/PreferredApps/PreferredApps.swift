@@ -107,7 +107,7 @@ enum PreferredApps {
             options.append(AppOption(choice: choice, title: app.name, url: app.url))
         } else {
             let name = ResolvedApp(url: URL(fileURLWithPath: choice.path)).name
-            options.append(AppOption(choice: choice, title: "\(name) (not installed)", url: nil))
+            options.append(AppOption(choice: choice, title: String(localized: "\(name) (not installed)", bundle: .floe, comment: "The placeholder is the name of an app."), url: nil))
         }
         return options
     }

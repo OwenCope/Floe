@@ -22,8 +22,8 @@ nonisolated struct CalendarEvent: Equatable, Sendable {
 
     var subtitle: String {
         isAllDay
-            ? "All day · \(calendarTitle)"
-            : "\(startDate.formatted(Self.timeFormat)) to \(endDate.formatted(Self.timeFormat)) · \(calendarTitle)"
+            ? String(localized: "All day · \(calendarTitle)", bundle: .floe, comment: "The placeholder is the name of a calendar.")
+            : String(localized: "\(startDate.formatted(Self.timeFormat)) to \(endDate.formatted(Self.timeFormat)) · \(calendarTitle)", bundle: .floe, comment: "The first two placeholders are the times an event starts and ends, and the third is the name of a calendar.")
     }
 
     /// Opens the event in Calendar.
@@ -42,7 +42,11 @@ final class CalendarAgenda {
     /// Called on the main queue when newly loaded events could change the results.
     var onChange: () -> Void = {}
 
-    private static let triggers = ["calendar", "today", "meetings", "events", "agenda", "next meeting"]
+    private static let triggers = String(
+        localized: "calendar, today, meetings, events, agenda, next meeting",
+        bundle: .floe,
+        comment: "Words that bring up the events of today and tomorrow when typed, separated by commas."
+    ).keywordList
     private static nonisolated let meetingHosts = ["zoom.us", "meet.google.com", "teams.microsoft.com", "teams.live.com", "webex.com"]
     private static let cacheLifetime: TimeInterval = 60
 
@@ -125,11 +129,11 @@ final class CalendarAgenda {
                 .map { event in
                     CalendarEvent(
                         identifier: event.eventIdentifier ?? event.calendarItemIdentifier,
-                        title: event.title ?? "Untitled",
+                        title: event.title ?? String(localized: "Untitled", bundle: .floe, comment: "The title of a calendar event that has none."),
                         startDate: event.startDate,
                         endDate: event.endDate,
                         isAllDay: event.isAllDay,
-                        calendarTitle: event.calendar?.title ?? "Calendar",
+                        calendarTitle: event.calendar?.title ?? String(localized: "Calendar", bundle: .floe, comment: "Stands in for the name of a calendar that has none."),
                         meetingURL: Self.meetingURL(url: event.url, location: event.location, notes: event.notes)
                     )
                 }

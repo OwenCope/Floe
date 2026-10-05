@@ -15,8 +15,8 @@ final class TabSearchSource: SearchSource {
 
     let id = SearchSourceInfo.tabs.id
     let keyword = "tabs"
-    let title = "Browser Tabs"
-    let emptyTitle = "No open tabs match"
+    let title = String(localized: "Browser Tabs", bundle: .floe)
+    let emptyTitle = String(localized: "No open tabs match", bundle: .floe)
 
     private let browsers: [BrowserApp]
     private let isRunning: (BrowserApp) -> Bool

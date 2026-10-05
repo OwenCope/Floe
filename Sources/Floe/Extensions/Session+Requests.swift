@@ -88,9 +88,9 @@ extension ExtensionSession {
             id: id,
             title: params["title"] as? String ?? "",
             message: params["message"] as? String,
-            primaryTitle: params["primaryTitle"] as? String ?? "OK",
+            primaryTitle: params["primaryTitle"] as? String ?? String(localized: "OK", bundle: .floe),
             isDestructive: (params["primaryStyle"] as? String) == "destructive",
-            dismissTitle: params["dismissTitle"] as? String ?? "Cancel"
+            dismissTitle: params["dismissTitle"] as? String ?? String(localized: "Cancel", bundle: .floe)
         )
     }
 

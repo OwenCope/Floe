@@ -35,8 +35,8 @@ enum SettingsTransfer {
 
         var errorDescription: String? {
             switch self {
-            case .notAnExport: "This file isn't a Floe settings export."
-            case .newerVersion: "This file was exported by a newer version of Floe."
+            case .notAnExport: String(localized: "This file isn't a Floe settings export.", bundle: .floe)
+            case .newerVersion: String(localized: "This file was exported by a newer version of Floe.", bundle: .floe)
             }
         }
     }

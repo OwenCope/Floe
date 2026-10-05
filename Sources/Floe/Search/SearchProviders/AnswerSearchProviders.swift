@@ -11,7 +11,7 @@ import Foundation
 struct CalculatorSearchProvider: SearchProvider {
     func contribution(for context: SearchContext) -> SearchContribution {
         guard !context.query.isEmpty, let answer = Calculator.evaluate(context.query) else { return SearchContribution() }
-        return SearchContribution(pinned: [RootResult(item: .calculator(answer), section: "Calculator")])
+        return SearchContribution(pinned: [RootResult(item: .calculator(answer), section: String(localized: "Calculator", bundle: .floe))])
     }
 }
 

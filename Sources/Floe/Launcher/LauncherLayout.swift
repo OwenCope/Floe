@@ -22,8 +22,8 @@ enum LauncherLayout: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .extended: "Extended"
-        case .compact: "Compact"
+        case .extended: String(localized: "Extended", bundle: .floe, comment: "A launcher layout: the list is always shown.")
+        case .compact: String(localized: "Compact", bundle: .floe, comment: "A launcher layout: only the search field until you type.")
         }
     }
 }

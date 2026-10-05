@@ -189,6 +189,73 @@ ran (`WhatLeavesTheMainActorTests`). A helper that only waits for something else
 `@unchecked Sendable`, `nonisolated(unsafe)` and `MainActor.assumeIsolated` each carry a line saying why they are
 safe. In a test, what `@Test(arguments:)` reads is `nonisolated`.
 
+## Localization
+
+Every piece of interface text Floe writes is in one String Catalog, `Sources/Floe/Resources/Localizable.xcstrings`.
+English is the source and, for now, the only language. The English text is the key, so the app reads the same with
+or without the catalog; the catalog only adds to it the plural forms and the numbering of placeholders.
+
+How a string gets there. The compiler finds it (`SWIFT_EMIT_LOC_STRINGS` in `project.yml`), and a build writes what
+it found beside the object files. The Xcode app merges that into the catalog after a build; `xcodebuild` does not, so
+from the command line run:
+
+    ./scripts/sync-strings.sh          # build, then add new strings and drop the ones no longer in the code
+    ./scripts/sync-strings.sh --check  # build, then fail if the catalog would change
+
+Commit the catalog with the change that adds the string. Never write a key into the catalog by hand.
+
+How to write one:
+
+- A SwiftUI label written as a literal (`Text("Favorite")`, `Toggle("Enabled", isOn:)`, `.help("Open Settings")`) is
+  already a key. Leave it as it is.
+- A plain `String` (a HUD line, a row title, a menu item, an alert, a failure message) is
+  `String(localized: "Copied Path", bundle: .floe)`. `Bundle.floe` (`App/Localization.swift`) is the bundle the catalog
+  is in: the app in an Xcode build, the module's bundle in a SwiftPM build and in the tests. A bare `String(localized:)`
+  reads the main bundle and finds nothing in a `swift build` binary. Use the initializer itself, not a helper around
+  it: the compiler only takes the `comment:` from the real one.
+- A value goes in by interpolation, so the translator gets the whole sentence with a placeholder:
+  `String(localized: "Quitting \(app.name)", bundle: .floe, comment: "The placeholder is an app's name.")`. Never join
+  pieces. Where the wording depends on a case, write one whole sentence per case (`AIEndpoint.problem`).
+- A count takes its plural forms from the catalog, not from an `if`: `String(localized: "\(total) items", bundle: .floe)`,
+  and in the catalog the key `%lld items` varies by plural with `one` and `other` (see that entry; Xcode's catalog
+  editor offers "Vary by Plural"). `LocalizationCatalogTests` lists the plural keys, so a new one is added there too.
+  An integer in a localized string is written with the locale's grouping: 1,000 items.
+- `comment:` is one plain sentence for the translator wherever the English is ambiguous out of context: a single word
+  ("Open", "Run", "Copy"), anything with a placeholder, and a sentence that quotes a word the user types.
+  A SwiftUI literal has no `comment:` to give, so its comment is written on the entry in the catalog; a sync keeps it.
+- One English word with two meanings is two keys, since another language may need two words. The second names its
+  use and gives the English apart: `String(localized: "None (tint)", defaultValue: "None", bundle: .floe)`. The System
+  Settings panes and the Restart command are written this way.
+- Words that only find something in a search are one string, a list separated by commas, which a translator replaces
+  with as many terms as the language needs (`String.keywordList`, `String.searchTerms`).
+- A label that is not text (`100%`, `0°`) or that only passes text through (`%@`) is marked "Don't translate" in the
+  catalog.
+
+What is not localized, and so is a plain `String` or `Text(verbatim:)`: what an extension renders or declares, the
+user's own data (app, file, quicklink, snippet and shortcut names, SSH aliases, the query), log lines and the output
+of the command line checks, ids, stored settings keys, URLs, key names, the generated credits, release notes, and
+prompts sent to an AI tool. Scope keywords (`files`, `clipboard`, `menu`, `tabs`, `ssh`, `shortcuts`, `ask`, `note`)
+are commands and stay English; a sentence that mentions one says so in its comment. Text that is not Floe's must
+never become a key: no `LocalizedStringKey(someString)`. Where a view only takes a key (ThawUI's `ThawEmptyState`),
+pass `.verbatim(text)`, which makes the text an argument of the key.
+
+Search matches a title in the language it is shown in, since the row is built with the localized title, and keywords
+are localized lists of extra terms. Nothing is keyed on a title: ids, settings keys and scope keywords are separate
+constants.
+
+To try it without a translation, add a second language to the catalog with one string visibly changed, build, and
+run with that language: `.build/debug/Floe --search "" -AppleLanguages "(fr)"`, or the same arguments to
+`Floe.app/Contents/MacOS/Floe` from an Xcode build. Remove the language afterwards. Text that SwiftUI resolves itself
+(the literals in the first point above) is read from the main bundle, so it only changes in the Xcode build; a SwiftPM
+binary shows those in English.
+
+Translations come from Crowdin, as Thaw's do: <https://crowdin.com/project/floe>. `crowdin.yml` points Crowdin at the
+catalog, and translated languages arrive as pull requests from Crowdin that change that one file. Nobody edits a
+translation in the repository: `.github/workflows/block-translation.yml` closes a pull request that only changes the
+catalog and is not Crowdin's, with a note that sends its author to the project. The Credits page has a "Help
+translate" button that opens it (`translate` in `FloeLinks`). Still to do once languages exist: the translators list
+in `CREDITS.md`, which Thaw's `scripts/generate-credits.py` writes from a Crowdin export.
+
 ## Releases and updates
 
 Floe updates itself with [Sparkle](https://sparkle-project.org), the same way Thaw does. The pieces:

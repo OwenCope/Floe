@@ -25,8 +25,8 @@ struct SSHHostSearchProvider: SearchProvider {
 /// `ssh web`: the hosts that match, and every host for the keyword and a space alone.
 struct SSHSearchScope: SearchScope {
     let keyword = "ssh"
-    let title = "SSH Hosts"
-    let emptyTitle = "No SSH hosts match"
+    let title = String(localized: "SSH Hosts", bundle: .floe)
+    let emptyTitle = String(localized: "No SSH hosts match", bundle: .floe)
 
     /// Without hosts the word is not a scope, so a search that starts with it stays an ordinary one.
     func text(in context: SearchContext) -> String? {

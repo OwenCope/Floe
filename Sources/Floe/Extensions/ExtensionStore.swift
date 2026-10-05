@@ -80,7 +80,7 @@ final class ExtensionStore: ObservableObject {
                 try? Self.writeCatalogCache(names: names)
                 self.catalog = names.map(StoreListing.init(name:))
             } catch {
-                self.error = "Couldn't load the store: \(error.localizedDescription)"
+                self.error = String(localized: "Couldn't load the store: \(error.localizedDescription)", bundle: .floe, comment: "The placeholder is the reason.")
             }
         }
         catalogTask = task
@@ -187,21 +187,21 @@ final class ExtensionStore: ObservableObject {
 
     private static func fetchExtensionNames() async throws -> [String] {
         guard let rootURL = URL(string: "\(repoAPI)/git/trees/main") else {
-            throw StoreFailure(message: "Could not find the extensions folder in the Raycast repository.")
+            throw StoreFailure(message: String(localized: "Could not find the extensions folder in the Raycast repository.", bundle: .floe))
         }
         let (rootData, _) = try await URLSession.shared.data(for: apiRequest(url: rootURL))
         guard let root = try JSONSerialization.jsonObject(with: rootData) as? [String: Any],
               let entries = root["tree"] as? [[String: Any]],
               let sha = entries.first(where: { ($0["path"] as? String) == "extensions" && ($0["type"] as? String) == "tree" })?["sha"] as? String
-        else { throw StoreFailure(message: "Could not find the extensions folder in the Raycast repository.") }
+        else { throw StoreFailure(message: String(localized: "Could not find the extensions folder in the Raycast repository.", bundle: .floe)) }
         guard let listURL = URL(string: "\(repoAPI)/git/trees/\(sha)") else {
-            throw StoreFailure(message: "Could not find the extensions folder in the Raycast repository.")
+            throw StoreFailure(message: String(localized: "Could not find the extensions folder in the Raycast repository.", bundle: .floe))
         }
         let (listData, _) = try await URLSession.shared.data(for: apiRequest(url: listURL))
         guard let list = try JSONSerialization.jsonObject(with: listData) as? [String: Any],
               let folders = list["tree"] as? [[String: Any]]
         else {
-            throw StoreFailure(message: "Could not list the extensions in the Raycast repository.")
+            throw StoreFailure(message: String(localized: "Could not list the extensions in the Raycast repository.", bundle: .floe))
         }
         return folders
             .filter { ($0["type"] as? String) == "tree" }
@@ -297,24 +297,24 @@ final class ExtensionStore: ObservableObject {
         try FileManager.default.createDirectory(at: workDir, withIntermediateDirectories: true)
         let git = gitExecutable()
         let clone = ["clone", "--depth", "1", "--filter=blob:none", "--sparse", "https://github.com/raycast/extensions", workDir.path]
-        try await runTool(executable: git, arguments: clone, context: "Clone failed")
+        try await runTool(executable: git, arguments: clone, context: String(localized: "Clone failed", bundle: .floe, comment: "What went wrong while installing an extension. Clone is the git operation."))
         let checkout = ["-C", workDir.path, "sparse-checkout", "set", "extensions/\(name)"]
-        try await runTool(executable: git, arguments: checkout, context: "Checkout failed")
+        try await runTool(executable: git, arguments: checkout, context: String(localized: "Checkout failed", bundle: .floe, comment: "What went wrong while installing an extension. Checkout is the git operation."))
         let extensionDir = workDir.appendingPathComponent("extensions/\(name)", isDirectory: true)
         guard FileManager.default.fileExists(atPath: extensionDir.appendingPathComponent("package.json").path) else {
-            throw StoreFailure(message: "Extension \"\(name)\" was not found in the Raycast repository.")
+            throw StoreFailure(message: String(localized: "Extension \"\(name)\" was not found in the Raycast repository.", bundle: .floe, comment: "The placeholder is an extension's name."))
         }
         let revision = ["-C", workDir.path, "rev-parse", "HEAD"]
-        let output = try await runTool(executable: git, arguments: revision, context: "Could not read the repository commit")
+        let output = try await runTool(executable: git, arguments: revision, context: String(localized: "Could not read the repository commit", bundle: .floe))
         let commit = output.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         return FetchedExtension(workDir: workDir, extensionDir: extensionDir, commit: commit)
     }
 
     private static func runBunInstall(in directory: URL) async throws {
         guard let bun = Paths.bun else {
-            throw StoreFailure(message: "Bun was not found. Install it with brew install bun.")
+            throw StoreFailure(message: String(localized: "Bun was not found. Install it with brew install bun.", bundle: .floe, comment: "Bun is the name of a tool. brew install bun is a command and stays as written."))
         }
-        try await runTool(executable: bun, arguments: ["install", "--ignore-scripts"], workingDirectory: directory, context: "Bun install failed")
+        try await runTool(executable: bun, arguments: ["install", "--ignore-scripts"], workingDirectory: directory, context: String(localized: "Bun install failed", bundle: .floe, comment: "What went wrong while installing an extension. Bun is the name of a tool."))
     }
 
     /// Moves the staged copy into the extensions folder only after its
@@ -335,7 +335,7 @@ final class ExtensionStore: ObservableObject {
             if movedAside, !fileManager.fileExists(atPath: destination.path) {
                 try? fileManager.moveItem(at: backup, to: destination)
             }
-            throw StoreFailure(message: "Could not install \"\(name)\": \(lastLine(error.localizedDescription))")
+            throw StoreFailure(message: String(localized: "Could not install \"\(name)\": \(lastLine(error.localizedDescription))", bundle: .floe, comment: "The first placeholder is an extension's name, the second is the reason."))
         }
         if movedAside {
             try? fileManager.removeItem(at: backup)
@@ -371,7 +371,7 @@ final class ExtensionStore: ObservableObject {
 
     private static nonisolated func lastLine(_ text: String) -> String {
         text.split(separator: "\n").map(String.init).last(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
-            ?? "Unknown error"
+            ?? String(localized: "Unknown error", bundle: .floe)
     }
 
     /// How much of a tool's output is kept; git and bun say far less than this.
@@ -396,13 +396,13 @@ final class ExtensionStore: ObservableObject {
             let stdout = result.standardOutput
             let stderr = result.standardError
             guard result.terminationStatus.isSuccess else {
-                throw StoreFailure(message: "\(context): \(lastLine(stderr.isEmpty ? stdout : stderr))")
+                throw StoreFailure(message: String(localized: "\(context): \(lastLine(stderr.isEmpty ? stdout : stderr))", bundle: .floe, comment: "The first placeholder says what failed, the second is the reason."))
             }
             return ToolOutput(stdout: stdout, stderr: stderr)
         } catch let failure as StoreFailure {
             throw failure
         } catch {
-            throw StoreFailure(message: "\(context): \(error.localizedDescription)")
+            throw StoreFailure(message: String(localized: "\(context): \(error.localizedDescription)", bundle: .floe, comment: "The first placeholder says what failed, the second is the reason."))
         }
     }
 }

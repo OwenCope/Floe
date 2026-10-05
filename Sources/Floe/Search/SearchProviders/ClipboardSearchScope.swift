@@ -13,8 +13,8 @@ struct ClipboardSearchScope: SearchScope {
     static let limit = 50
 
     let keyword = "clipboard"
-    let title = "Clipboard History"
-    let emptyTitle = "No clipboard entries match"
+    let title = String(localized: "Clipboard History", bundle: .floe)
+    let emptyTitle = String(localized: "No clipboard entries match", bundle: .floe)
     /// The history is read through this, so a test can stand in for the user's own.
     var entries: () -> [ClipboardEntry] = { ClipboardHistoryStore.shared.entries }
 

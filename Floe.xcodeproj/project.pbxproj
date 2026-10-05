@@ -29,6 +29,7 @@
 		196C4C500D1583D356D70557 /* PrivacySettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB366C323BC449BC6B784D8D /* PrivacySettingsPane.swift */; };
 		19CD1AC41F779A3539AF82DD /* AppRole.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72FAF12B5CA3132E1CA5CDBA /* AppRole.swift */; };
 		19FAEC92E306B4BC2C96CD92 /* MenuBarLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BA458FEE4440B1470ABF94 /* MenuBarLogic.swift */; };
+		1D735243075E52327F804984 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEFD6D0D5FE1E1CB1726CA6 /* Localization.swift */; };
 		1DA318B37ECA5A026EFA2D65 /* SettingsTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6E736E94FFB03FFF4F6845 /* SettingsTransfer.swift */; };
 		1E29E64A831EFEB4ED4737B3 /* QuicklinksSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8D4B47628BB959BFF6E65 /* QuicklinksSettingsPage.swift */; };
 		1EB90F727785E88C09F91E99 /* SearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 450CCBAA04540F1857B9E7A0 /* SearchIndex.swift */; };
@@ -88,6 +89,7 @@
 		60FE0B79D7BF23B80E9E658F /* AskAIModel+Panel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F94F4CB7297C9286F2C8A2D /* AskAIModel+Panel.swift */; };
 		62233FAC9FE04DFB2C994F79 /* ThawHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604318B576A5FA49A67E10A4 /* ThawHUD.swift */; };
 		63306AA3252F2A2A9842CF02 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 620405AD1BB424142F8C61B3 /* AsyncAlgorithms */; };
+		63A875F55A40AC8CB417058E /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 3F4985D458BAC986B45EABD6 /* Localizable.xcstrings */; };
 		66D62EF86F9750EBD438D121 /* MenuBarPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CFC538C631DB3824BC675A /* MenuBarPresenter.swift */; };
 		692B392B1C4097AAA7635316 /* UpdatesLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70891E9ABBE4E3EFF52220DE /* UpdatesLink.swift */; };
 		6949E79181513479011C9C02 /* PropFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DCFAEAF70527DFBFD4F4FF1 /* PropFormat.swift */; };
@@ -249,6 +251,7 @@
 		18AE47F6CBCD4D215A877C26 /* ChangelogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangelogView.swift; sourceTree = "<group>"; };
 		1AF1D982AAAE8FF36B96F53F /* UpdateLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLogic.swift; sourceTree = "<group>"; };
 		1BF8D4B47628BB959BFF6E65 /* QuicklinksSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuicklinksSettingsPage.swift; sourceTree = "<group>"; };
+		1D7504FB669B2427B3BF4A39 /* sync-strings.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "sync-strings.sh"; sourceTree = "<group>"; };
 		1DD6BBFFC885CC8B3D7E3E1C /* ToolTextStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolTextStream.swift; sourceTree = "<group>"; };
 		1E248280C8BC41591C09710E /* set-secrets.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "set-secrets.sh"; sourceTree = "<group>"; };
 		204D867C06D9A7C2C46F9981 /* ClipboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardApp.swift; sourceTree = "<group>"; };
@@ -278,6 +281,7 @@
 		3C178B96CB145E8FEA3F3778 /* SystemStores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStores.swift; sourceTree = "<group>"; };
 		3C88D79A84B3FAC5F8E4332D /* HotkeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRegistry.swift; sourceTree = "<group>"; };
 		3E273FBD36E3C7B1016D6E96 /* ClipboardHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryView.swift; sourceTree = "<group>"; };
+		3F4985D458BAC986B45EABD6 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		3FC0C0537C1703FB936504D4 /* PermissionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionViews.swift; sourceTree = "<group>"; };
 		42251D9E5402360C16FC6AAC /* KeyCombination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCombination.swift; sourceTree = "<group>"; };
 		4350774BAFE25F278DF643A7 /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
@@ -305,6 +309,7 @@
 		5C0D9B04517C094B3D5D0788 /* OnboardingPermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingPermissionsView.swift; sourceTree = "<group>"; };
 		5EB035C39E569BB620F7844F /* Updates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updates.swift; sourceTree = "<group>"; };
 		5EF4D81C831111FE2EA1FE13 /* SearchRanker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchRanker.swift; sourceTree = "<group>"; };
+		5FEFD6D0D5FE1E1CB1726CA6 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		604318B576A5FA49A67E10A4 /* ThawHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThawHUD.swift; sourceTree = "<group>"; };
 		611669F5DA712196411BB8AD /* OAuthBroker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthBroker.swift; sourceTree = "<group>"; };
 		612FC052C4830AD422547E50 /* AskAIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskAIView.swift; sourceTree = "<group>"; };
@@ -517,6 +522,7 @@
 				83CCDC6B5F91D7EC138CC5F9 /* Launcher */,
 				277C7043D3F044E6469913F0 /* Picker */,
 				FB4A7702655DEE955C42A6DF /* PreferredApps */,
+				58D1F0D7292A773911553A35 /* Resources */,
 				6067E3A8E7900FF64B0F8A84 /* Search */,
 				7AD6505665B9E4E21E6E4D51 /* Settings */,
 				15D53C4BCA0A6B29EB4EAFF1 /* Thaw */,
@@ -533,6 +539,7 @@
 				09F9F2D1B0F121548F16E784 /* lcov-to-sonar.py */,
 				B5F79E7C261FEF649D619BE4 /* release.sh */,
 				1E248280C8BC41591C09710E /* set-secrets.sh */,
+				1D7504FB669B2427B3BF4A39 /* sync-strings.sh */,
 			);
 			path = scripts;
 			sourceTree = "<group>";
@@ -580,6 +587,14 @@
 				6B855D08974FAFAA9A4F8C92 /* ThawIntegration.swift */,
 			);
 			path = BuiltIn;
+			sourceTree = "<group>";
+		};
+		58D1F0D7292A773911553A35 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3F4985D458BAC986B45EABD6 /* Localizable.xcstrings */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		6067E3A8E7900FF64B0F8A84 /* Search */ = {
@@ -784,6 +799,7 @@
 				A5C2101DB96C414B73B7329F /* Diagnostics.swift */,
 				C2E2C5C29CB5FB6EA6176046 /* IncomingURLRouter.swift */,
 				06C21CDFCE7404F918FB0818 /* LauncherSettingsLink.swift */,
+				5FEFD6D0D5FE1E1CB1726CA6 /* Localization.swift */,
 				D967FA03573F90C35F2D5E9B /* main.swift */,
 				4350774BAFE25F278DF643A7 /* MainMenu.swift */,
 				A351EFA50EC3D806BFCF8F78 /* MainThreadCallbacks.swift */,
@@ -935,6 +951,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BAA37528274A2FE4C7774558 /* AppIcon.icon in Resources */,
+				63A875F55A40AC8CB417058E /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1047,6 +1064,7 @@
 				CABB2AAE0CB58A33DCC1A8A0 /* LauncherLayout.swift in Sources */,
 				D00E7B600C05D1A53076F0BB /* LauncherPanelAppearance.swift in Sources */,
 				7B7FABA4592B5310EB2C87C5 /* LauncherSettingsLink.swift in Sources */,
+				1D735243075E52327F804984 /* Localization.swift in Sources */,
 				3AD35881F6B724143FF6B7E6 /* LoginEnvironment.swift in Sources */,
 				C3A46A5027658323A674E782 /* MainMenu.swift in Sources */,
 				91C071541FA07E255D2EA080 /* MainThreadCallbacks.swift in Sources */,
@@ -1251,6 +1269,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -1260,6 +1279,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
@@ -1311,6 +1331,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -1319,6 +1340,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;

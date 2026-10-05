@@ -101,22 +101,22 @@ struct AskAIView: View {
 
     private var bottomBar: some View {
         PanelBottomBar {
-            ShortcutHintButton(title: "Back") { launcher.closeAskAI() } hint: {
+            ShortcutHintButton(title: String(localized: "Back", bundle: .floe, comment: "A button that returns to the search.")) { launcher.closeAskAI() } hint: {
                 KeyCapView(text: "esc")
             }
             Spacer(minLength: 0)
-            ShortcutHintButton(title: "Ask Again") { asking.ask() } hint: {
+            ShortcutHintButton(title: String(localized: "Ask Again", bundle: .floe)) { asking.ask() } hint: {
                 KeyCapView(text: "⌘")
                 KeyCapView(text: "R")
             }
             ActionsButton(model: launcher) { $0.askAI?.actions() ?? [] }
             if !asking.shown.text.isEmpty {
-                ShortcutHintButton(title: "Paste Answer") { asking.pasteAnswer() } hint: {
+                ShortcutHintButton(title: String(localized: "Paste Answer", bundle: .floe)) { asking.pasteAnswer() } hint: {
                     KeyCapView(text: "⌘")
                     KeyCapView(systemImage: "return")
                 }
                 if !asking.isWorking, !isFailed {
-                    ShortcutHintButton(title: "Copy Answer") { asking.copyAnswer() } hint: {
+                    ShortcutHintButton(title: String(localized: "Copy Answer", bundle: .floe)) { asking.copyAnswer() } hint: {
                         KeyCapView(systemImage: "return")
                     }
                 }

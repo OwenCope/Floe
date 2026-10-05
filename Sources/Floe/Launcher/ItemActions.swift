@@ -85,7 +85,7 @@ enum Confirm {
         alert.messageText = question
         alert.informativeText = detail
         alert.addButton(withTitle: button).hasDestructiveAction = true
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .floe))
         NSApp.activate()
         return alert.runModal() == .alertFirstButtonReturn
     }
@@ -110,7 +110,7 @@ enum FileActions {
         }
         actions += preferredAppActions(for: url, host: host)
         actions += [
-            ItemAction(title: "Show in Finder", symbol: "folder") {
+            ItemAction(title: String(localized: "Show in Finder", bundle: .floe), symbol: "folder") {
                 NSWorkspace.shared.activateFileViewerSelecting([url])
                 host.dismiss()
             },
@@ -124,26 +124,28 @@ enum FileActions {
     }
 
     static func trashAction(_ url: URL, host: ActionHost) -> ItemAction {
-        ItemAction(title: "Move to Trash…", symbol: "trash") { trash(url, host: host) }
+        ItemAction(title: String(localized: "Move to Trash…", bundle: .floe), symbol: "trash") { trash(url, host: host) }
     }
 
-    static func copies(of url: URL, host: ActionHost) -> [ItemAction] {
+    /// An app is not copied as a file, so its menu leaves that row out.
+    static func copies(of url: URL, host: ActionHost, includesFile: Bool = true) -> [ItemAction] {
         let name = FileManager.default.displayName(atPath: url.path)
-        return [
-            ItemAction(title: "Copy Path", symbol: "doc.on.doc") {
+        let copies = [
+            ItemAction(title: String(localized: "Copy Path", bundle: .floe), symbol: "doc.on.doc") {
                 NSPasteboard.general.copy(url.path)
-                host.showHUD("Copied Path")
+                host.showHUD(String(localized: "Copied Path", bundle: .floe))
             },
-            ItemAction(title: "Copy Name", symbol: "textformat") {
+            ItemAction(title: String(localized: "Copy Name", bundle: .floe), symbol: "textformat") {
                 NSPasteboard.general.copy(name)
-                host.showHUD("Copied \(name)")
+                host.showHUD(String(localized: "Copied \(name)", bundle: .floe, comment: "Shown briefly after copying. The placeholder is what was copied, such as a file name."))
             },
-            ItemAction(title: "Copy File", symbol: "doc.on.clipboard") {
+            ItemAction(title: String(localized: "Copy File", bundle: .floe), symbol: "doc.on.clipboard") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.writeObjects([url as NSURL])
-                host.showHUD("Copied \(name)")
+                host.showHUD(String(localized: "Copied \(name)", bundle: .floe, comment: "Shown briefly after copying. The placeholder is what was copied, such as a file name."))
             },
         ]
+        return includesFile ? copies : Array(copies.dropLast())
     }
 
     /// The apps that can open the file, the one that opens it by default first; nil when there are none.
@@ -156,12 +158,12 @@ enum FileActions {
             let icon = workspace.icon(forFile: app.path)
             icon.size = NSSize(width: 16, height: 16)
             let name = FileManager.default.displayName(atPath: app.path).replacingOccurrences(of: ".app", with: "")
-            return ItemAction(title: app == preferred ? "\(name) (default)" : name, symbol: "app", icon: icon) {
+            return ItemAction(title: app == preferred ? String(localized: "\(name) (default)", bundle: .floe, comment: "A row in the Open With menu. The placeholder is the name of the app that opens this kind of file by default.") : name, symbol: "app", icon: icon) {
                 workspace.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
                 host.dismiss()
             }
         }
-        return ItemAction(title: "Open With", symbol: "arrow.up.forward.app", children: Array(rows))
+        return ItemAction(title: String(localized: "Open With", bundle: .floe, comment: "The title of a submenu that lists apps."), symbol: "arrow.up.forward.app", children: Array(rows))
     }
 
     /// The default app first, then the rest by name, one row per app.
@@ -181,13 +183,13 @@ enum FileActions {
     private static func trash(_ url: URL, host: ActionHost) {
         let name = FileManager.default.displayName(atPath: url.path)
         host.dismiss()
-        let detail = "You can put it back from the Trash until you empty it."
-        guard Confirm.destructive("Move “\(name)” to the Trash?", detail: detail, button: "Move to Trash") else { return }
+        let detail = String(localized: "You can put it back from the Trash until you empty it.", bundle: .floe)
+        guard Confirm.destructive(String(localized: "Move “\(name)” to the Trash?", bundle: .floe, comment: "The placeholder is a file name."), detail: detail, button: String(localized: "Move to Trash", bundle: .floe)) else { return }
         do {
             try FileManager.default.trashItem(at: url, resultingItemURL: nil)
-            host.showHUD("Moved to Trash")
+            host.showHUD(String(localized: "Moved to Trash", bundle: .floe))
         } catch {
-            host.showHUD("Couldn't move \(name) to the Trash")
+            host.showHUD(String(localized: "Couldn't move \(name) to the Trash", bundle: .floe, comment: "The placeholder is a file name."))
         }
     }
 }
@@ -207,17 +209,17 @@ enum AppActions {
             actions += processActions(app, running, host: host) + [nil]
         }
         actions += [
-            ItemAction(title: "Show in Finder", symbol: "folder") {
+            ItemAction(title: String(localized: "Show in Finder", bundle: .floe), symbol: "folder") {
                 NSWorkspace.shared.activateFileViewerSelecting([app.url])
                 host.dismiss()
             },
             nil,
         ]
-        actions += FileActions.copies(of: app.url, host: host).filter { $0.title != "Copy File" }
+        actions += FileActions.copies(of: app.url, host: host, includesFile: false)
         if let identifier = Bundle(url: app.url)?.bundleIdentifier {
-            actions.append(ItemAction(title: "Copy Bundle Identifier", symbol: "number") {
+            actions.append(ItemAction(title: String(localized: "Copy Bundle Identifier", bundle: .floe), symbol: "number") {
                 NSPasteboard.general.copy(identifier)
-                host.showHUD("Copied \(identifier)")
+                host.showHUD(String(localized: "Copied \(identifier)", bundle: .floe, comment: "Shown briefly after copying. The placeholder is what was copied, such as a file name."))
             })
         }
         // A running app is quit first: the Trash refuses a bundle that is in use.
@@ -230,24 +232,24 @@ enum AppActions {
     private static func processActions(_ app: AppEntry, _ running: NSRunningApplication, host: ActionHost) -> [ItemAction] {
         var actions: [ItemAction] = []
         if !running.isHidden {
-            actions.append(ItemAction(title: "Hide", symbol: "eye.slash") {
+            actions.append(ItemAction(title: String(localized: "Hide", bundle: .floe, comment: "An action that hides a running app's windows."), symbol: "eye.slash") {
                 running.hide()
                 host.dismiss()
             })
         }
-        actions.append(ItemAction(title: "Quit", symbol: "xmark.circle") {
+        actions.append(ItemAction(title: String(localized: "Quit", bundle: .floe, comment: "An action that quits a running app."), symbol: "xmark.circle") {
             running.terminate()
-            host.showHUD("Quitting \(app.name)")
+            host.showHUD(String(localized: "Quitting \(app.name)", bundle: .floe, comment: "The placeholder is an app's name."))
         })
-        actions.append(ItemAction(title: "Force Quit…", symbol: "xmark.octagon") { forceQuit(app, running, host: host) })
+        actions.append(ItemAction(title: String(localized: "Force Quit…", bundle: .floe), symbol: "xmark.octagon") { forceQuit(app, running, host: host) })
         return actions
     }
 
     private static func forceQuit(_ app: AppEntry, _ running: NSRunningApplication, host: ActionHost) {
         host.dismiss()
-        let detail = "You will lose any changes you haven't saved."
-        guard Confirm.destructive("Force “\(app.name)” to quit?", detail: detail, button: "Force Quit") else { return }
+        let detail = String(localized: "You will lose any changes you haven't saved.", bundle: .floe)
+        guard Confirm.destructive(String(localized: "Force “\(app.name)” to quit?", bundle: .floe, comment: "The placeholder is an app's name."), detail: detail, button: String(localized: "Force Quit", bundle: .floe)) else { return }
         running.forceTerminate()
-        host.showHUD("Forced \(app.name) to quit")
+        host.showHUD(String(localized: "Forced \(app.name) to quit", bundle: .floe, comment: "The placeholder is an app's name."))
     }
 }

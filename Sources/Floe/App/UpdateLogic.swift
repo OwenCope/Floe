@@ -101,9 +101,9 @@ enum AutomaticUpdates: Hashable, CaseIterable {
 
     var title: String {
         switch self {
-        case .off: "Off"
-        case .check: "Check only"
-        case .download: "Check and download"
+        case .off: String(localized: "Off", bundle: .floe, comment: "Automatic updates: never check.")
+        case .check: String(localized: "Check only", bundle: .floe, comment: "Automatic updates: check, and do not download.")
+        case .download: String(localized: "Check and download", bundle: .floe, comment: "Automatic updates: check, and download what is found.")
         }
     }
 }
@@ -112,14 +112,14 @@ enum AutomaticUpdates: Hashable, CaseIterable {
 enum UpdateText {
     /// The status menu item, which names an update a scheduled check found and has not shown yet.
     static func menuTitle(pendingVersion: String?) -> String {
-        guard let pendingVersion, !pendingVersion.isEmpty else { return "Check for Updates…" }
-        return "Update to \(pendingVersion)…"
+        guard let pendingVersion, !pendingVersion.isEmpty else { return String(localized: "Check for Updates…", bundle: .floe) }
+        return String(localized: "Update to \(pendingVersion)…", bundle: .floe, comment: "A menu item. The placeholder is a version number such as 1.2.0.")
     }
 
     /// When updates were last checked, or plainly that they have not been.
     static func lastChecked(_ date: Date?, format: (Date) -> String = { $0.formatted(date: .abbreviated, time: .shortened) }) -> String {
-        guard let date else { return "Not checked yet" }
-        return "Last checked \(format(date))"
+        guard let date else { return String(localized: "Not checked yet", bundle: .floe, comment: "Shown in place of the time updates were last checked.") }
+        return String(localized: "Last checked \(format(date))", bundle: .floe, comment: "The placeholder is a date and time.")
     }
 
     /// Before the updater has started, a check is what starts it. Once it runs, Sparkle says

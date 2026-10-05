@@ -12,6 +12,7 @@ let concurrency: [SwiftSetting] = [
 
 let package = Package(
     name: "Floe",
+    defaultLocalization: "en",
     platforms: [.macOS(.v26)],
     dependencies: [
         .package(path: "Vendor/ThawUI"),
@@ -39,6 +40,7 @@ let package = Package(
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
             ],
+            resources: [.process("Resources")],
             swiftSettings: concurrency
         ),
         // The test bundle links the app's code, so it loads Sparkle.framework too. SwiftPM puts the

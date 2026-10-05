@@ -30,10 +30,10 @@ enum LauncherGlassStyle: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .regular: "Regular"
-        case .clear: "Clear"
-        case .liquid: "Liquid Glass"
-        case .dynamic: "Dynamic Glass"
+        case .regular: String(localized: "Regular", bundle: .floe, comment: "A kind of glass material for the launcher, as a choice in a picker.")
+        case .clear: String(localized: "Clear", bundle: .floe, comment: "A kind of glass material for the launcher, as a choice in a picker.")
+        case .liquid: String(localized: "Liquid Glass", bundle: .floe, comment: "A kind of glass material for the launcher, as a choice in a picker.")
+        case .dynamic: String(localized: "Dynamic Glass", bundle: .floe, comment: "A kind of glass material for the launcher, as a choice in a picker.")
         }
     }
 

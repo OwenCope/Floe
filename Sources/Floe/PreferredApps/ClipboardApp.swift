@@ -39,7 +39,7 @@ enum ClipboardDestination: Hashable {
         case .floe: "Floe"
         case let .app(app): app.name
         case let .link(_, app): app?.name ?? ClipboardApps.linkTitle
-        case let .unavailable(app, _): app ?? "Not Set Up"
+        case let .unavailable(app, _): app ?? String(localized: "Not Set Up", bundle: .floe, comment: "Shown where the name of the clipboard app would be when none can be opened.")
         }
     }
 }
@@ -70,7 +70,7 @@ struct ClipboardOpener {
 /// The clipboard role: Floe keeps the history itself, or hands the command to the manager already in use.
 enum ClipboardApps {
     /// The picker's row for a link, and the row label of a link no app is named for.
-    static let linkTitle = "Link"
+    static let linkTitle = String(localized: "Link", bundle: .floe, comment: "A web style link that opens an app, as a choice in a picker and as the label of its field.")
 
     /// Apps whose history opens from a link, by bundle identifier. Both were read from the installed
     /// copy: the identifier from its Info.plist, the link from how the app builds its own deeplinks.
@@ -95,23 +95,23 @@ enum ClipboardApps {
             return .floe
         case .app:
             guard let choice else {
-                return .unavailable(app: nil, message: "Choose a clipboard app in Settings")
+                return .unavailable(app: nil, message: String(localized: "Choose a clipboard app in Settings", bundle: .floe))
             }
             guard let app = PreferredApps.chosenApp(choice, installed: installed) else {
                 let name = ResolvedApp(url: URL(fileURLWithPath: choice.path)).name
-                return .unavailable(app: name, message: "\(name) isn't installed")
+                return .unavailable(app: name, message: String(localized: "\(name) isn't installed", bundle: .floe, comment: "The placeholder is the name of an app."))
             }
             let known = (choice.bundleIdentifier ?? installed.bundleIdentifier(app.url)).flatMap { links[$0] }
             return known.flatMap(URL.init(string:)).map { .link($0, app: app) } ?? .app(app)
         case .link:
             guard !link.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                return .unavailable(app: nil, message: "Set a link for your clipboard app in Settings")
+                return .unavailable(app: nil, message: String(localized: "Set a link for your clipboard app in Settings", bundle: .floe))
             }
             guard let url = url(from: link) else {
-                return .unavailable(app: nil, message: "The clipboard link isn't a URL. Change it in Settings")
+                return .unavailable(app: nil, message: String(localized: "The clipboard link isn't a URL. Change it in Settings", bundle: .floe))
             }
             guard let answering = installed.appForURL(url) else {
-                return .unavailable(app: nil, message: "No app opens the clipboard link. Change it in Settings")
+                return .unavailable(app: nil, message: String(localized: "No app opens the clipboard link. Change it in Settings", bundle: .floe))
             }
             return .link(url, app: ResolvedApp(url: answering))
         }
@@ -140,7 +140,10 @@ enum ClipboardApps {
 
 extension ClipboardApps {
     private static func handled(by app: String?) -> String {
-        "Clipboard history is handled by \(app ?? "another app"). Floe saves no copies."
+        guard let app else {
+            return String(localized: "Clipboard history is handled by another app. Floe saves no copies.", bundle: .floe)
+        }
+        return String(localized: "Clipboard history is handled by \(app). Floe saves no copies.", bundle: .floe, comment: "The placeholder is the name of an app.")
     }
 }
 
@@ -163,22 +166,34 @@ extension SearchIndex {
             "clipboardApp",
             AppRole.clipboard.title,
             description: AppRole.clipboard.detail,
-            section: "Preferred Apps",
-            keywords: ["clipboard", "clipboard manager", "clipboard history", "raycast", "link", "url", "preferred app", "default app"]
+            section: String(localized: "Preferred Apps", bundle: .floe),
+            keywords: String(
+                localized: "clipboard, clipboard manager, clipboard history, raycast, link, url, preferred app, default app",
+                bundle: .floe,
+                comment: "Words that find the Clipboard app setting in the settings search, separated by commas."
+            ).searchTerms
         ),
         .general(
             "clipboardHistory",
-            "Save clipboard history",
-            description: "Keeps text, links, images and files you copy.",
-            section: "Clipboard",
-            keywords: ["clipboard", "history", "copy", "paste", "copies", "pin", "clear"]
+            String(localized: "Save clipboard history", bundle: .floe),
+            description: String(localized: "Keeps text, links, images and files you copy.", bundle: .floe),
+            section: String(localized: "Clipboard", bundle: .floe),
+            keywords: String(
+                localized: "clipboard, history, copy, paste, copies, pin, clear",
+                bundle: .floe,
+                comment: "Words that find the Save clipboard history setting in the settings search, separated by commas."
+            ).searchTerms
         ),
         .general(
             "clearClipboardHistory",
-            "Clear clipboard history",
-            description: "Removes every copy except pinned ones.",
-            section: "Clipboard",
-            keywords: ["clipboard", "history", "clear", "delete", "remove", "copies"]
+            String(localized: "Clear clipboard history", bundle: .floe),
+            description: String(localized: "Removes every copy except pinned ones.", bundle: .floe),
+            section: String(localized: "Clipboard", bundle: .floe),
+            keywords: String(
+                localized: "clipboard, history, clear, delete, remove, copies",
+                bundle: .floe,
+                comment: "Words that find the Clear clipboard history setting in the settings search, separated by commas."
+            ).searchTerms
         ),
     ]
 }

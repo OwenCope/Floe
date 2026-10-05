@@ -251,26 +251,26 @@ struct AboutSettingsPane: View {
             return entry
         }
         let openURL = openURL
-        menu.addItem(item(String(localized: "Extensions Folder"), "puzzlepiece.extension") {
+        menu.addItem(item(String(localized: "Extensions Folder", bundle: .floe), "puzzlepiece.extension") {
             NSWorkspace.shared.activateFileViewerSelecting([Paths.extensions])
         })
-        menu.addItem(item(String(localized: "Data Folder"), "folder") {
+        menu.addItem(item(String(localized: "Data Folder", bundle: .floe), "folder") {
             NSWorkspace.shared.activateFileViewerSelecting([Paths.data])
         })
-        menu.addItem(item(String(localized: "Raycast Extensions Folder"), "folder.badge.gearshape") {
+        menu.addItem(item(String(localized: "Raycast Extensions Folder", bundle: .floe), "folder.badge.gearshape") {
             NSWorkspace.shared.activateFileViewerSelecting([Paths.raycastExtensions])
         })
         menu.addItem(.separator())
         if let url = AppInfo.link("discord") {
-            menu.addItem(item(String(localized: "Join the Discord"), "bubble.left.and.bubble.right") { openURL(url) })
+            menu.addItem(item(String(localized: "Join the Discord", bundle: .floe), "bubble.left.and.bubble.right") { openURL(url) })
         }
-        menu.addItem(item(String(localized: "Raycast Extension Store"), "storefront") {
+        menu.addItem(item(String(localized: "Raycast Extension Store", bundle: .floe), "storefront") {
             if let url = AppInfo.link("raycastExtensions") {
                 openURL(url)
             }
         })
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "Acknowledgements"), "text.book.closed") { ReadingWindow.acknowledgements.show() })
+        menu.addItem(item(String(localized: "Acknowledgements", bundle: .floe), "text.book.closed") { ReadingWindow.acknowledgements.show() })
         guard let anchor = menuAnchor.view else { return }
         // The anchor's own coordinate system is not flipped, so minY is its
         // bottom edge and the menu opens just below the button.
@@ -284,7 +284,7 @@ struct AboutSettingsPane: View {
     /// downloading implies checking.
     private var updates: some View {
         VStack(spacing: 0) {
-            updateRow("Update channel") {
+            updateRow(String(localized: "Update channel", bundle: .floe)) {
                 Picker("Update channel", selection: $updatesManager.updateChannel) {
                     ForEach(UpdateChannel.allCases) { channel in
                         Text(channel.title).tag(channel)
@@ -294,7 +294,7 @@ struct AboutSettingsPane: View {
                 .buttonStyle(.borderless)
             }
             Divider()
-            updateRow("Automatic updates") {
+            updateRow(String(localized: "Automatic updates", bundle: .floe)) {
                 Picker("Automatic updates", selection: automaticUpdatesMode) {
                     ForEach(AutomaticUpdates.allCases, id: \.self) { mode in
                         Text(mode.title).tag(mode)

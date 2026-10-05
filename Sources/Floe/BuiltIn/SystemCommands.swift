@@ -30,19 +30,19 @@ enum SystemCommand: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .lockScreen: return "Lock Screen"
-        case .sleep: return "Sleep"
-        case .sleepDisplays: return "Sleep Displays"
-        case .restart: return "Restart"
-        case .shutDown: return "Shut Down"
-        case .logOut: return "Log Out"
-        case .emptyTrash: return "Empty Trash"
-        case .toggleAppearance: return "Toggle Dark Mode"
-        case .toggleWiFi: return "Toggle Wi-Fi"
-        case .toggleMute: return "Toggle Mute"
-        case .toggleKeepAwake: return "Toggle Keep Awake"
-        case .hideOtherApps: return "Hide Other Apps"
-        case .quitAllApps: return "Quit All Apps"
+        case .lockScreen: return String(localized: "Lock Screen", bundle: .floe, comment: "A command that locks the screen.")
+        case .sleep: return String(localized: "Sleep", bundle: .floe, comment: "A command that puts the Mac to sleep.")
+        case .sleepDisplays: return String(localized: "Sleep Displays", bundle: .floe, comment: "A command that turns the displays off.")
+        case .restart: return String(localized: "Restart (system command)", defaultValue: "Restart", bundle: .floe, comment: "A command that restarts the Mac.")
+        case .shutDown: return String(localized: "Shut Down", bundle: .floe, comment: "A command that turns the Mac off.")
+        case .logOut: return String(localized: "Log Out", bundle: .floe, comment: "A command that logs the user out.")
+        case .emptyTrash: return String(localized: "Empty Trash", bundle: .floe, comment: "A command that empties the Trash.")
+        case .toggleAppearance: return String(localized: "Toggle Dark Mode", bundle: .floe, comment: "A command that switches between the light and the dark appearance.")
+        case .toggleWiFi: return String(localized: "Toggle Wi-Fi", bundle: .floe, comment: "A command that turns Wi-Fi on or off.")
+        case .toggleMute: return String(localized: "Toggle Mute", bundle: .floe, comment: "A command that turns the sound off or back on.")
+        case .toggleKeepAwake: return String(localized: "Toggle Keep Awake", bundle: .floe, comment: "A command that stops the Mac from sleeping, or lets it sleep again.")
+        case .hideOtherApps: return String(localized: "Hide Other Apps", bundle: .floe, comment: "A command that hides every app but the one in front.")
+        case .quitAllApps: return String(localized: "Quit All Apps", bundle: .floe, comment: "A command that quits every open app.")
         }
     }
 
@@ -65,30 +65,31 @@ enum SystemCommand: String, CaseIterable, Identifiable {
     }
 
     var keywords: [String] {
-        switch self {
-        case .lockScreen: return ["lock", "screen"]
-        case .sleep: return ["sleep", "rest"]
-        case .sleepDisplays: return ["sleep", "displays", "screen off", "monitor"]
-        case .restart: return ["restart", "reboot"]
-        case .shutDown: return ["shut down", "shutdown", "power off", "turn off"]
-        case .logOut: return ["log out", "logout", "sign out"]
-        case .emptyTrash: return ["empty trash", "trash", "delete trash"]
-        case .toggleAppearance: return ["dark mode", "light mode", "appearance", "theme"]
-        case .toggleWiFi: return ["wifi", "wireless", "airport", "turn wi-fi off", "turn wi-fi on"]
-        case .toggleMute: return ["mute", "unmute", "sound", "volume", "silence"]
-        case .toggleKeepAwake: return ["caffeinate", "awake", "prevent sleep", "no sleep"]
-        case .hideOtherApps: return ["hide", "hide other apps", "hide others"]
-        case .quitAllApps: return ["quit all apps", "quit all", "close all apps"]
+        let words = switch self {
+        case .lockScreen: String(localized: "lock, screen", bundle: .floe, comment: "Words that find the Lock Screen command, separated by commas.")
+        case .sleep: String(localized: "sleep, rest", bundle: .floe, comment: "Words that find the Sleep command, separated by commas.")
+        case .sleepDisplays: String(localized: "sleep, displays, screen off, monitor", bundle: .floe, comment: "Words that find the Sleep Displays command, separated by commas.")
+        case .restart: String(localized: "restart, reboot", bundle: .floe, comment: "Words that find the Restart command, separated by commas.")
+        case .shutDown: String(localized: "shut down, shutdown, power off, turn off", bundle: .floe, comment: "Words that find the Shut Down command, separated by commas.")
+        case .logOut: String(localized: "log out, logout, sign out", bundle: .floe, comment: "Words that find the Log Out command, separated by commas.")
+        case .emptyTrash: String(localized: "empty trash, trash, delete trash", bundle: .floe, comment: "Words that find the Empty Trash command, separated by commas.")
+        case .toggleAppearance: String(localized: "dark mode, light mode, appearance, theme", bundle: .floe, comment: "Words that find the Toggle Dark Mode command, separated by commas.")
+        case .toggleWiFi: String(localized: "wifi, wireless, airport, turn wi-fi off, turn wi-fi on", bundle: .floe, comment: "Words that find the Toggle Wi-Fi command, separated by commas.")
+        case .toggleMute: String(localized: "mute, unmute, sound, volume, silence", bundle: .floe, comment: "Words that find the Toggle Mute command, separated by commas.")
+        case .toggleKeepAwake: String(localized: "caffeinate, awake, prevent sleep, no sleep", bundle: .floe, comment: "Words that find the Toggle Keep Awake command, separated by commas.")
+        case .hideOtherApps: String(localized: "hide, hide other apps, hide others", bundle: .floe, comment: "Words that find the Hide Other Apps command, separated by commas.")
+        case .quitAllApps: String(localized: "quit all apps, quit all, close all apps", bundle: .floe, comment: "Words that find the Quit All Apps command, separated by commas.")
         }
+        return words.keywordList
     }
 
     var confirmation: String? {
         switch self {
-        case .restart: return "Restart your Mac now?"
-        case .shutDown: return "Shut down your Mac now?"
-        case .logOut: return "Log out now?"
-        case .emptyTrash: return "Empty the Trash? This can't be undone."
-        case .quitAllApps: return "Quit all apps now?"
+        case .restart: return String(localized: "Restart your Mac now?", bundle: .floe)
+        case .shutDown: return String(localized: "Shut down your Mac now?", bundle: .floe)
+        case .logOut: return String(localized: "Log out now?", bundle: .floe)
+        case .emptyTrash: return String(localized: "Empty the Trash? This can't be undone.", bundle: .floe)
+        case .quitAllApps: return String(localized: "Quit all apps now?", bundle: .floe)
         default: return nil
         }
     }
@@ -153,10 +154,10 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         AppleScript.execute(source, qos: .utility) { execution in
             guard execution.errorNumber != nil else { return }
             if execution.isRefused {
-                Self.askForAutomation(toControl: "System Events and Finder")
+                Self.askForAutomation(toControl: String(localized: "System Events and Finder", bundle: .floe, comment: "The names of two apps, as they stand in a sentence that asks for permission to control them."))
             } else {
                 let alert = NSAlert()
-                alert.messageText = execution.errorMessage ?? "The system command failed."
+                alert.messageText = execution.errorMessage ?? String(localized: "The system command failed.", bundle: .floe)
                 alert.runModal()
             }
         }
@@ -165,10 +166,10 @@ enum SystemCommand: String, CaseIterable, Identifiable {
     /// What to show when macOS refused a script (error -1743): the pane where it is allowed.
     static func askForAutomation(toControl apps: String) {
         let alert = NSAlert()
-        alert.messageText = "Floe needs permission to control \(apps)."
-        alert.informativeText = "Allow it in System Settings, Privacy and Security, Automation."
-        alert.addButton(withTitle: "Open Settings")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "Floe needs permission to control \(apps).", bundle: .floe, comment: "The placeholder is the name of an app, or of two.")
+        alert.informativeText = String(localized: "Allow it in System Settings, Privacy and Security, Automation.", bundle: .floe)
+        alert.addButton(withTitle: String(localized: "Open Settings (System Settings)", defaultValue: "Open Settings", bundle: .floe, comment: "A button that opens System Settings."))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .floe))
         NSApp.activate()
         if alert.runModal() == .alertFirstButtonReturn,
            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")
@@ -202,5 +203,12 @@ enum SystemCommand: String, CaseIterable, Identifiable {
             }
             app.terminate()
         }
+    }
+}
+
+nonisolated extension String {
+    /// The words of a list written as one translated string, so a language may have more of them or fewer.
+    var keywordList: [String] {
+        split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
 }

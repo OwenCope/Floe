@@ -48,10 +48,10 @@ extension LauncherModel {
     func shortcutActions(for shortcut: AppleShortcut) -> [ItemAction?] {
         [
             nil,
-            ItemAction(title: "Open in Shortcuts", symbol: "arrow.up.forward.app") { [weak self] in self?.openInShortcuts(shortcut) },
-            ItemAction(title: "Copy Name", symbol: "doc.on.doc") { [weak self] in
+            ItemAction(title: String(localized: "Open in Shortcuts", bundle: .floe, comment: "Shortcuts is the name of Apple's app."), symbol: "arrow.up.forward.app") { [weak self] in self?.openInShortcuts(shortcut) },
+            ItemAction(title: String(localized: "Copy Name", bundle: .floe), symbol: "doc.on.doc") { [weak self] in
                 NSPasteboard.general.copy(shortcut.name)
-                self?.showHUD("Copied \(shortcut.name)")
+                self?.showHUD(String(localized: "Copied \(shortcut.name)", bundle: .floe, comment: "Shown briefly after copying. The placeholder is what was copied, such as a file name."))
             },
         ]
     }

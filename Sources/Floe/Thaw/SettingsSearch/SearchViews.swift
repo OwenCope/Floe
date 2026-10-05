@@ -89,7 +89,8 @@ struct SettingsSearchResults: View {
                 VStack(alignment: .leading, spacing: 0) {
                     // A count makes a long list read as bounded, and tells the
                     // reader whether narrowing the query is worth it.
-                    Text(search.resultCount == 1 ? "1 result" : "\(search.resultCount) results")
+                    // The catalog holds the singular as a plural variation, which only a String reads from Floe's bundle.
+                    Text(String(localized: "\(search.resultCount) results", bundle: .floe, comment: "The placeholder is how many settings a search found."))
                         .font(ThawType.detail.weight(.medium))
                         .foregroundStyle(ThawInk.supporting)
                         .padding(.horizontal, ThawSpacing.section)

@@ -35,17 +35,17 @@ nonisolated enum ScriptParseError: Error, LocalizedError, Sendable, Hashable {
     var errorDescription: String? {
         switch self {
         case .unreadable:
-            "The file couldn't be read as text."
+            String(localized: "The file couldn't be read as text.", bundle: .floe)
         case .missingSchemaVersion:
-            "Missing @raycast.schemaVersion. Add `# @raycast.schemaVersion 1`."
+            String(localized: "Missing @raycast.schemaVersion. Add `# @raycast.schemaVersion 1`.", bundle: .floe, comment: "The text between the backticks, and the word that starts with @raycast, are typed into a script as they are.")
         case let .unsupportedSchemaVersion(version):
-            "Unsupported @raycast.schemaVersion \(version). Floe reads version 1."
+            String(localized: "Unsupported @raycast.schemaVersion \(version). Floe reads version 1.", bundle: .floe, comment: "The word that starts with @raycast is typed into a script as it is, and the placeholder is the version the script names.")
         case .missingTitle:
-            "Missing @raycast.title. Add `# @raycast.title My Script`."
+            String(localized: "Missing @raycast.title. Add `# @raycast.title My Script`.", bundle: .floe, comment: "The word that starts with @raycast is typed into a script as it is.")
         case let .unsupportedMode(mode):
-            "Unknown @raycast.mode \(mode). Use fullOutput, compact, silent or inline."
+            String(localized: "Unknown @raycast.mode \(mode). Use fullOutput, compact, silent or inline.", bundle: .floe, comment: "The word that starts with @raycast and the four mode names are typed into a script as they are.")
         case let .invalidArgument(index):
-            "@raycast.argument\(index) isn't valid JSON with a placeholder, e.g. {\"type\": \"text\", \"placeholder\": \"Name\"}."
+            String(localized: "@raycast.argument\(index) isn't valid JSON with a placeholder, e.g. {\"type\": \"text\", \"placeholder\": \"Name\"}.", bundle: .floe, comment: "The word that starts with @raycast and the keys in the braces are typed into a script as they are, and the placeholder is the number of the argument.")
         }
     }
 }
@@ -66,7 +66,7 @@ nonisolated struct ScriptCommand: Identifiable, Sendable, Hashable {
     }
 
     var displayPackage: String {
-        packageName ?? "Script Command"
+        packageName ?? String(localized: "Script Command", bundle: .floe, comment: "What a script command is called where it names no package.")
     }
 
     /// Reads one file's metadata. schemaVersion and title are required; mode defaults to
@@ -263,7 +263,7 @@ enum ScriptOutputWindow {
         scroll.hasVerticalScroller = true
         scroll.drawsBackground = false
         let text = NSTextView()
-        text.string = output.isEmpty ? "(no output)" : output
+        text.string = output.isEmpty ? String(localized: "(no output)", bundle: .floe, comment: "Shown in place of what a script printed when it printed nothing.") : output
         text.isEditable = false
         text.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
         text.drawsBackground = false

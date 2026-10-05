@@ -29,7 +29,11 @@ struct MenuBarCommandsSettingsSection: View {
                     Toggle(isOn: binding(for: command)) {
                         Text(command.title)
                         // A command that cannot start yet says where to finish setting it up.
-                        Text(needsSetup ? "Set \(command.extensionTitle)'s preferences on its page first." : command.extensionTitle)
+                        Text(
+                            needsSetup
+                                ? String(localized: "Set \(command.extensionTitle)'s preferences on its page first.", bundle: .floe, comment: "The placeholder is the name of an extension.")
+                                : command.extensionTitle
+                        )
                     }
                     .disabled(needsSetup && !settings.menuBarCommands.contains(command.id))
                 }

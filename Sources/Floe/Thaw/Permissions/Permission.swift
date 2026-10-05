@@ -255,12 +255,12 @@ class Permission: Identifiable {
 final class AccessibilityPermission: Permission {
     init() {
         super.init(
-            title: "Accessibility",
+            title: String(localized: "Accessibility", bundle: .floe, comment: "The macOS permission named Accessibility."),
             iconName: "accessibility",
             iconColor: .blue,
             details: [
-                "Find the items in your menu bar and read their names.",
-                "Open an item's menu when you pick it in the search.",
+                String(localized: "Find the items in your menu bar and read their names.", bundle: .floe),
+                String(localized: "Open an item's menu when you pick it in the search.", bundle: .floe),
             ],
             isRequired: true,
             // Ungranted AX trust checks always report prompted, so this URL is only for explicit Settings choices and return checks.

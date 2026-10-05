@@ -50,7 +50,7 @@ struct ActionsButton: View {
     let actions: (LauncherModel) -> [ItemAction?]
 
     var body: some View {
-        ShortcutHintButton(title: "Actions…") { model.showActions() } hint: {
+        ShortcutHintButton(title: String(localized: "Actions…", bundle: .floe)) { model.showActions() } hint: {
             KeyCapView(text: "⌘")
             Text(verbatim: "+")
             KeyCapView(text: "K")

@@ -48,13 +48,13 @@ nonisolated enum PiTextStream {
             guard let reply = message["message"] as? [String: Any], reply["role"] as? String == "assistant" else { return nil }
             if let reason = reply["stopReason"] as? String, ["error", "aborted"].contains(reason) {
                 let text = reply["errorMessage"] as? String
-                return .failure(text.flatMap { $0.isEmpty ? nil : $0 } ?? "pi stopped before finishing.")
+                return .failure(text.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "pi stopped before finishing.", bundle: .floe, comment: "The word pi is the name of a command and stays as written."))
             }
             // The finished message is the authoritative text; pi may have tried more than once to get it.
             let blocks = reply["content"] as? [[String: Any]] ?? []
             return .result(blocks.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }.joined())
         case "tool_execution_start":
-            return .stop("pi tried to use a tool, which Floe does not allow, so it was stopped. Choose another tool under Settings › General › AI.")
+            return .stop(String(localized: "pi tried to use a tool, which Floe does not allow, so it was stopped. Choose another tool under Settings › General › AI.", bundle: .floe, comment: "The word pi is the name of a command and stays as written."))
         default:
             return nil
         }

@@ -1,0 +1,4 @@
+files:
+  - source: /Sources/Floe/Resources/Localizable.xcstrings
+    translation: /Sources/Floe/Resources/Localizable.xcstrings
+    multilingual: 1

@@ -43,13 +43,13 @@ struct SearchSourceInfo: Identifiable, Equatable {
 
     static let files = SearchSourceInfo(
         id: "files",
-        title: "Files",
-        detail: "Adds up to three files that Spotlight finds by name. The search runs on this Mac and nothing leaves it. Type “files” and a name to see every match."
+        title: String(localized: "Files", bundle: .floe),
+        detail: String(localized: "Adds up to three files that Spotlight finds by name. The search runs on this Mac and nothing leaves it. Type “files” and a name to see every match.", bundle: .floe, comment: "“files” is a word the user types. It is a command and stays in English.")
     )
     static let tabs = SearchSourceInfo(
         id: "tabs",
-        title: "Browser Tabs",
-        detail: "Asks each running browser (\(BrowserApp.all.map(\.name).joined(separator: ", "))) for its open tabs and matches their titles and addresses. macOS asks for permission the first time, once per browser. The list stays on this Mac. Type “tabs” and a word to see every match."
+        title: String(localized: "Browser Tabs", bundle: .floe),
+        detail: String(localized: "Asks each running browser (\(BrowserApp.all.map(\.name).joined(separator: ", "))) for its open tabs and matches their titles and addresses. macOS asks for permission the first time, once per browser. The list stays on this Mac. Type “tabs” and a word to see every match.", bundle: .floe, comment: "The placeholder is a list of browser names. “tabs” is a word the user types. It is a command and stays in English.")
     )
     static let all = [files, tabs]
 }

@@ -42,12 +42,12 @@ struct AIToolOption: Identifiable, Equatable {
     }
 
     static func options(chosen: AITool?, which: (String) -> URL?) -> [AIToolOption] {
-        var options = [AIToolOption(tool: nil, title: "Automatic")]
+        var options = [AIToolOption(tool: nil, title: String(localized: "Automatic", bundle: .floe, comment: "The choice that lets Floe pick the command line tool that answers."))]
         for tool in AITool.allCases {
             if which(tool.command) != nil {
                 options.append(AIToolOption(tool: tool, title: tool.command))
             } else if tool == chosen {
-                options.append(AIToolOption(tool: tool, title: "\(tool.command) (not installed)"))
+                options.append(AIToolOption(tool: tool, title: String(localized: "\(tool.command) (not installed)", bundle: .floe, comment: "The placeholder is the name of a command line tool such as claude.")))
             }
         }
         return options
@@ -55,8 +55,8 @@ struct AIToolOption: Identifiable, Equatable {
 
     /// What Settings says when no tool can answer: the chosen one is missing, or none is installed.
     static func problem(chosen: AITool?) -> String {
-        guard let chosen else { return "AI can't answer yet. Install claude, codex, opencode or pi and sign in." }
-        return "AI can't answer yet. \(chosen.command) is not installed. Install it and sign in, or choose another tool."
+        guard let chosen else { return String(localized: "AI can't answer yet. Install claude, codex, opencode or pi and sign in.", bundle: .floe, comment: "The names claude, codex, opencode and pi are commands and stay as written.") }
+        return String(localized: "AI can't answer yet. \(chosen.command) is not installed. Install it and sign in, or choose another tool.", bundle: .floe, comment: "The placeholder is the name of a command line tool such as claude.")
     }
 }
 
@@ -88,12 +88,12 @@ nonisolated enum AIEngine {
         }
     }
 
-    static let missingMessage = "AI needs a command line tool to answer: claude, codex, opencode or pi, installed and signed in."
+    static let missingMessage = String(localized: "AI needs a command line tool to answer: claude, codex, opencode or pi, installed and signed in.", bundle: .floe, comment: "The names claude, codex, opencode and pi are commands and stay as written.")
 
     /// Why there is no tool to ask, for the person who asked. A chosen tool that is missing is never replaced by another.
     static func missingMessage(for setup: Setup) -> String {
         guard let tool = setup.tool else { return missingMessage }
-        return "AI is set to answer with \(tool.command), which is not installed. Install it and sign in, or choose another tool under Settings › General › AI."
+        return String(localized: "AI is set to answer with \(tool.command), which is not installed. Install it and sign in, or choose another tool under Settings › General › AI.", bundle: .floe, comment: "The placeholder is the name of a command line tool such as claude.")
     }
 
     /// Whether extensions should be told AI is there. The tools are looked up on the PATH known so far.

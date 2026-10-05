@@ -23,7 +23,8 @@ struct BrowserMenu {
 
     /// What Return does to a web address, as its button and the first row of its menu say it.
     var openTitle: String {
-        current.map { "Open in \($0.name)" } ?? "Open"
+        current.map { String(localized: "Open in \($0.name)", bundle: .floe, comment: "The placeholder is the name of an app.") }
+            ?? String(localized: "Open", bundle: .floe, comment: "The action that opens a web address in the browser.")
     }
 
     /// The other browsers, each with the title its row has: the system's default says so, as a file's does.
@@ -31,7 +32,8 @@ struct BrowserMenu {
         browsers.compactMap { option in
             guard let url = option.url, url.standardizedFileURL != current?.url.standardizedFileURL else { return nil }
             let isDefault = url.standardizedFileURL == systemDefault?.url.standardizedFileURL
-            return (isDefault ? "\(option.title) (default)" : option.title, url)
+            let title = isDefault ? String(localized: "\(option.title) (default)", bundle: .floe, comment: "The placeholder is the name of a browser.") : option.title
+            return (title, url)
         }
     }
 }
@@ -48,14 +50,14 @@ enum LinkActions {
                 host.dismiss()
             }
         }
-        return rows.isEmpty ? nil : ItemAction(title: "Open With", symbol: "arrow.up.forward.app", children: Array(rows))
+        return rows.isEmpty ? nil : ItemAction(title: String(localized: "Open With", bundle: .floe), symbol: "arrow.up.forward.app", children: Array(rows))
     }
 
     /// Copies the address that would open, scheme and all.
     static func copyAddress(_ url: URL, host: ActionHost, copy: @escaping (String) -> Void = { NSPasteboard.general.copy($0) }) -> ItemAction {
-        ItemAction(title: "Copy Address", symbol: "doc.on.doc") {
+        ItemAction(title: String(localized: "Copy Address", bundle: .floe), symbol: "doc.on.doc") {
             copy(url.absoluteString)
-            host.showHUD("Copied Address")
+            host.showHUD(String(localized: "Copied Address", bundle: .floe))
         }
     }
 }

@@ -22,7 +22,7 @@ struct ListBody: View {
             if view.bool("isLoading") {
                 Color.clear
             } else {
-                Placeholder(title: empty?.string("title") ?? "No Results", detail: empty?.string("description"))
+                Placeholder(title: empty?.string("title") ?? String(localized: "No Results", bundle: .floe), detail: empty?.string("description"))
             }
         } else {
             HStack(spacing: 0) {

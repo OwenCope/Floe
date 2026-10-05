@@ -179,12 +179,12 @@ final class ExtensionSession: ObservableObject {
                 }
             }
         case "error":
-            let text = fields["message"] as? String ?? "Unknown error"
+            let text = fields["message"] as? String ?? String(localized: "Unknown error", bundle: .floe)
             if fields["fatal"] as? Bool == true {
                 let details = [fields["stack"] as? String, log.isEmpty ? nil : log].compactMap(\.self).joined(separator: "\n\n")
                 failure = SessionFailure(kind: .error, message: text, details: details)
             } else {
-                toast = ToastState(id: -1, style: "failure", title: "Extension error", message: text)
+                toast = ToastState(id: -1, style: "failure", title: String(localized: "Extension error", bundle: .floe), message: text)
             }
         case "pong":
             pingSentAt = nil
@@ -216,8 +216,10 @@ final class ExtensionSession: ObservableObject {
         if status == 0, !wasSignalled {
             onMessage(["type": "exit"])
         } else if failure == nil {
-            let how = wasSignalled ? "was killed by signal \(status)" : "exited with status \(status)"
-            failure = SessionFailure(kind: .crashed, message: "The extension stopped unexpectedly. It \(how).", details: log)
+            let message = wasSignalled
+                ? String(localized: "The extension stopped unexpectedly. It was killed by signal \(status).", bundle: .floe, comment: "The placeholder is a number.")
+                : String(localized: "The extension stopped unexpectedly. It exited with status \(status).", bundle: .floe, comment: "The placeholder is a number.")
+            failure = SessionFailure(kind: .crashed, message: message, details: log)
             onMessage(["type": "crashed"])
         }
     }
@@ -227,7 +229,7 @@ final class ExtensionSession: ObservableObject {
     func heartbeat(now: Date = Date()) {
         if let sent = pingSentAt {
             if now.timeIntervalSince(sent) > 8, failure == nil {
-                failure = SessionFailure(kind: .unresponsive, message: "The extension isn't responding.", details: log)
+                failure = SessionFailure(kind: .unresponsive, message: String(localized: "The extension isn't responding.", bundle: .floe), details: log)
             }
             return
         }

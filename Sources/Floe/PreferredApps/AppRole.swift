@@ -35,11 +35,11 @@ enum AppRole: String, CaseIterable, Identifiable {
     /// The role's name in Settings.
     var title: String {
         switch self {
-        case .terminal: "Terminal"
-        case .editor: "Editor"
-        case .browser: "Browser"
-        case .notes: "Notes"
-        case .clipboard: "Clipboard"
+        case .terminal: String(localized: "Terminal", bundle: .floe, comment: "The kind of app that runs a shell, as the label of the picker that chooses one.")
+        case .editor: String(localized: "Editor", bundle: .floe, comment: "The kind of app that edits text files, as the label of the picker that chooses one.")
+        case .browser: String(localized: "Browser", bundle: .floe, comment: "The kind of app that opens web pages, as the label of the picker that chooses one.")
+        case .notes: String(localized: "Notes", bundle: .floe, comment: "The kind of app that keeps notes, as the label of the picker that chooses one.")
+        case .clipboard: String(localized: "Clipboard", bundle: .floe, comment: "The kind of app that keeps a clipboard history, as the label of the picker that chooses one.")
         }
     }
 
@@ -56,11 +56,11 @@ enum AppRole: String, CaseIterable, Identifiable {
     /// The line under the role's picker in Settings.
     var detail: String {
         switch self {
-        case .terminal: "Opens a folder from the Actions menu or from Finder, and the SSH hosts you pick in the search."
-        case .editor: "Opens a file or a folder from the Actions menu or from Finder."
-        case .browser: "Opens web addresses, quicklinks and the other web links you open from Floe."
-        case .notes: "Type “note” and then your text in the search to send it there."
-        case .clipboard: "Opens from Clipboard History in the search. With another app chosen, Floe saves no copies and keeps the history it has."
+        case .terminal: String(localized: "Opens a folder from the Actions menu or from Finder, and the SSH hosts you pick in the search.", bundle: .floe)
+        case .editor: String(localized: "Opens a file or a folder from the Actions menu or from Finder.", bundle: .floe)
+        case .browser: String(localized: "Opens web addresses, quicklinks and the other web links you open from Floe.", bundle: .floe)
+        case .notes: String(localized: "Type “note” and then your text in the search to send it there.", bundle: .floe, comment: "The word in quotation marks is typed as it is and stays in English.")
+        case .clipboard: String(localized: "Opens from Clipboard History in the search. With another app chosen, Floe saves no copies and keeps the history it has.", bundle: .floe)
         }
     }
 
@@ -84,21 +84,26 @@ enum AppRole: String, CaseIterable, Identifiable {
 
     /// Other words the role's search rows answer to.
     var keywords: [String] {
-        switch self {
-        case .terminal: ["terminal", "shell", "command line", "finder selection"]
-        case .editor: ["editor", "edit", "code", "finder selection"]
-        case .browser: ["browser", "web", "links"]
-        case .notes: ["notes", "jot", "memo"]
-        case .clipboard: ["clipboard", "copies", "paste"]
+        let terms = switch self {
+        case .terminal: String(localized: "terminal, shell, command line, finder selection", bundle: .floe, comment: "Words that find the rows of the terminal app in the search, separated by commas.")
+        case .editor: String(localized: "editor, edit, code, finder selection", bundle: .floe, comment: "Words that find the rows of the editor app in the search, separated by commas.")
+        case .browser: String(localized: "browser, web, links", bundle: .floe, comment: "Words that find the rows of the browser app in the search, separated by commas.")
+        case .notes: String(localized: "notes, jot, memo", bundle: .floe, comment: "Words that find the rows of the notes app in the search, separated by commas.")
+        case .clipboard: String(localized: "clipboard, copies, paste", bundle: .floe, comment: "Words that find the rows of the clipboard app in the search, separated by commas.")
         }
+        return terms.searchTerms
     }
 
     /// How the picker names the choice of nothing, given the app that stands in for it.
     func defaultTitle(appName: String?) -> String {
         switch self {
         case .terminal: appName ?? "Terminal"
-        case .editor: appName.map { "Default for Text Files (\($0))" } ?? "Default for Text Files"
-        case .browser: appName.map { "Default Browser (\($0))" } ?? "Default Browser"
+        case .editor:
+            appName.map { String(localized: "Default for Text Files (\($0))", bundle: .floe, comment: "The placeholder is the name of an app.") }
+                ?? String(localized: "Default for Text Files", bundle: .floe)
+        case .browser:
+            appName.map { String(localized: "Default Browser (\($0))", bundle: .floe, comment: "The placeholder is the name of an app.") }
+                ?? String(localized: "Default Browser", bundle: .floe)
         case .notes: NotesApp.appleNotes.title
         case .clipboard: "Floe"
         }

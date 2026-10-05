@@ -11,7 +11,7 @@ import CoreGraphics
 
 /// Errors with the message the extension sees.
 enum SelectionError: LocalizedError {
-    case accessibilityOff(action: String)
+    case accessibilityOff
     case noSelectedText
     case finderNotFrontmost
     case finderEmpty
@@ -21,18 +21,19 @@ enum SelectionError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case let .accessibilityOff(action):
-            "\(action) needs Accessibility access. Turn it on under System Settings › Privacy & Security › Accessibility."
+        case .accessibilityOff:
+            String(localized: "Getting the selected text needs Accessibility access. Turn it on under System Settings › Privacy & Security › Accessibility.", bundle: .floe)
         case .noSelectedText:
+            // The sentence Raycast's API fails with, which an extension may look for. It stays as written.
             "Unable to get selected text from frontmost application"
         case .finderNotFrontmost:
-            "The Finder isn't frontmost, so there is no Finder selection to read."
+            String(localized: "The Finder isn't frontmost, so there is no Finder selection to read.", bundle: .floe)
         case .finderEmpty:
-            "No files are selected in the Finder."
+            String(localized: "No files are selected in the Finder.", bundle: .floe)
         case let .finderAutomation(details):
             details
         case .automationRefused:
-            "Floe needs Automation access to read the Finder selection. Turn it on under System Settings › Privacy & Security › Automation, then try again. (-1743)"
+            String(localized: "Floe needs Automation access to read the Finder selection. Turn it on under System Settings › Privacy & Security › Automation, then try again. (-1743)", bundle: .floe)
         }
     }
 }
@@ -45,7 +46,7 @@ nonisolated enum SelectedText {
 
     @concurrent
     static func current() async throws -> String {
-        guard isTrusted else { throw SelectionError.accessibilityOff(action: "Getting the selected text") }
+        guard isTrusted else { throw SelectionError.accessibilityOff }
         if let text = accessibilitySelectedText(), !text.isEmpty {
             return text
         }
@@ -143,7 +144,7 @@ enum FinderSelection {
             if execution.isRefused {
                 throw SelectionError.automationRefused
             }
-            throw SelectionError.finderAutomation(execution.errorMessage ?? "The Finder selection couldn't be read.")
+            throw SelectionError.finderAutomation(execution.errorMessage ?? String(localized: "The Finder selection couldn't be read.", bundle: .floe))
         }
         return (execution.text ?? "").split(separator: "\n").map(String.init).filter { !$0.isEmpty }
     }

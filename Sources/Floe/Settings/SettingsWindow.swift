@@ -36,7 +36,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
                 backing: .buffered,
                 defer: false
             )
-            window.title = "Floe Settings"
+            window.title = String(localized: "Floe Settings", bundle: .floe)
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
             window.contentMinSize = Self.minimumSize

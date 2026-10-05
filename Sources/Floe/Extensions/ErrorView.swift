@@ -30,9 +30,9 @@ struct ErrorView: View {
 
     private var title: String {
         switch failure.kind {
-        case .error: "\(session.command.title) ran into an error"
-        case .crashed: "\(session.command.title) stopped"
-        case .unresponsive: "\(session.command.title) isn't responding"
+        case .error: String(localized: "\(session.command.title) ran into an error", bundle: .floe, comment: "The placeholder is the name of a command.")
+        case .crashed: String(localized: "\(session.command.title) stopped", bundle: .floe, comment: "The placeholder is the name of a command.")
+        case .unresponsive: String(localized: "\(session.command.title) isn't responding", bundle: .floe, comment: "The placeholder is the name of a command.")
         }
     }
 
@@ -67,7 +67,7 @@ struct ErrorView: View {
                 .padding(18)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Footer(primary: failure.kind == .unresponsive ? "Restart" : "Try Again") {
+            Footer(primary: failure.kind == .unresponsive ? String(localized: "Restart", bundle: .floe, comment: "A verb on a button: start the extension again.") : String(localized: "Try Again", bundle: .floe)) {
                 Text("⌘⇧C copies details · Esc goes back").foregroundStyle(.secondary)
             }
         }

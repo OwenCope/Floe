@@ -22,9 +22,9 @@ nonisolated enum SearchFieldShape: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .rounded: "Rounded"
-        case .capsule: "Capsule"
-        case .square: "Square"
+        case .rounded: String(localized: "Rounded", bundle: .floe, comment: "A shape for the search field.")
+        case .capsule: String(localized: "Capsule", bundle: .floe, comment: "A shape for the search field.")
+        case .square: String(localized: "Square", bundle: .floe, comment: "A shape for the search field.")
         }
     }
 

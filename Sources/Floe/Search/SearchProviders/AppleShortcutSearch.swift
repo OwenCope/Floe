@@ -12,8 +12,8 @@ extension SearchSourceInfo {
     /// listed with the sources because it too reads from another app only once it is switched on.
     static let shortcuts = SearchSourceInfo(
         id: "shortcuts",
-        title: "Apple Shortcuts",
-        detail: "Finds the shortcuts you made in the Shortcuts app by name and runs the one you pick. Floe asks the Shortcuts command line tool for the names each time the launcher opens. The list stays on this Mac and is not saved. Type “shortcuts” and a space to see them all."
+        title: String(localized: "Apple Shortcuts", bundle: .floe),
+        detail: String(localized: "Finds the shortcuts you made in the Shortcuts app by name and runs the one you pick. Floe asks the Shortcuts command line tool for the names each time the launcher opens. The list stays on this Mac and is not saved. Type “shortcuts” and a space to see them all.", bundle: .floe, comment: "“shortcuts” is a word the user types. It is a command and stays in English.")
     )
 
     /// Every switch under Search Sources on the Privacy page.
@@ -36,8 +36,8 @@ struct AppleShortcutSearchProvider: SearchProvider {
 /// `shortcuts mail`: the shortcuts that match, and every shortcut for the keyword and a space alone.
 struct AppleShortcutSearchScope: SearchScope {
     let keyword = "shortcuts"
-    let title = "Shortcuts"
-    let emptyTitle = "No shortcuts match"
+    let title = String(localized: "Shortcuts", bundle: .floe, comment: "A section title. Shortcuts are what the user makes in Apple's Shortcuts app.")
+    let emptyTitle = String(localized: "No shortcuts match", bundle: .floe)
 
     /// With the switch off or no shortcuts the word is not a scope, so a search that starts with it stays an ordinary one.
     func text(in context: SearchContext) -> String? {

@@ -22,7 +22,7 @@ struct FileSearchView: View {
 
     var body: some View {
         PanelSections {
-            SearchBar(placeholder: "Search files…", text: $search.query, focusToken: focusToken, isLoading: spotlight.isSearching) { EmptyView() }
+            SearchBar(placeholder: String(localized: "Search files…", bundle: .floe), text: $search.query, focusToken: focusToken, isLoading: spotlight.isSearching) { EmptyView() }
         } content: {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -85,10 +85,10 @@ struct FileSearchView: View {
 
             Spacer(minLength: 0)
 
-            ShortcutHintButton(title: "Open") { search.openSelectedFile() } hint: {
+            ShortcutHintButton(title: String(localized: "Open", bundle: .floe, comment: "A button that opens the selected file.")) { search.openSelectedFile() } hint: {
                 KeyCapView(systemImage: "return")
             }
-            ShortcutHintButton(title: "Show in Finder") { search.revealSelectedFile() } hint: {
+            ShortcutHintButton(title: String(localized: "Show in Finder", bundle: .floe)) { search.revealSelectedFile() } hint: {
                 KeyCapView(text: "⌘")
                 KeyCapView(systemImage: "return")
             }
@@ -171,7 +171,7 @@ struct FilePreview: View {
 }
 
 struct FileMetaRow<Content: View>: View {
-    let label: String
+    let label: LocalizedStringKey
     @ViewBuilder let content: Content
 
     var body: some View {

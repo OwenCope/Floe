@@ -12,8 +12,8 @@ import Foundation
 /// Only the main thread touches it; the end of a stream hops back there before it does.
 final class FileSearchScope: SearchScope {
     let keyword = "files"
-    let title = "Files"
-    let emptyTitle = "No files match"
+    let title = String(localized: "Files", bundle: .floe)
+    let emptyTitle = String(localized: "No files match", bundle: .floe)
 
     /// Its own search, so the file search view's results are left alone.
     private lazy var search = FileSearch(publishesProgress: true)

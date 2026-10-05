@@ -17,8 +17,8 @@ struct CalendarSearchProvider: SearchProvider {
         let today = agenda.filter { Calendar.current.isDateInToday($0.startDate) }
         let tomorrow = agenda.filter { !Calendar.current.isDateInToday($0.startDate) }
         return SearchContribution(
-            sectioned: today.map { RootResult(item: .event($0), section: "Today") }
-                + tomorrow.map { RootResult(item: .event($0), section: "Tomorrow") }
+            sectioned: today.map { RootResult(item: .event($0), section: String(localized: "Today", bundle: .floe)) }
+                + tomorrow.map { RootResult(item: .event($0), section: String(localized: "Tomorrow", bundle: .floe)) }
         )
     }
 }
@@ -31,6 +31,6 @@ struct EmojiSearchProvider: SearchProvider {
             term: String(context.query.dropFirst()),
             frecency: { context.frecency(EmojiResult.id(for: $0)) }
         )
-        return SearchContribution(sectioned: matches.map { RootResult(item: .emoji($0), section: "Emoji & Symbols") })
+        return SearchContribution(sectioned: matches.map { RootResult(item: .emoji($0), section: String(localized: "Emoji & Symbols", bundle: .floe)) })
     }
 }

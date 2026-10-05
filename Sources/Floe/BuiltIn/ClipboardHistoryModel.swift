@@ -45,13 +45,13 @@ final class ClipboardHistoryModel: ObservableObject {
                 ClipboardHistoryStore.simulatePaste()
             }
         } else {
-            host.showHUD("Copied. Press ⌘V to paste.")
+            host.showHUD(String(localized: "Copied. Press ⌘V to paste.", bundle: .floe))
         }
     }
 
     func copy(_ entry: ClipboardEntry) {
         guard ClipboardHistoryStore.writeToPasteboard(entry) else { return }
-        host.showHUD("Copied")
+        host.showHUD(String(localized: "Copied", bundle: .floe, comment: "Said after something was copied."))
     }
 
     func delete(_ entry: ClipboardEntry) {

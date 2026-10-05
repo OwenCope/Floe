@@ -37,7 +37,7 @@ struct ThawPermissionsView: View {
     private var continueTitle: String {
         switch permissions.permissionsState {
         case .hasAll: finishTitle
-        case .missing: "Continue Without Menu Bar Search"
+        case .missing: String(localized: "Continue Without Menu Bar Search", bundle: .floe)
         }
     }
 
@@ -99,7 +99,7 @@ struct ThawPermissionsView: View {
                 .font(ThawType.display)
                 .multilineTextAlignment(.center)
 
-            Text(verbatim: "Searching the menu bar needs Accessibility. The launcher and your extensions work without it.")
+            Text("Searching the menu bar needs Accessibility. The launcher and your extensions work without it.")
                 .font(ThawType.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -123,14 +123,14 @@ struct ThawPermissionsView: View {
         .padding(.horizontal, 30)
     }
 
-    private func privacyFact(_ text: String) -> some View {
+    private func privacyFact(_ text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "checkmark")
                 .font(ThawType.micro.weight(.bold))
                 .foregroundStyle(.secondary)
                 .padding(.top, 1.5)
 
-            Text(verbatim: text)
+            Text(text)
                 .font(ThawType.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

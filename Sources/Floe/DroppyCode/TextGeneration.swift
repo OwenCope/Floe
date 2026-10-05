@@ -139,7 +139,7 @@ nonisolated enum TextGeneration {
             result.trimmedOutput
         }
         guard !text.isEmpty else {
-            throw ShellError("The model gave no answer.")
+            throw ShellError(String(localized: "The model gave no answer.", bundle: .floe))
         }
         return text
     }

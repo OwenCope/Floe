@@ -59,9 +59,9 @@ enum PickList {
     /// The bottom bar's count: everything while there is no query, then how much of it still matches.
     static func countLabel(shown: Int, total: Int, isFiltered: Bool) -> String {
         if isFiltered {
-            return "\(shown) of \(total)"
+            return String(localized: "\(shown) of \(total)", bundle: .floe, comment: "How many lines of a list match what was typed: 3 of 40.")
         }
-        return total == 1 ? "1 item" : "\(total) items"
+        return String(localized: "\(total) items", bundle: .floe, comment: "How many lines a list has.")
     }
 
     /// The selection after an arrow, page or home/end key, kept inside the list.

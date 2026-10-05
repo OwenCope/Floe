@@ -23,7 +23,7 @@ enum PickerMode {
         let items = PickList.items(from: input)
         guard !items.isEmpty else { exit(PickExit.cancelled.rawValue) }
 
-        let session = PickSession(items: items, prompt: options.prompt ?? "Search…", query: options.query ?? "")
+        let session = PickSession(items: items, prompt: options.prompt ?? String(localized: "Search…", bundle: .floe), query: options.query ?? "")
         session.finish = { item in
             guard let item else { exit(PickExit.cancelled.rawValue) }
             print(PickList.output(for: item, printsIndex: options.index))
@@ -219,11 +219,11 @@ struct PickView: View {
                 .foregroundStyle(.secondary)
                 .padding(.leading, 5)
             Spacer(minLength: 0)
-            ShortcutHintButton(title: "Cancel") { session.finish(nil) } hint: {
+            ShortcutHintButton(title: String(localized: "Cancel", bundle: .floe)) { session.finish(nil) } hint: {
                 KeyCapView(text: "esc")
             }
             if session.selected != nil {
-                ShortcutHintButton(title: "Choose") { session.choose() } hint: {
+                ShortcutHintButton(title: String(localized: "Choose", bundle: .floe, comment: "A verb on a button: pick the selected line.")) { session.choose() } hint: {
                     KeyCapView(systemImage: "return")
                 }
             }

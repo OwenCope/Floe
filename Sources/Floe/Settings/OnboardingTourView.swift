@@ -17,9 +17,13 @@ struct OnboardingTourView: View {
 
     private var hotkeyText: String {
         if let hotkey = settings.toggleHotkey {
-            return "Press \(hotkey.displayValue) to show or hide Floe from any app. You can change the hotkey in Settings."
+            return String(
+                localized: "Press \(hotkey.displayValue) to show or hide Floe from any app. You can change the hotkey in Settings.",
+                bundle: .floe,
+                comment: "The placeholder is a keyboard shortcut."
+            )
         }
-        return "Open Floe from its menu bar icon. You can set a hotkey in Settings."
+        return String(localized: "Open Floe from its menu bar icon. You can set a hotkey in Settings.", bundle: .floe)
     }
 
     var body: some View {
@@ -37,16 +41,16 @@ struct OnboardingTourView: View {
             Spacer(minLength: 0)
 
             HStack(alignment: .top, spacing: 14) {
-                card(symbol: "keyboard", title: "Open it with a hotkey", text: hotkeyText)
+                card(symbol: "keyboard", title: String(localized: "Open it with a hotkey", bundle: .floe), text: hotkeyText)
                 card(
                     symbol: "puzzlepiece.extension",
-                    title: "Run Raycast extensions",
-                    text: "Floe runs the extensions in its own folder and the ones you have installed in Raycast."
+                    title: String(localized: "Run Raycast extensions", bundle: .floe),
+                    text: String(localized: "Floe runs the extensions in its own folder and the ones you have installed in Raycast.", bundle: .floe)
                 )
                 card(
                     symbol: "menubar.rectangle",
-                    title: "Search the menu bar",
-                    text: "Find a menu bar item by name and open its menu. This is the one feature that needs Accessibility."
+                    title: String(localized: "Search the menu bar", bundle: .floe),
+                    text: String(localized: "Find a menu bar item by name and open its menu. This is the one feature that needs Accessibility.", bundle: .floe)
                 )
             }
             .fixedSize(horizontal: false, vertical: true)

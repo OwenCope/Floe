@@ -22,7 +22,7 @@ enum NotesApp: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .appleNotes: "Apple Notes"
         case .antinote: "Antinote"
-        case .custom: "Another App"
+        case .custom: String(localized: "Another App", bundle: .floe)
         }
     }
 
@@ -55,9 +55,11 @@ enum NoteAction: String, CaseIterable {
     }
 
     func title(text: String) -> String {
-        switch self {
-        case .new: text.isEmpty ? "New Note" : "New Note “\(text)”"
-        case .append: text.isEmpty ? "Append to Current Note" : "Append “\(text)” to Current Note"
+        switch (self, text.isEmpty) {
+        case (.new, true): String(localized: "New Note", bundle: .floe)
+        case (.new, false): String(localized: "New Note “\(text)”", bundle: .floe, comment: "The placeholder is the text of the note.")
+        case (.append, true): String(localized: "Append to Current Note", bundle: .floe)
+        case (.append, false): String(localized: "Append “\(text)” to Current Note", bundle: .floe, comment: "The placeholder is the text added to the note.")
         }
     }
 }
@@ -126,11 +128,11 @@ enum Notes {
     static func perform(_ action: NoteAction, text: String, app: NotesApp, template: String, completion: @escaping (String?) -> Void) {
         guard app == .appleNotes else {
             guard let url = url(action, text: text, app: app, template: template), url.scheme != nil else {
-                completion("Set a URL for your notes app in Settings")
+                completion(String(localized: "Set a URL for your notes app in Settings", bundle: .floe))
                 return
             }
             guard NSWorkspace.shared.urlForApplication(toOpen: url) != nil else {
-                completion(app == .antinote ? "Antinote isn't installed" : "No app opens that URL")
+                completion(app == .antinote ? String(localized: "Antinote isn't installed", bundle: .floe, comment: "Antinote is the name of an app.") : String(localized: "No app opens that URL", bundle: .floe))
                 return
             }
             NSWorkspace.shared.open(url)
@@ -140,9 +142,9 @@ enum Notes {
         let source = appleNotesScript(text: text)
         AppleScript.execute(source, qos: .userInitiated) { execution in
             switch execution.errorNumber {
-            case nil: completion(text.isEmpty ? nil : "Saved to Notes")
+            case nil: completion(text.isEmpty ? nil : String(localized: "Saved to Notes", bundle: .floe, comment: "Notes is Apple's notes app."))
             case AppleScript.refusedErrorNumber: SystemCommand.askForAutomation(toControl: "Notes")
-            default: completion("Couldn't save the note in Notes")
+            default: completion(String(localized: "Couldn't save the note in Notes", bundle: .floe, comment: "Notes is Apple's notes app."))
             }
         }
     }

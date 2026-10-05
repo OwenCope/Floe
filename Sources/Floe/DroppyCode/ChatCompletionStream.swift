@@ -102,15 +102,25 @@ nonisolated enum ChatCompletionStream {
         if !trimmed.isEmpty {
             return String(trimmed.prefix(500))
         }
-        return "The API returned status \(statusCode)."
+        return String(localized: "The API returned status \(statusCode).", bundle: .floe, comment: "The placeholder is an HTTP status number such as 500.")
     }
 
     /// What is left when the connection keeps dropping: how many times the same
     /// request was tried, and the transport's own reason, so the user can act on it.
     static func terminalTransportMessage(_ error: Error, attempts: Int) -> String {
         let reason = error.localizedDescription
-        let base = "The API could not be reached after \(attempts) attempts. Check the connection, then try again."
-        return reason.isEmpty ? base : "\(base) (\(reason))"
+        guard !reason.isEmpty else {
+            return String(
+                localized: "The API could not be reached after \(attempts) attempts. Check the connection, then try again.",
+                bundle: .floe,
+                comment: "The placeholder is how many times the request was tried."
+            )
+        }
+        return String(
+            localized: "The API could not be reached after \(attempts) attempts. Check the connection, then try again. (\(reason))",
+            bundle: .floe,
+            comment: "The first placeholder is how many times the request was tried and the second is the system's own reason for the failure."
+        )
     }
 
     /// Sends the request and returns the whole answer, handing each batch of text to `onText` as
@@ -129,7 +139,7 @@ nonisolated enum ChatCompletionStream {
             do {
                 try await stream(request, session: session, into: &answer, onText: onText)
                 guard !answer.isEmpty else {
-                    throw ProviderError.failed("The model gave no answer.")
+                    throw ProviderError.failed(String(localized: "The model gave no answer.", bundle: .floe))
                 }
                 return answer
             } catch {

@@ -81,16 +81,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "command.square", accessibilityDescription: "Floe")
         let menu = NSMenu()
-        showItem = menu.addItem(withTitle: "Show Floe", action: #selector(show), keyEquivalent: "")
+        showItem = menu.addItem(withTitle: String(localized: "Show Floe", bundle: .floe), action: #selector(show), keyEquivalent: "")
         showItem?.target = self
-        menu.addItem(withTitle: "About Floe", action: #selector(openAbout), keyEquivalent: "").target = self
+        menu.addItem(withTitle: String(localized: "About Floe", bundle: .floe), action: #selector(openAbout), keyEquivalent: "").target = self
         // Nil until Info.plist carries a Sparkle public key.
         if let updateItem = UpdatesManager.shared.makeMenuItem() {
             menu.addItem(updateItem)
         }
-        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        menu.addItem(withTitle: String(localized: "Settings…", bundle: .floe), action: #selector(openSettings), keyEquivalent: ",").target = self
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "q")
+        menu.addItem(withTitle: String(localized: "Quit", bundle: .floe, comment: "The menu item that quits Floe."), action: #selector(NSApplication.terminate), keyEquivalent: "q")
         item.menu = menu
         statusItem = item
         NSApp.mainMenu = MainMenu.make(target: self, about: #selector(openAbout), settings: #selector(openSettings))
@@ -163,7 +163,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let toggleHotkey = settings.toggleHotkey {
             _ = hotkeys.register(toggleHotkey) { [weak self] in self?.toggle() }
         }
-        showItem?.title = settings.toggleHotkey.map { "Show Floe (\($0.displayValue))" } ?? "Show Floe"
+        showItem?.title = settings.toggleHotkey.map { String(localized: "Show Floe (\($0.displayValue))", bundle: .floe, comment: "A menu item. The placeholder is a keyboard shortcut such as ⌥Space.") } ?? String(localized: "Show Floe", bundle: .floe)
         for command in model.allCommands {
             guard let keyCombination = settings.commandHotkeys[command.id] else { continue }
             _ = hotkeys.register(keyCombination) { [weak self] in

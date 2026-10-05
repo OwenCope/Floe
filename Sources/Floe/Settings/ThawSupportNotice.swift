@@ -27,7 +27,11 @@ struct ThawSupportNotice: View {
 
     static func detail(isInstalled: Bool) -> String {
         isInstalled
-            ? "Thaw's actions are in the search: type “thaw” to see them. The ones that change a Thaw setting need Automation turned on in Thaw."
-            : "Install Thaw and its actions appear in the search."
+            ? String(
+                localized: "Thaw's actions are in the search: type “thaw” to see them. The ones that change a Thaw setting need Automation turned on in Thaw.",
+                bundle: .floe,
+                comment: "The word in quotation marks is typed as it is and stays in English."
+            )
+            : String(localized: "Install Thaw and its actions appear in the search.", bundle: .floe)
     }
 }

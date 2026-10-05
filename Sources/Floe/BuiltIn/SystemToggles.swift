@@ -16,20 +16,22 @@ enum SystemToggle {
     // MARK: Wi-Fi
 
     static func flipWiFi() -> String {
-        guard let interface = CWWiFiClient.shared().interface() else { return "This Mac has no Wi-Fi" }
+        guard let interface = CWWiFiClient.shared().interface() else { return String(localized: "This Mac has no Wi-Fi", bundle: .floe) }
         let turnOn = !interface.powerOn()
         do {
             try interface.setPower(turnOn)
-            return turnOn ? "Wi-Fi On" : "Wi-Fi Off"
+            return turnOn ? String(localized: "Wi-Fi On", bundle: .floe) : String(localized: "Wi-Fi Off", bundle: .floe)
         } catch {
-            return "Couldn't turn Wi-Fi \(turnOn ? "on" : "off")"
+            return turnOn
+                ? String(localized: "Couldn't turn Wi-Fi on", bundle: .floe)
+                : String(localized: "Couldn't turn Wi-Fi off", bundle: .floe)
         }
     }
 
     // MARK: Mute
 
     static func flipMute() -> String {
-        guard let device = defaultOutputDevice() else { return "No sound output" }
+        guard let device = defaultOutputDevice() else { return String(localized: "No sound output", bundle: .floe) }
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyMute,
             mScope: kAudioDevicePropertyScopeOutput,
@@ -41,10 +43,10 @@ enum SystemToggle {
         guard AudioObjectHasProperty(device, &address),
               AudioObjectIsPropertySettable(device, &address, &settable) == noErr, settable.boolValue,
               AudioObjectGetPropertyData(device, &address, 0, nil, &size, &muted) == noErr
-        else { return "This output can't be muted" }
+        else { return String(localized: "This output can't be muted", bundle: .floe) }
         var flipped: UInt32 = muted == 0 ? 1 : 0
-        guard AudioObjectSetPropertyData(device, &address, 0, nil, size, &flipped) == noErr else { return "Couldn't change the sound" }
-        return flipped == 1 ? "Muted" : "Unmuted"
+        guard AudioObjectSetPropertyData(device, &address, 0, nil, size, &flipped) == noErr else { return String(localized: "Couldn't change the sound", bundle: .floe) }
+        return flipped == 1 ? String(localized: "Muted", bundle: .floe, comment: "Said after the sound was turned off.") : String(localized: "Unmuted", bundle: .floe, comment: "Said after the sound was turned back on.")
     }
 
     private static func defaultOutputDevice() -> AudioDeviceID? {
@@ -73,7 +75,7 @@ enum SystemToggle {
         if awakeAssertion != 0 {
             IOPMAssertionRelease(awakeAssertion)
             awakeAssertion = 0
-            return "Your Mac can sleep again"
+            return String(localized: "Your Mac can sleep again", bundle: .floe)
         }
         var assertion: IOPMAssertionID = 0
         let status = IOPMAssertionCreateWithName(
@@ -82,8 +84,8 @@ enum SystemToggle {
             "Floe: Keep Awake" as CFString,
             &assertion
         )
-        guard status == kIOReturnSuccess else { return "Couldn't keep your Mac awake" }
+        guard status == kIOReturnSuccess else { return String(localized: "Couldn't keep your Mac awake", bundle: .floe) }
         awakeAssertion = assertion
-        return "Keeping your Mac awake"
+        return String(localized: "Keeping your Mac awake", bundle: .floe)
     }
 }

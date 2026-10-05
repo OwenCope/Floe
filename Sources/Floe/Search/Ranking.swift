@@ -33,7 +33,7 @@ extension RootItem {
         switch self {
         case let .system(command): command.keywords
         case let .settingsPane(pane): pane.keywords
-        case let .note(action, _): action == .new ? AppRole.notes.keywords : ["add to note"]
+        case let .note(action, _): action == .new ? AppRole.notes.keywords : [String(localized: "add to note", bundle: .floe, comment: "A search keyword for the row that adds text to a note. Lowercase.")]
         case let .thaw(action): action.keywords
         case let .finderSelection(role, _): role.keywords
         case .clipboardApp: AppRole.clipboard.keywords
@@ -84,10 +84,10 @@ enum Ranking {
             .min(count: 5) { frecency($0.id) > frecency($1.id) }
         let shown = favoriteIDs.union(suggestions.map(\.id))
         let (commands, apps) = all.filter { !shown.contains($0.id) }.partitioned(by: \.isApp)
-        return favoriteItems.map { RootResult(item: $0, section: "Favorites") }
-            + suggestions.map { RootResult(item: $0, section: "Suggestions") }
-            + commands.map { RootResult(item: $0, section: "Commands") }
-            + apps.map { RootResult(item: $0, section: "Applications") }
+        return favoriteItems.map { RootResult(item: $0, section: String(localized: "Favorites", bundle: .floe)) }
+            + suggestions.map { RootResult(item: $0, section: String(localized: "Suggestions", bundle: .floe, comment: "A section title above results Floe suggests.")) }
+            + commands.map { RootResult(item: $0, section: String(localized: "Commands", bundle: .floe)) }
+            + apps.map { RootResult(item: $0, section: String(localized: "Applications", bundle: .floe)) }
     }
 
     /// With a query: match quality first, nudged by how often and how recently each item is used.

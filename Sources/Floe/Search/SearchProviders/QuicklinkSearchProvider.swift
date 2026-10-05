@@ -20,7 +20,7 @@ struct QuicklinkSearchProvider: SearchProvider {
             pinned: Self.keywordSearchResult(query: text, links: links).map { [$0] } ?? [],
             // Enabled fallbacks in user order.
             appended: links.filter(\.isFallback).map { link in
-                RootResult(item: .quicklink(link, queryText: text, fallback: true, keywordSearch: false), section: "Fallbacks")
+                RootResult(item: .quicklink(link, queryText: text, fallback: true, keywordSearch: false), section: String(localized: "Fallbacks", bundle: .floe, comment: "A section title above the searches offered when nothing else matches."))
             }
         )
     }

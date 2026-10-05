@@ -101,7 +101,7 @@ enum BrowserTabRow: Equatable {
     var title: String {
         switch self {
         case let .tab(tab): tab.title.isEmpty ? tab.url : tab.title
-        case let .access(browser): "Floe needs permission to list \(browser.name)'s tabs"
+        case let .access(browser): String(localized: "Floe needs permission to list \(browser.name)'s tabs", bundle: .floe, comment: "The placeholder is the name of a browser.")
         }
     }
 

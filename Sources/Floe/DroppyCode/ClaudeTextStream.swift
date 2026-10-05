@@ -45,7 +45,7 @@ nonisolated enum ClaudeTextStream {
             let errors = (message["errors"] as? [String] ?? []).joined(separator: "\n")
             let text = message["result"] as? String ?? errors
             guard isError else { return .result(text) }
-            return .failure(text.isEmpty ? "Claude stopped before finishing." : text)
+            return .failure(text.isEmpty ? String(localized: "Claude stopped before finishing.", bundle: .floe) : text)
         default:
             return nil
         }

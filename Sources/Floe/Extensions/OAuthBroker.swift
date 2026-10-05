@@ -26,13 +26,13 @@ nonisolated enum OAuthError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .timedOut:
-            "Sign-in timed out."
+            String(localized: "Sign-in timed out.", bundle: .floe)
         case .cancelled:
-            "Sign-in was cancelled."
+            String(localized: "Sign-in was cancelled.", bundle: .floe)
         case .replaced:
-            "Sign-in was replaced by a newer request."
+            String(localized: "Sign-in was replaced by a newer request.", bundle: .floe)
         case .unknownRequest:
-            "Floe can't answer that request."
+            String(localized: "Floe can't answer that request.", bundle: .floe)
         case let .invalidRedirect(reason):
             reason
         }

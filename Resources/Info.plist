@@ -71,6 +71,8 @@
 		<string>https://github.com/apple/swift-system</string>
 		<key>thaw</key>
 		<string>https://github.com/thaw-app/Thaw</string>
+		<key>translate</key>
+		<string>https://crowdin.com/project/floe</string>
 	</dict>
 	<key>GitCommitSHA</key>
 	<string>unknown</string>

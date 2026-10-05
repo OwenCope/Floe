@@ -86,11 +86,11 @@ struct MenuBarMenuItem: Equatable {
         var items: [MenuBarMenuItem] = []
         if let failure {
             items.append(MenuBarMenuItem(key: .failure, role: .disabled, title: failure.message))
-            items.append(MenuBarMenuItem(key: .retry, role: .retry, title: "Try Again"))
+            items.append(MenuBarMenuItem(key: .retry, role: .retry, title: String(localized: "Try Again", bundle: .floe)))
         } else if let extra = root?.menuBarExtra {
             let children = extra.content
             if extra.bool("isLoading"), children.isEmpty {
-                items.append(MenuBarMenuItem(key: .loading, role: .disabled, title: "Loading…"))
+                items.append(MenuBarMenuItem(key: .loading, role: .disabled, title: String(localized: "Loading…", bundle: .floe)))
             } else {
                 append(children, to: &items, icon: icon)
                 if items.isEmpty {
@@ -98,11 +98,11 @@ struct MenuBarMenuItem: Equatable {
                 }
             }
         } else {
-            items.append(MenuBarMenuItem(key: .loading, role: .disabled, title: "Loading…"))
+            items.append(MenuBarMenuItem(key: .loading, role: .disabled, title: String(localized: "Loading…", bundle: .floe)))
         }
         // Always the last row, so an item can be taken out of the menu bar from the menu bar.
         items.append(.separator)
-        items.append(MenuBarMenuItem(key: .remove, role: .remove, title: "Remove from Menu Bar"))
+        items.append(MenuBarMenuItem(key: .remove, role: .remove, title: String(localized: "Remove from Menu Bar", bundle: .floe)))
         return items
     }
 

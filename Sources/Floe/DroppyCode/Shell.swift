@@ -45,7 +45,7 @@ nonisolated struct ShellResult: Sendable {
     var failureMessage: String {
         let error = errorOutput.trimmingCharacters(in: .whitespacesAndNewlines)
         let message = error.isEmpty ? trimmedOutput : error
-        return message.isEmpty ? "The command failed with exit code \(status)." : message
+        return message.isEmpty ? String(localized: "The command failed with exit code \(status).", bundle: .floe, comment: "The placeholder is the number a command ended with.") : message
     }
 }
 
@@ -170,7 +170,7 @@ nonisolated enum Shell {
         timeout: TimeInterval = 120
     ) async throws -> ShellResult {
         guard let executable = LoginEnvironment.which(name) else {
-            throw ShellError("\(name) was not found on your PATH.")
+            throw ShellError(String(localized: "\(name) was not found on your PATH.", bundle: .floe, comment: "The placeholder is the name of a command, and PATH is the shell variable and stays as written."))
         }
         return try await run(executable, arguments, in: directory, environment: environment, input: input, timeout: timeout)
     }

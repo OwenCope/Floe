@@ -134,7 +134,7 @@ enum Calculator {
             expression: "\(numberText) \(fromKey) → \(toKey)",
             value: "\(formatGrouped(converted.value)) \(converted.symbol)",
             copyText: "\(formatPlain(converted.value)) \(converted.symbol)",
-            detail: "\(converted.fromName) to \(converted.toName)"
+            detail: String(localized: "\(converted.fromName) to \(converted.toName)", bundle: .floe, comment: "Both placeholders are names of units, as in Kilometers to Miles.")
         )
     }
 
@@ -187,74 +187,74 @@ enum Calculator {
 
     private static func lengthUnit(_ s: String) -> (unit: UnitLength, name: String)? {
         switch singular(s) {
-        case "mm", "millimeter", "millimetre": return (.millimeters, "Millimeters")
-        case "cm", "centimeter", "centimetre": return (.centimeters, "Centimeters")
-        case "m", "meter", "metre": return (.meters, "Meters")
-        case "km", "kilometer", "kilometre": return (.kilometers, "Kilometers")
-        case "in", "inch", "inche": return (.inches, "Inches")
-        case "ft", "foot", "feet": return (.feet, "Feet")
-        case "yd", "yard": return (.yards, "Yards")
-        case "mi", "mile": return (.miles, "Miles")
+        case "mm", "millimeter", "millimetre": return (.millimeters, String(localized: "Millimeters", bundle: .floe, comment: "A unit of length, named in the plural."))
+        case "cm", "centimeter", "centimetre": return (.centimeters, String(localized: "Centimeters", bundle: .floe, comment: "A unit of length, named in the plural."))
+        case "m", "meter", "metre": return (.meters, String(localized: "Meters", bundle: .floe, comment: "A unit of length, named in the plural."))
+        case "km", "kilometer", "kilometre": return (.kilometers, String(localized: "Kilometers", bundle: .floe, comment: "A unit of length, named in the plural."))
+        case "in", "inch", "inche": return (.inches, String(localized: "Inches", bundle: .floe, comment: "A unit of length, named in the plural."))
+        case "ft", "foot", "feet": return (.feet, String(localized: "Feet", bundle: .floe, comment: "A unit of length, named in the plural."))
+        case "yd", "yard": return (.yards, String(localized: "Yards", bundle: .floe, comment: "A unit of length, named in the plural."))
+        case "mi", "mile": return (.miles, String(localized: "Miles", bundle: .floe, comment: "A unit of length, named in the plural."))
         default: return nil
         }
     }
 
     private static func massUnit(_ s: String) -> (unit: UnitMass, name: String)? {
         switch singular(s) {
-        case "g", "gram": return (.grams, "Grams")
-        case "kg", "kilogram": return (.kilograms, "Kilograms")
-        case "oz", "ounce": return (.ounces, "Ounces")
-        case "lb", "lbs", "pound": return (.pounds, "Pounds")
+        case "g", "gram": return (.grams, String(localized: "Grams", bundle: .floe, comment: "A unit of mass, named in the plural."))
+        case "kg", "kilogram": return (.kilograms, String(localized: "Kilograms", bundle: .floe, comment: "A unit of mass, named in the plural."))
+        case "oz", "ounce": return (.ounces, String(localized: "Ounces", bundle: .floe, comment: "A unit of mass, named in the plural."))
+        case "lb", "lbs", "pound": return (.pounds, String(localized: "Pounds", bundle: .floe, comment: "A unit of mass, named in the plural."))
         default: return nil
         }
     }
 
     private static func temperatureUnit(_ s: String) -> (unit: UnitTemperature, name: String)? {
         switch singular(s) {
-        case "c", "celsius", "centigrade": return (.celsius, "Celsius")
-        case "f", "fahrenheit": return (.fahrenheit, "Fahrenheit")
-        case "k", "kelvin": return (.kelvin, "Kelvin")
+        case "c", "celsius", "centigrade": return (.celsius, String(localized: "Celsius", bundle: .floe, comment: "A unit of temperature."))
+        case "f", "fahrenheit": return (.fahrenheit, String(localized: "Fahrenheit", bundle: .floe, comment: "A unit of temperature."))
+        case "k", "kelvin": return (.kelvin, String(localized: "Kelvin", bundle: .floe, comment: "A unit of temperature."))
         default: return nil
         }
     }
 
     private static func volumeUnit(_ s: String) -> (unit: UnitVolume, name: String)? {
         switch singular(s) {
-        case "ml", "milliliter", "millilitre": return (.milliliters, "Milliliters")
-        case "l", "liter", "litre": return (.liters, "Liters")
-        case "cup": return (.cups, "Cups")
-        case "floz", "fluidounce", "fluid ounce", "oz": return (.fluidOunces, "Fluid Ounces")
-        case "gal", "gallon": return (.gallons, "Gallons")
+        case "ml", "milliliter", "millilitre": return (.milliliters, String(localized: "Milliliters", bundle: .floe, comment: "A unit of volume, named in the plural."))
+        case "l", "liter", "litre": return (.liters, String(localized: "Liters", bundle: .floe, comment: "A unit of volume, named in the plural."))
+        case "cup": return (.cups, String(localized: "Cups", bundle: .floe, comment: "A unit of volume, named in the plural."))
+        case "floz", "fluidounce", "fluid ounce", "oz": return (.fluidOunces, String(localized: "Fluid Ounces", bundle: .floe, comment: "A unit of volume, named in the plural."))
+        case "gal", "gallon": return (.gallons, String(localized: "Gallons", bundle: .floe, comment: "A unit of volume, named in the plural."))
         default: return nil
         }
     }
 
     private static func dataUnit(_ s: String) -> (unit: UnitInformationStorage, name: String)? {
         switch singular(s) {
-        case "b", "byte": return (.bytes, "Bytes")
-        case "kb", "kilobyte": return (.kilobytes, "Kilobytes")
-        case "mb", "megabyte": return (.megabytes, "Megabytes")
-        case "gb", "gigabyte": return (.gigabytes, "Gigabytes")
-        case "tb", "terabyte": return (.terabytes, "Terabytes")
+        case "b", "byte": return (.bytes, String(localized: "Bytes", bundle: .floe, comment: "A unit of data size, named in the plural."))
+        case "kb", "kilobyte": return (.kilobytes, String(localized: "Kilobytes", bundle: .floe, comment: "A unit of data size, named in the plural."))
+        case "mb", "megabyte": return (.megabytes, String(localized: "Megabytes", bundle: .floe, comment: "A unit of data size, named in the plural."))
+        case "gb", "gigabyte": return (.gigabytes, String(localized: "Gigabytes", bundle: .floe, comment: "A unit of data size, named in the plural."))
+        case "tb", "terabyte": return (.terabytes, String(localized: "Terabytes", bundle: .floe, comment: "A unit of data size, named in the plural."))
         default: return nil
         }
     }
 
     private static func durationUnit(_ s: String) -> (unit: UnitDuration, name: String)? {
         switch singular(s) {
-        case "s", "sec", "second": return (.seconds, "Seconds")
-        case "min", "minute": return (.minutes, "Minutes")
-        case "h", "hr", "hour": return (.hours, "Hours")
-        case "day": return (UnitDuration(symbol: "day", converter: UnitConverterLinear(coefficient: 86400)), "Days")
+        case "s", "sec", "second": return (.seconds, String(localized: "Seconds", bundle: .floe, comment: "A unit of time, named in the plural."))
+        case "min", "minute": return (.minutes, String(localized: "Minutes", bundle: .floe, comment: "A unit of time, named in the plural."))
+        case "h", "hr", "hour": return (.hours, String(localized: "Hours", bundle: .floe, comment: "A unit of time, named in the plural."))
+        case "day": return (UnitDuration(symbol: String(localized: "day", bundle: .floe, comment: "The unit written after a number of days."), converter: UnitConverterLinear(coefficient: 86400)), String(localized: "Days", bundle: .floe, comment: "A unit of time, named in the plural."))
         default: return nil
         }
     }
 
     private static func speedUnit(_ s: String) -> (unit: UnitSpeed, name: String)? {
         switch s {
-        case "kmh", "kph", "km/h": return (.kilometersPerHour, "Kilometers Per Hour")
-        case "mph": return (.milesPerHour, "Miles Per Hour")
-        case "m/s", "ms": return (.metersPerSecond, "Meters Per Second")
+        case "kmh", "kph", "km/h": return (.kilometersPerHour, String(localized: "Kilometers Per Hour", bundle: .floe, comment: "A unit of speed, named in the plural."))
+        case "mph": return (.milesPerHour, String(localized: "Miles Per Hour", bundle: .floe, comment: "A unit of speed, named in the plural."))
+        case "m/s", "ms": return (.metersPerSecond, String(localized: "Meters Per Second", bundle: .floe, comment: "A unit of speed, named in the plural."))
         default: return nil
         }
     }

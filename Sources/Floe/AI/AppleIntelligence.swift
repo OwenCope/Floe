@@ -16,15 +16,15 @@ nonisolated enum AppleIntelligence {
         let model = SystemLanguageModel.default
         switch model.availability {
         case .available:
-            return model.supportsLocale(Locale.current) ? nil : "Apple Intelligence doesn't work in this Mac's language yet."
+            return model.supportsLocale(Locale.current) ? nil : String(localized: "Apple Intelligence doesn't work in this Mac's language yet.", bundle: .floe)
         case .unavailable(.appleIntelligenceNotEnabled):
-            return "Turn on Apple Intelligence in System Settings to use it here."
+            return String(localized: "Turn on Apple Intelligence in System Settings to use it here.", bundle: .floe)
         case .unavailable(.modelNotReady):
-            return "Apple Intelligence is still getting its model ready. Try again in a while."
+            return String(localized: "Apple Intelligence is still getting its model ready. Try again in a while.", bundle: .floe)
         case .unavailable(.deviceNotEligible):
-            return "This Mac can't run Apple Intelligence."
+            return String(localized: "This Mac can't run Apple Intelligence.", bundle: .floe)
         case .unavailable:
-            return "Apple Intelligence isn't available right now."
+            return String(localized: "Apple Intelligence isn't available right now.", bundle: .floe)
         }
     }
 
@@ -56,10 +56,10 @@ nonisolated enum AppleIntelligence {
 
     private static func message(for error: LanguageModelSession.GenerationError) -> String {
         switch error {
-        case .exceededContextWindowSize: "That is more text than Apple Intelligence can take at once."
-        case .guardrailViolation, .refusal: "Apple Intelligence declined to answer that."
-        case .unsupportedLanguageOrLocale: "Apple Intelligence doesn't work in that language yet."
-        case .rateLimited: "Apple Intelligence is busy. Try again in a moment."
+        case .exceededContextWindowSize: String(localized: "That is more text than Apple Intelligence can take at once.", bundle: .floe)
+        case .guardrailViolation, .refusal: String(localized: "Apple Intelligence declined to answer that.", bundle: .floe)
+        case .unsupportedLanguageOrLocale: String(localized: "Apple Intelligence doesn't work in that language yet.", bundle: .floe)
+        case .rateLimited: String(localized: "Apple Intelligence is busy. Try again in a moment.", bundle: .floe)
         default: error.localizedDescription
         }
     }

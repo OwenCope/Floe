@@ -1,12 +1,15 @@
 # Credits
 
-Who builds Floe and what it is built from. This file is written by `scripts/generate-credits.py`;
-change the script and run it again instead of editing the lists.
+Who translates Floe and what it is built from. This file is written by
+`scripts/generate-credits.py`; change the script and run it again instead of editing it.
+The people who contribute code and documentation are on the repository's
+[contributors page](https://github.com/thaw-app/Floe/graphs/contributors).
 
-## Contributors
+## Translators
 
-- René Jiménez ([@diazdesandi](https://github.com/diazdesandi))
-- Owen Cope ([@OwenCope](https://github.com/OwenCope))
+Floe is translated by volunteers on [Crowdin](https://crowdin.com/project/floe). No language is
+finished yet; the people who translate it will be listed here. To help, or to ask for a
+language, join the project there.
 
 ## Built from
 

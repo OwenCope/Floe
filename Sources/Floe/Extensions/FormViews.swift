@@ -102,7 +102,7 @@ struct FieldEditor: View {
             case "file", "directory":
                 LabeledContent {
                     HStack {
-                        Text(value.isEmpty ? "None" : (value as NSString).abbreviatingWithTildeInPath)
+                        Text(value.isEmpty ? String(localized: "None", bundle: .floe, comment: "Shown where a file or folder would be, when none is chosen.") : (value as NSString).abbreviatingWithTildeInPath)
                             .foregroundStyle(value.isEmpty ? .secondary : .primary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -135,7 +135,7 @@ struct SetupView: View {
         let command = request.command
         VStack(spacing: 0) {
             PanelHeader(
-                title: request.kind == .preferences ? "Set Up \(command.extensionTitle)" : command.title,
+                title: request.kind == .preferences ? String(localized: "Set Up \(command.extensionTitle)", bundle: .floe, comment: "A heading. The placeholder is an extension's name.") : command.title,
                 icon: command.icon,
                 assetsPath: command.assetsPath
             )
@@ -158,7 +158,7 @@ struct SetupView: View {
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
-            Footer(primary: request.kind == .preferences ? "Save and Continue" : "Run Command") {
+            Footer(primary: request.kind == .preferences ? String(localized: "Save and Continue", bundle: .floe) : String(localized: "Run Command", bundle: .floe)) {
                 if let error = form.error {
                     Text(error).foregroundStyle(.red).lineLimit(1)
                 } else {
@@ -268,7 +268,7 @@ struct FormBody: View {
         let selected = session.formValue(node) as? [String] ?? []
         let titles = items.filter { selected.contains($0.props["value"] as? String ?? "") }.compactMap { $0.string("title") }
         return LabeledContent(title(node)) {
-            Menu(titles.isEmpty ? (node.string("placeholder") ?? "None") : titles.joined(separator: ", ")) {
+            Menu(titles.isEmpty ? (node.string("placeholder") ?? String(localized: "None", bundle: .floe, comment: "Shown where a file or folder would be, when none is chosen.")) : titles.joined(separator: ", ")) {
                 ForEach(items) { item in
                     let value = item.props["value"] as? String ?? ""
                     Toggle(item.string("title") ?? value, isOn: Binding(
@@ -285,7 +285,7 @@ struct FormBody: View {
         let paths = session.formValue(node) as? [String] ?? []
         return LabeledContent(title(node)) {
             HStack {
-                Text(paths.isEmpty ? "None" : paths.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "))
+                Text(paths.isEmpty ? String(localized: "None", bundle: .floe, comment: "Shown where a file or folder would be, when none is chosen.") : paths.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "))
                     .foregroundStyle(paths.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                 Button("Choose…") {
@@ -347,7 +347,7 @@ struct AppPickerField<Title: View>: View {
                 }
             }
             .fixedSize()
-            .accessibilityLabel("\(chosen?.name ?? "not set")")
+            .accessibilityLabel(chosen?.name ?? String(localized: "not set", bundle: .floe, comment: "Read aloud for an app picker with no app chosen."))
         } label: { label }
             .task {
                 apps = InstalledApps.list()

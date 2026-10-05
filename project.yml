@@ -4,6 +4,7 @@ options:
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
+  developmentLanguage: en
   groupSortPosition: top
 
 packages:
@@ -44,6 +45,10 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_APPROACHABLE_CONCURRENCY: YES
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    # A build writes each localizable string it finds beside the object files; `scripts/sync-strings.sh`
+    # merges those into Sources/Floe/Resources/Localizable.xcstrings.
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
     MACOSX_DEPLOYMENT_TARGET: "26.0"
 
 targets:
@@ -120,6 +125,7 @@ targets:
           droppyCode: https://gitlab.com/droppyformac1/droppy-code
           sponsor: https://github.com/sponsors/diazdesandi
           discord: https://discord.gg/KDfWjWDnR4
+          translate: https://crowdin.com/project/floe
           raycastExtensions: https://github.com/raycast/extensions
           compactSlider: https://github.com/buh/CompactSlider
           bun: https://bun.sh

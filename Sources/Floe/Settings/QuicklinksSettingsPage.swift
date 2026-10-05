@@ -138,19 +138,19 @@ struct QuicklinksSettingsPage: View {
     private var validationError: String? {
         let keyword = draft.keyword.trimmingCharacters(in: .whitespaces)
         if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
-            return "Enter a name."
+            return String(localized: "Enter a name.", bundle: .floe)
         }
         if keyword.isEmpty {
-            return "Enter a keyword."
+            return String(localized: "Enter a keyword.", bundle: .floe)
         }
         if keyword.contains(where: \.isWhitespace) {
-            return "Keywords cannot contain spaces."
+            return String(localized: "Keywords cannot contain spaces.", bundle: .floe)
         }
         if !store.isKeywordUnique(keyword, ignoring: editingID) {
-            return "That keyword is already used."
+            return String(localized: "That keyword is already used.", bundle: .floe)
         }
         guard let url = URL(string: draft.url), let scheme = url.scheme, !scheme.isEmpty else {
-            return "Enter a URL with a scheme, like https://."
+            return String(localized: "Enter a URL with a scheme, like https://.", bundle: .floe)
         }
         return nil
     }

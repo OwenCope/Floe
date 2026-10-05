@@ -28,8 +28,8 @@ enum UpdateChannel: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .stable: "Stable"
-        case .beta: "Beta"
+        case .stable: String(localized: "Stable", bundle: .floe, comment: "The update channel that only offers finished releases.")
+        case .beta: String(localized: "Beta", bundle: .floe, comment: "The update channel that also offers test releases.")
         }
     }
 

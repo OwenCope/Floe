@@ -112,8 +112,10 @@ enum Browsers {
             return nil
         case let .systemInstead(missing):
             opener.open(url, nil)
-            let standIn = systemDefault(installed: installed)?.name ?? "the default browser"
-            return "\(missing) isn't installed. Opened in \(standIn)"
+            guard let standIn = systemDefault(installed: installed)?.name else {
+                return String(localized: "\(missing) isn't installed. Opened in the default browser", bundle: .floe, comment: "The placeholder is the name of a browser.")
+            }
+            return String(localized: "\(missing) isn't installed. Opened in \(standIn)", bundle: .floe, comment: "Both placeholders are names of browsers.")
         }
     }
 
@@ -154,8 +156,12 @@ extension SearchIndex {
             "browserApp",
             AppRole.browser.title,
             description: AppRole.browser.detail,
-            section: "Preferred Apps",
-            keywords: ["browser", "web browser", "default browser", "web", "links", "web address", "quicklink", "preferred app", "default app"]
+            section: String(localized: "Preferred Apps", bundle: .floe),
+            keywords: String(
+                localized: "browser, web browser, default browser, web, links, web address, quicklink, preferred app, default app",
+                bundle: .floe,
+                comment: "Words that find the Browser setting in the settings search, separated by commas."
+            ).searchTerms
         ),
     ]
 }

@@ -7,7 +7,7 @@
 //
 //  Floe changes © 2026 René Jiménez, under the same license.
 //
-//  Ported to Floe from Thaw 3 without the localized label.
+//  Ported to Floe from Thaw 3; the spoken label is Floe's own string.
 
 import SwiftUI
 import ThawUI
@@ -27,6 +27,6 @@ struct OnboardingStepIndicator: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: "Step \(step) of \(total)"))
+        .accessibilityLabel(Text("Step \(step) of \(total)", comment: "Spoken for the dots that show how far the welcome window has got. Both placeholders are numbers."))
     }
 }

@@ -97,7 +97,7 @@ struct PermissionStatusControl: View {
 
     /// The system prompt appears once; after a decline the only route left is System Settings.
     private var actionTitle: String {
-        permission.wasDeclined ? "Open System Settings" : "Grant Access"
+        permission.wasDeclined ? String(localized: "Open System Settings", bundle: .floe) : String(localized: "Grant Access", bundle: .floe)
     }
 
     private func act() {

@@ -96,7 +96,7 @@ final class QuicklinkStore: ObservableObject {
             symbol: "map"
         ),
         Quicklink(
-            name: "Translate",
+            name: String(localized: "Translate", bundle: .floe, comment: "The name of the quicklink that opens Google Translate."),
             keyword: "tr",
             url: "https://translate.google.com/?text={query}",
             symbol: "translate"

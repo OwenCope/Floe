@@ -128,9 +128,10 @@ struct HotkeyRecorder<Label: View>: View {
         // The insets differ because the symbols are drawn at different
         // optical weights and would not otherwise look evenly sized.
         let (symbol, description, inset): (String, String, CGFloat) = switch phase {
-        case .listening: ("escape", "Cancel", 6)
-        case .assigned: ("xmark", "Clear", 7.5)
-        case .empty: ("record.circle", "Record", 5.5)
+        case .listening: ("escape", String(localized: "Cancel", bundle: .floe, comment: "A button that stops what is under way, such as recording a keyboard shortcut."), 6)
+        // Its own key: the glass style named Clear is another word in most languages.
+        case .assigned: ("xmark", String(localized: "Clear Shortcut", defaultValue: "Clear", bundle: .floe, comment: "Spoken for the button that removes a keyboard shortcut."), 7.5)
+        case .empty: ("record.circle", String(localized: "Record", bundle: .floe, comment: "Spoken for the button that starts recording a keyboard shortcut."), 5.5)
         }
         Image(systemName: symbol)
             .resizable()

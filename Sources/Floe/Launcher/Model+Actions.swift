@@ -28,15 +28,19 @@ extension LauncherModel {
     func primaryActionTitle(for item: RootItem) -> String {
         switch item {
         case let .command(command) where command.mode == "menu-bar":
-            isInMenuBar(command) ? "Remove from Menu Bar" : "Add to Menu Bar"
-        case .clipboardEntry: "Paste"
-        case .askAI: "Ask"
-        case .sshHost: "Connect"
-        case .shortcut: "Run"
-        case .menuBarItem: "Click Item"
-        case .browserTab(.tab): "Switch to Tab"
+            if isInMenuBar(command) {
+                String(localized: "Remove from Menu Bar", bundle: .floe)
+            } else {
+                String(localized: "Add to Menu Bar", bundle: .floe)
+            }
+        case .clipboardEntry: String(localized: "Paste", bundle: .floe, comment: "A verb: insert what is on the clipboard.")
+        case .askAI: String(localized: "Ask", bundle: .floe, comment: "A verb on a button: send the question to AI.")
+        case .sshHost: String(localized: "Connect", bundle: .floe, comment: "A verb on a button: open an SSH connection to the host.")
+        case .shortcut: String(localized: "Run", bundle: .floe, comment: "A verb on a button: run the shortcut or script.")
+        case .menuBarItem: String(localized: "Click Item", bundle: .floe)
+        case .browserTab(.tab): String(localized: "Switch to Tab", bundle: .floe)
         case .webAddress: openInBrowserTitle
-        default: "Open"
+        default: String(localized: "Open", bundle: .floe, comment: "A verb on a button: open the selected result.")
         }
     }
 
@@ -62,7 +66,7 @@ extension LauncherModel {
             switch outcome {
             case .text(BrowserTabScripts.switched): break
             case .refused: SystemCommand.askForAutomation(toControl: tab.browser.name)
-            case .text, .failed: self?.showHUD("That tab is no longer open")
+            case .text, .failed: self?.showHUD(String(localized: "That tab is no longer open", bundle: .floe))
             }
         }
     }
@@ -75,7 +79,7 @@ extension LauncherModel {
         case let .app(app):
             actions += [nil] + AppActions.actions(for: app, host: actionHost)
         case let .command(command):
-            actions.append(ItemAction(title: "Configure Extension…", symbol: "gearshape") { [weak self] in
+            actions.append(ItemAction(title: String(localized: "Configure Extension…", bundle: .floe), symbol: "gearshape") { [weak self] in
                 self?.hidePanel()
                 self?.openSettings(command.extensionName)
             })
@@ -86,7 +90,7 @@ extension LauncherModel {
         case let .shortcut(shortcut):
             actions += shortcutActions(for: shortcut)
         case let .clipboardEntry(entry):
-            actions.append(ItemAction(title: "Copy", symbol: "doc.on.doc") { [weak self] in self?.clipboardHistory.copy(entry) })
+            actions.append(ItemAction(title: String(localized: "Copy", bundle: .floe, comment: "A verb: put the selection on the clipboard."), symbol: "doc.on.doc") { [weak self] in self?.clipboardHistory.copy(entry) })
         case .webAddress, .quicklink:
             actions += linkActions(for: item)
         default:
@@ -96,7 +100,7 @@ extension LauncherModel {
             let favorite = isFavorite(item)
             actions += [
                 nil,
-                ItemAction(title: favorite ? "Remove from Favorites" : "Add to Favorites", symbol: favorite ? "star.slash" : "star") { [weak self] in
+                ItemAction(title: favorite ? String(localized: "Remove from Favorites", bundle: .floe) : String(localized: "Add to Favorites", bundle: .floe), symbol: favorite ? "star.slash" : "star") { [weak self] in
                     self?.toggleFavorite(item)
                 },
             ]

@@ -14,8 +14,8 @@ final class MenuBarSearchScope: SearchScope {
     static let scanLifetime: TimeInterval = 10
 
     let keyword = "menu"
-    let title = "Menu Bar Items"
-    let emptyTitle = "No menu bar items match"
+    let title = String(localized: "Menu Bar Items", bundle: .floe)
+    let emptyTitle = String(localized: "No menu bar items match", bundle: .floe)
 
     private let isTrusted: () -> Bool
     private let scan: @Sendable () -> [MenuBarExtra]

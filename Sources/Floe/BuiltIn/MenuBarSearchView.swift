@@ -46,7 +46,7 @@ struct MenuBarSearchView: View {
 
     private var queryField: some View {
         SearchQueryField(
-            prompt: "Search menu bar items…",
+            prompt: String(localized: "Search menu bar items…", bundle: .floe),
             text: $search.query,
             focusToken: focusToken,
             isLoading: search.isScanning
@@ -135,20 +135,20 @@ struct MenuBarSearchView: View {
             Spacer()
 
             if search.renamingItem != nil {
-                ShortcutHintButton(title: "Cancel") { search.cancelRename() } hint: {
+                ShortcutHintButton(title: String(localized: "Cancel", bundle: .floe)) { search.cancelRename() } hint: {
                     KeyCapView(text: "⎋", font: ThawType.detail)
                 }
-                ShortcutHintButton(title: "Rename") { search.commitRename() } hint: {
+                ShortcutHintButton(title: String(localized: "Rename", bundle: .floe, comment: "A button that saves the new name of a menu bar item.")) { search.commitRename() } hint: {
                     KeyCapView(systemImage: "return")
                 }
             } else if let extra = search.selectedExtra {
-                ShortcutHintButton(title: "Edit Name") { search.beginRenamingSelection() } hint: {
+                ShortcutHintButton(title: String(localized: "Edit Name", bundle: .floe)) { search.beginRenamingSelection() } hint: {
                     KeyCapView(text: "⌘")
                     Text(verbatim: "+")
                     KeyCapView(text: "E")
                 }
                 ActionsButton(model: launcher) { $0.menuBarSearch.selectedExtra.map($0.menuBarSearch.actions) ?? [] }
-                ShortcutHintButton(title: "Click Item") { search.open(extra) } hint: {
+                ShortcutHintButton(title: String(localized: "Click Item", bundle: .floe, comment: "A button that clicks the selected menu bar item.")) { search.open(extra) } hint: {
                     KeyCapView(systemImage: "return")
                 }
             }

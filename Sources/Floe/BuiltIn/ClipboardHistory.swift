@@ -47,9 +47,9 @@ nonisolated struct ClipboardEntry: Identifiable, Codable, Sendable {
             if paths.count == 1 {
                 return URL(fileURLWithPath: paths[0]).lastPathComponent
             }
-            return "\(paths.count) files"
+            return String(localized: "\(paths.count) files", bundle: .floe, comment: "How many files were copied together.")
         case .image:
-            return "Image"
+            return String(localized: "Image", bundle: .floe, comment: "A copied picture.")
         }
     }
 }

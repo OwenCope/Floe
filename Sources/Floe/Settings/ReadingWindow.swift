@@ -11,8 +11,8 @@ import SwiftUI
 /// A window one of the reading pages opens in. It is built when asked for and let go when closed.
 @MainActor
 final class ReadingWindow {
-    static let releaseNotes = ReadingWindow(title: "What’s New") { AnyView(WhatsNewView()) }
-    static let acknowledgements = ReadingWindow(title: "Acknowledgements") { AnyView(AcknowledgementsView()) }
+    static let releaseNotes = ReadingWindow(title: String(localized: "What’s New", bundle: .floe)) { AnyView(WhatsNewView()) }
+    static let acknowledgements = ReadingWindow(title: String(localized: "Acknowledgements", bundle: .floe)) { AnyView(AcknowledgementsView()) }
 
     /// Called after one of them has closed. The settings process sets it: it stays alive while one is open.
     static var onClose: (() -> Void)?

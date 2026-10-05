@@ -59,16 +59,16 @@ enum AskAI {
     static func source(for choice: AIAnswer.Choice, tool: String?) -> Source? {
         switch choice {
         case .appleIntelligence:
-            return Source(line: "Apple Intelligence, on this Mac", isOnThisMac: true)
+            return Source(line: String(localized: "Apple Intelligence, on this Mac", bundle: .floe), isOnThisMac: true)
         case .tools:
-            return tool.map { Source(line: "The \($0) tool, on your account", isOnThisMac: false) }
+            return tool.map { Source(line: String(localized: "The \($0) tool, on your account", bundle: .floe, comment: "The placeholder is the name of a command line tool such as claude."), isOnThisMac: false) }
         case let .api(endpoint):
             guard let endpoint, let host = endpoint.chatURL.host else { return nil }
             guard isOnThisMac(choice) else { return Source(line: host, isOnThisMac: false) }
             // Ollama and LM Studio are known by their address; any other local server by its port.
             let service = AIService.allCases.first { $0.baseURL.flatMap(AIEndpoint.chatURL(baseURL:)) == endpoint.chatURL }
             let address = endpoint.chatURL.port.map { "\(host):\($0)" } ?? host
-            return Source(line: service?.title ?? "\(address), on this Mac", isOnThisMac: true)
+            return Source(line: service?.title ?? String(localized: "\(address), on this Mac", bundle: .floe, comment: "The placeholder is the address of a server such as localhost:8080."), isOnThisMac: true)
         }
     }
 

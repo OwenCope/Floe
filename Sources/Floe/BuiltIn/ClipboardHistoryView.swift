@@ -23,7 +23,7 @@ struct ClipboardHistoryView: View {
 
     var body: some View {
         PanelSections {
-            SearchBar(placeholder: "Search clipboard history…", text: $clipboard.query, focusToken: focusToken) { EmptyView() }
+            SearchBar(placeholder: String(localized: "Search clipboard history…", bundle: .floe), text: $clipboard.query, focusToken: focusToken) { EmptyView() }
         } content: {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,7 +70,7 @@ struct ClipboardHistoryView: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     let (rest, pinned) = entries.partitioned(by: \.pinned)
                     if !pinned.isEmpty {
-                        SearchSectionHeader(title: "Pinned")
+                        SearchSectionHeader(title: String(localized: "Pinned", bundle: .floe, comment: "The heading over the copies the user pinned."))
                         ForEach(pinned) { entry in row(entry, entries: entries) }
                     }
                     ForEach(dayGroups(rest), id: \.title) { group in
@@ -154,7 +154,7 @@ struct ClipboardHistoryView: View {
         }
     }
 
-    private func metadata(title: String, value: String) -> some View {
+    private func metadata(title: LocalizedStringKey, value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title).font(.system(size: 11)).foregroundStyle(.secondary)
             Text(value).font(.system(size: 12)).textSelection(.enabled)
@@ -166,16 +166,16 @@ struct ClipboardHistoryView: View {
             OpenSettingsButton(model: launcher)
             Spacer(minLength: 0)
             if let entry = clipboard.selectedEntry {
-                ShortcutHintButton(title: entry.pinned ? "Unpin" : "Pin") { clipboard.togglePin(entry) } hint: {
+                ShortcutHintButton(title: entry.pinned ? String(localized: "Unpin", bundle: .floe, comment: "A button that takes a copy off the pinned list.") : String(localized: "Pin", bundle: .floe, comment: "A button that keeps a copy at the top of the list.")) { clipboard.togglePin(entry) } hint: {
                     KeyCapView(systemImage: "pin")
                 }
-                ShortcutHintButton(title: "Delete") { clipboard.delete(entry) } hint: {
+                ShortcutHintButton(title: String(localized: "Delete", bundle: .floe, comment: "A button that removes a copy from the history.")) { clipboard.delete(entry) } hint: {
                     KeyCapView(text: "⌫")
                 }
-                ShortcutHintButton(title: "Copy") { clipboard.copy(entry) } hint: {
+                ShortcutHintButton(title: String(localized: "Copy", bundle: .floe, comment: "A button that copies the selected entry.")) { clipboard.copy(entry) } hint: {
                     KeyCapView(text: "⌘C")
                 }
-                ShortcutHintButton(title: "Paste") { clipboard.paste(entry) } hint: {
+                ShortcutHintButton(title: String(localized: "Paste", bundle: .floe, comment: "A button that pastes the selected entry.")) { clipboard.paste(entry) } hint: {
                     KeyCapView(systemImage: "return")
                 }
             }
@@ -186,10 +186,10 @@ struct ClipboardHistoryView: View {
 
     private func kindName(for kind: ClipboardEntry.Kind) -> String {
         switch kind {
-        case .text: "Text"
-        case .link: "Link"
-        case .image: "Image"
-        case .file: "File"
+        case .text: String(localized: "Text", bundle: .floe, comment: "A kind of copied thing.")
+        case .link: String(localized: "Link", bundle: .floe, comment: "A kind of copied thing.")
+        case .image: String(localized: "Image", bundle: .floe, comment: "A copied picture.")
+        case .file: String(localized: "File", bundle: .floe, comment: "A kind of copied thing.")
         }
     }
 
@@ -208,17 +208,17 @@ struct ClipboardHistoryView: View {
         switch entry.kind {
         case .text, .link:
             let count = (entry.text ?? "").count
-            return count == 1 ? "1 character" : "\(count) characters"
+            return String(localized: "\(count) characters", bundle: .floe, comment: "How long a copied text is.")
         case .file:
             let count = entry.filePaths?.count ?? 0
-            return count == 1 ? "1 file" : "\(count) files"
+            return String(localized: "\(count) files", bundle: .floe, comment: "How many files were copied together.")
         case .image:
             if let name = entry.imageFile,
                let size = try? FileManager.default.attributesOfItem(atPath: ClipboardHistoryStore.directory.appendingPathComponent(name).path)[.size] as? Int
             {
                 return Self.byteFormatter.string(fromByteCount: Int64(size))
             }
-            return "Image"
+            return String(localized: "Image", bundle: .floe, comment: "A copied picture.")
         }
     }
 
@@ -244,10 +244,10 @@ struct ClipboardHistoryView: View {
         }
         var groups: [DayGroup] = []
         if !today.isEmpty {
-            groups.append(DayGroup(title: "Today", entries: today))
+            groups.append(DayGroup(title: String(localized: "Today", bundle: .floe, comment: "The heading over what was copied today."), entries: today))
         }
         if !yesterday.isEmpty {
-            groups.append(DayGroup(title: "Yesterday", entries: yesterday))
+            groups.append(DayGroup(title: String(localized: "Yesterday", bundle: .floe, comment: "The heading over what was copied yesterday."), entries: yesterday))
         }
         for day in byDay.keys.sorted(by: >) {
             groups.append(DayGroup(title: Self.dateFormatter.string(from: day), entries: byDay[day] ?? []))

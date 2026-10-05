@@ -143,7 +143,7 @@ nonisolated enum ToolTextStream {
             throw ShellError(complaint(in: result.errorOutput) ?? result.failureMessage)
         }
         guard !answer.text.isEmpty else {
-            throw ShellError(complaint(in: result.errorOutput) ?? "The model gave no answer.")
+            throw ShellError(complaint(in: result.errorOutput) ?? String(localized: "The model gave no answer.", bundle: .floe))
         }
         return answer.text
     }

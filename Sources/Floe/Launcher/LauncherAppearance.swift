@@ -44,9 +44,9 @@ enum LauncherTintKind: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .none: "None"
-        case .solid: "Solid"
-        case .gradient: "Gradient"
+        case .none: String(localized: "None (tint)", defaultValue: "None", bundle: .floe, comment: "A background tint choice: no tint.")
+        case .solid: String(localized: "Solid", bundle: .floe, comment: "A background tint choice: one color.")
+        case .gradient: String(localized: "Gradient", bundle: .floe, comment: "A background tint choice: two colors blended.")
         }
     }
 }

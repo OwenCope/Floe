@@ -89,17 +89,6 @@ DEPENDENCIES = [
 ]
 
 
-class Contributor(NamedTuple):
-    name: str
-    # The GitHub account, without the @.
-    handle: str
-
-
-CONTRIBUTORS = [
-    Contributor("René Jiménez", "diazdesandi"),
-    Contributor("Owen Cope", "OwenCope"),
-]
-
 TRADEMARK = "Raycast is a trademark of Raycast Technologies Inc. Floe is not affiliated with Raycast."
 
 
@@ -163,14 +152,20 @@ def render_markdown(entries: list, links: dict) -> str:
     lines = [
         "# Credits",
         "",
-        "Who builds Floe and what it is built from. This file is written by `scripts/generate-credits.py`;",
-        "change the script and run it again instead of editing the lists.",
+        "Who translates Floe and what it is built from. This file is written by",
+        "`scripts/generate-credits.py`; change the script and run it again instead of editing it.",
+        "The people who contribute code and documentation are on the repository's",
+        "[contributors page](https://github.com/thaw-app/Floe/graphs/contributors).",
         "",
-        "## Contributors",
+        "## Translators",
+        "",
+        "Floe is translated by volunteers on [Crowdin](https://crowdin.com/project/floe). No language is",
+        "finished yet; the people who translate it will be listed here. To help, or to ask for a",
+        "language, join the project there.",
+        "",
+        "## Built from",
         "",
     ]
-    lines += [f"- {person.name} ([@{person.handle}](https://github.com/{person.handle}))" for person in CONTRIBUTORS]
-    lines += ["", "## Built from", ""]
     for dependency, version in entries:
         url = links.get(dependency.link)
         name = f"[{dependency.name}]({url})" if url else dependency.name
@@ -212,23 +207,7 @@ struct Credit: Identifiable {
     var id: String { name }
 }
 
-/// Someone who builds Floe.
-struct Contributor: Identifiable {
-    let name: String
-    /// The GitHub account, without the @.
-    let handle: String
-
-    var id: String { handle }
-
-    var profile: URL? {
-        URL(string: "https://github.com/\\(handle)")
-    }
-}
-
 enum Credits {
-    static let contributors: [Contributor] = [
-{contributors}    ]
-
     static let all: [Credit] = [
 """
 
@@ -254,12 +233,7 @@ def render_swift(entries: list) -> str:
         f"link: {swift_string(dependency.link)}, group: .{dependency.group}),\n"
         for dependency, _ in entries
     ]
-    people = [
-        f"        Contributor(name: {swift_string(person.name)}, handle: {swift_string(person.handle)}),\n"
-        for person in CONTRIBUTORS
-    ]
-    header = SWIFT_HEADER.replace("{contributors}", "".join(people))
-    return header + "".join(rows) + SWIFT_FOOTER.format(trademark=swift_string(TRADEMARK))
+    return SWIFT_HEADER + "".join(rows) + SWIFT_FOOTER.format(trademark=swift_string(TRADEMARK))
 
 
 def warn_about_missing_links(entries: list, links: dict) -> None:

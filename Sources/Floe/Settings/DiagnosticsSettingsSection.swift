@@ -23,7 +23,7 @@ struct DiagnosticsSettingsSection: View {
                 Button("Show Log Files in Finder") { NSWorkspace.shared.open(DiagnosticLogger.shared.logDirectory) }
             } label: {
                 Text("Log files")
-                Text(logFileName ?? "None yet")
+                Text(logFileName ?? String(localized: "None yet", bundle: .floe, comment: "Shown in place of a log file's name when no log has been written."))
             }
         }
         .task(id: settings.diagnosticLogging) {

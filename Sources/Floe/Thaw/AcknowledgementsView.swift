@@ -7,10 +7,10 @@
 //
 //  Floe changes © 2026 René Jiménez, under the same license.
 //
-//  Ported to Floe from Thaw 3. The three pages and their layout are Thaw's; what they say is
-//  Floe's and comes from Credits, which scripts/generate-credits.py writes, so the page and
-//  CREDITS.md stay the same. Floe is not translated, so there is no translators link. The
-//  window is opened by ReadingWindow, since Floe has no window scenes.
+//  Ported to Floe from Thaw 3. The three pages and their layout are Thaw's. Credits links to the
+//  repository's contributors and to the translators in CREDITS.md, naming nobody in the app, as
+//  Thaw's does. Origins and Licenses come from Credits, which scripts/generate-credits.py writes.
+//  The window is opened by ReadingWindow, since Floe has no window scenes.
 
 import SwiftUI
 import ThawUI
@@ -31,9 +31,9 @@ struct AcknowledgementsView: View {
 
         var item: ReadingPathItem {
             switch self {
-            case .credits: ReadingPathItem(id: rawValue, label: String(localized: "Credits"))
-            case .origins: ReadingPathItem(id: rawValue, label: String(localized: "Origins"))
-            case .licenses: ReadingPathItem(id: rawValue, label: String(localized: "Licenses"))
+            case .credits: ReadingPathItem(id: rawValue, label: String(localized: "Credits", bundle: .floe))
+            case .origins: ReadingPathItem(id: rawValue, label: String(localized: "Origins", bundle: .floe, comment: "The heading over the projects this app grew out of."))
+            case .licenses: ReadingPathItem(id: rawValue, label: String(localized: "Licenses", bundle: .floe))
             }
         }
     }
@@ -65,6 +65,16 @@ struct AcknowledgementsView: View {
                 }
                 .buttonStyle(.settingsGlass)
             }
+            if let url = link("translate") {
+                if link("repository") != nil {
+                    Text(verbatim: "/")
+                        .foregroundStyle(ThawInk.supporting)
+                }
+                Button("Help translate") {
+                    openURL(url)
+                }
+                .buttonStyle(.settingsGlass)
+            }
         }
     }
 
@@ -76,18 +86,24 @@ struct AcknowledgementsView: View {
         }
     }
 
+    /// Thaw's page: a thank-you and two links, with no names in the app. The lists live on GitHub.
     private var credits: some View {
         VStack(alignment: .leading, spacing: 22) {
-            ReadingParagraph("Thank you to everyone who contributes code and documentation to \(AppInfo.displayName).")
+            ReadingParagraph(String(
+                localized: "Thank you to everyone who contributes code, documentation, and translations to \(AppInfo.displayName).",
+                bundle: .floe,
+                comment: "The placeholder is the name of this app."
+            ))
 
             VStack(alignment: .leading, spacing: 12) {
-                ForEach(Credits.contributors) { contributor in
-                    if let url = contributor.profile {
-                        Link(destination: url) {
-                            Text(verbatim: contributor.label).underline()
-                        }
-                    } else {
-                        Text(verbatim: contributor.label)
+                if let url = AcknowledgementLinks.contributors(repository: link("repository")) {
+                    Link(destination: url) {
+                        Text("Contributors").underline()
+                    }
+                }
+                if let url = AcknowledgementLinks.translators(repository: link("repository")) {
+                    Link(destination: url) {
+                        Text("Translators").underline()
                     }
                 }
             }
@@ -101,7 +117,11 @@ struct AcknowledgementsView: View {
 
     private var origins: some View {
         VStack(alignment: .leading, spacing: 22) {
-            ReadingParagraph("\(AppInfo.displayName) is a sibling of Thaw, built by the same people in the same organization. It shares Thaw’s design system and much of its design.")
+            ReadingParagraph(String(
+                localized: "\(AppInfo.displayName) is a sibling of Thaw, built by the same people in the same organization. It shares Thaw’s design system and much of its design.",
+                bundle: .floe,
+                comment: "The placeholder is the name of this app."
+            ))
 
             ForEach(Credits.origins) { credit in
                 VStack(alignment: .leading, spacing: 12) {
@@ -160,9 +180,13 @@ struct AcknowledgementsView: View {
     }
 }
 
-extension Contributor {
-    /// The name with the GitHub account after it.
-    var label: String {
-        "\(name) (@\(handle))"
+/// Where the credits page's two links go, as Thaw's do: the repository's contributors, and the translators in CREDITS.md.
+nonisolated enum AcknowledgementLinks {
+    static func contributors(repository: URL?) -> URL? {
+        repository?.appending(path: "graphs/contributors")
+    }
+
+    static func translators(repository: URL?) -> URL? {
+        repository?.appending(path: "blob/main/CREDITS.md")
     }
 }

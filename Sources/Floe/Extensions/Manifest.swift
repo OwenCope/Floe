@@ -284,24 +284,24 @@ enum RootItem: Identifiable {
         case let .app(app): app.name
         case let .command(command): command.title
         case let .script(script): script.title
-        case .menuBarSearch: "Search Menu Bar Items"
-        case .emojiSearch: "Search Emoji & Symbols"
-        case .clipboardHistory, .clipboardApp: "Clipboard History"
-        case .fileSearch: "Search Files"
-        case let .searchFiles(query): "Search Files for \"\(query)\""
-        case .settings: "Floe Settings"
+        case .menuBarSearch: String(localized: "Search Menu Bar Items", bundle: .floe)
+        case .emojiSearch: String(localized: "Search Emoji & Symbols", bundle: .floe)
+        case .clipboardHistory, .clipboardApp: String(localized: "Clipboard History", bundle: .floe)
+        case .fileSearch: String(localized: "Search Files", bundle: .floe)
+        case let .searchFiles(query): String(localized: "Search Files for \"\(query)\"", bundle: .floe, comment: "The placeholder is what the user typed.")
+        case .settings: String(localized: "Floe Settings", bundle: .floe)
         case let .calculator(result): result.value
         case let .system(command): command.title
         case let .settingsPane(pane): pane.title
         case let .note(action, text): action.title(text: text)
         case let .thaw(action): action.title
-        case let .finderSelection(_, app): "Open Finder Selection in \(app.name)"
+        case let .finderSelection(_, app): String(localized: "Open Finder Selection in \(app.name)", bundle: .floe, comment: "The placeholder is an app's name.")
         case let .event(event): event.title
         case let .snippet(snippet): snippet.name
         case let .emoji(entry): entry.name
         case let .quicklink(link, queryText, fallback, keywordSearch):
             if fallback || keywordSearch {
-                "Search \(link.name) for \u{201C}\(queryText)\u{201D}"
+                String(localized: "Search \(link.name) for \u{201C}\(queryText)\u{201D}", bundle: .floe, comment: "The first placeholder is the name of a site or quicklink, the second is what the user typed.")
             } else {
                 link.name
             }
@@ -309,9 +309,9 @@ enum RootItem: Identifiable {
         case let .browserTab(row): row.title
         case let .clipboardEntry(entry): entry.title.isEmpty ? entry.kind.rawValue.capitalized : entry.title
         case let .menuBarItem(_, name): name
-        case .menuBarAccess: "Floe needs Accessibility to list your menu bar items"
-        case let .askAI(question): "Ask AI \u{201C}\(question)\u{201D}"
-        case let .webAddress(address): "Open \(address.text)"
+        case .menuBarAccess: String(localized: "Floe needs Accessibility to list your menu bar items", bundle: .floe, comment: "Accessibility is the name of a permission in System Settings.")
+        case let .askAI(question): String(localized: "Ask AI \u{201C}\(question)\u{201D}", bundle: .floe, comment: "The placeholder is the question the user typed.")
+        case let .webAddress(address): String(localized: "Open \(address.text)", bundle: .floe, comment: "The placeholder is a web address.")
         case let .sshHost(host, _): host.alias
         case let .shortcut(shortcut): shortcut.name
         }
@@ -330,7 +330,7 @@ enum RootItem: Identifiable {
         case let .quicklink(link, _, _, _):
             return link.keyword
         case .system:
-            return "System"
+            return String(localized: "System", bundle: .floe, comment: "The kind of a result, shown beside its title. Here a system command such as Sleep.")
         case let .event(event):
             return event.subtitle
         case let .snippet(snippet):
@@ -361,30 +361,31 @@ enum RootItem: Identifiable {
 
     var kind: String {
         switch self {
-        case .app: "Application"
-        case let .command(command): command.mode == "menu-bar" ? "Menu Bar" : "Command"
-        case .script: "Script"
+        case .app: String(localized: "Application", bundle: .floe, comment: "The kind of a result, shown beside its title.")
+        case let .command(command) where command.mode == "menu-bar": String(localized: "Menu Bar", bundle: .floe, comment: "The kind of a result, shown beside its title.")
+        case .command: String(localized: "Command", bundle: .floe, comment: "The kind of a result, shown beside its title.")
+        case .script: String(localized: "Script", bundle: .floe, comment: "The kind of a result, shown beside its title.")
         case .menuBarSearch, .emojiSearch, .clipboardHistory, .settings: "Floe"
         case let .clipboardApp(destination): destination.label
-        case .fileSearch, .searchFiles: "Files"
-        case .calculator: "Calculator"
-        case .system: "System"
-        case .settingsPane: "System Settings"
-        case .note: "Notes"
+        case .fileSearch, .searchFiles: String(localized: "Files", bundle: .floe, comment: "The kind of a result, shown beside its title.")
+        case .calculator: String(localized: "Calculator", bundle: .floe)
+        case .system: String(localized: "System", bundle: .floe, comment: "The kind of a result, shown beside its title. Here a system command such as Sleep.")
+        case .settingsPane: String(localized: "System Settings", bundle: .floe)
+        case .note: String(localized: "Notes", bundle: .floe, comment: "The kind of a result, shown beside its title. Here a row that writes a note.")
         case .thaw: "Thaw"
         case .finderSelection: "Finder"
-        case .event: "Event"
-        case .snippet: "Snippet"
-        case .emoji: "Emoji"
-        case .quicklink: "Quicklink"
-        case .file: "File"
-        case .browserTab: "Browser Tab"
-        case .clipboardEntry: "Clipboard"
-        case .menuBarItem, .menuBarAccess: "Menu Bar"
-        case .askAI: "AI"
-        case .webAddress: "Web Address"
+        case .event: String(localized: "Event", bundle: .floe, comment: "The kind of a result, shown beside its title. Here a calendar event.")
+        case .snippet: String(localized: "Snippet", bundle: .floe, comment: "The kind of a result, shown beside its title. A snippet is a saved piece of text.")
+        case .emoji: String(localized: "Emoji", bundle: .floe)
+        case .quicklink: String(localized: "Quicklink", bundle: .floe, comment: "The kind of a result, shown beside its title. A quicklink is a saved link or search.")
+        case .file: String(localized: "File", bundle: .floe, comment: "The kind of a result, shown beside its title.")
+        case .browserTab: String(localized: "Browser Tab", bundle: .floe)
+        case .clipboardEntry: String(localized: "Clipboard", bundle: .floe, comment: "The kind of a result, shown beside its title.")
+        case .menuBarItem, .menuBarAccess: String(localized: "Menu Bar", bundle: .floe, comment: "The kind of a result, shown beside its title.")
+        case .askAI: String(localized: "AI", bundle: .floe, comment: "The kind of a result, shown beside its title. Short for artificial intelligence.")
+        case .webAddress: String(localized: "Web Address", bundle: .floe)
         case .sshHost: "SSH"
-        case .shortcut: "Shortcut"
+        case .shortcut: String(localized: "Shortcut", bundle: .floe, comment: "The kind of a result, shown beside its title. Here one made in Apple's Shortcuts app.")
         }
     }
 }

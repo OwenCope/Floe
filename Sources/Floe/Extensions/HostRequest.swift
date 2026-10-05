@@ -127,9 +127,9 @@ enum AIService: String, CaseIterable, Identifiable {
         case .openAI: "OpenAI"
         case .openRouter: "OpenRouter"
         case .zai: "Z.ai"
-        case .ollama: "Ollama, on this Mac"
-        case .lmStudio: "LM Studio, on this Mac"
-        case .other: "Another address"
+        case .ollama: String(localized: "Ollama, on this Mac", bundle: .floe, comment: "Ollama is the name of an app.")
+        case .lmStudio: String(localized: "LM Studio, on this Mac", bundle: .floe, comment: "LM Studio is the name of an app.")
+        case .other: String(localized: "Another address", bundle: .floe, comment: "A choice in a list of AI services: one the user types the address of.")
         }
     }
 
@@ -189,19 +189,20 @@ nonisolated struct AIEndpoint: Equatable, Sendable {
 
     /// What an incomplete setup still needs, as one sentence for Settings; nil when it is complete.
     static func problem(baseURL: String, model: String, apiKey: String?) -> String? {
-        var needs: [String] = []
-        if chatURL(baseURL: baseURL) == nil {
-            needs.append("an address that starts with http:// or https://")
+        let address = chatURL(baseURL: baseURL) == nil
+        let model = model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let key = needsKey(chatURL(baseURL: baseURL)) && (apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        // One whole sentence for each combination, so a translator never gets a fragment.
+        return switch (address, model, key) {
+        case (false, false, false): nil
+        case (true, false, false): String(localized: "AI can't answer yet. It needs an address that starts with http:// or https://.", bundle: .floe)
+        case (false, true, false): String(localized: "AI can't answer yet. It needs a model.", bundle: .floe)
+        case (false, false, true): String(localized: "AI can't answer yet. It needs an API key.", bundle: .floe)
+        case (true, true, false): String(localized: "AI can't answer yet. It needs an address that starts with http:// or https:// and a model.", bundle: .floe)
+        case (true, false, true): String(localized: "AI can't answer yet. It needs an address that starts with http:// or https:// and an API key.", bundle: .floe)
+        case (false, true, true): String(localized: "AI can't answer yet. It needs a model and an API key.", bundle: .floe)
+        case (true, true, true): String(localized: "AI can't answer yet. It needs an address that starts with http:// or https://, a model and an API key.", bundle: .floe)
         }
-        if model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            needs.append("a model")
-        }
-        if needsKey(chatURL(baseURL: baseURL)), (apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            needs.append("an API key")
-        }
-        guard let last = needs.popLast() else { return nil }
-        let list = needs.isEmpty ? last : "\(needs.joined(separator: ", ")) and \(last)"
-        return "AI can't answer yet. It needs \(list)."
     }
 
     /// The chat completions address under a base address like "https://api.openai.com/v1". An
@@ -224,7 +225,7 @@ nonisolated struct AIEndpoint: Equatable, Sendable {
 
 /// The choice in Settings › General › AI, read where a request is answered.
 nonisolated enum AIAnswer {
-    static let incompleteMessage = "AI is set to use an API, but its address, model or key is missing. Fill them in under Settings › General › AI."
+    static let incompleteMessage = String(localized: "AI is set to use an API, but its address, model or key is missing. Fill them in under Settings › General › AI.", bundle: .floe)
 
     enum Choice: Equatable {
         case tools

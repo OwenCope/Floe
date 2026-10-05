@@ -35,13 +35,13 @@ struct Snippet: Codable, Identifiable, Equatable {
     static func keywordProblem(_ keyword: String, id: UUID, among snippets: [Snippet]) -> String? {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.count < 2 {
-            return "Keywords need at least 2 characters."
+            return String(localized: "Keywords need at least 2 characters.", bundle: .floe)
         }
         if trimmed.contains(where: \.isWhitespace) {
-            return "Keywords can't contain spaces."
+            return String(localized: "Keywords can't contain spaces.", bundle: .floe)
         }
         if snippets.contains(where: { $0.id != id && $0.keyword == trimmed }) {
-            return "Another snippet uses that keyword."
+            return String(localized: "Another snippet uses that keyword.", bundle: .floe)
         }
         return nil
     }

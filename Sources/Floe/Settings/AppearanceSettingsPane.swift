@@ -25,8 +25,15 @@ struct AppearanceSettingsPane: View {
         mirror?.followed.contains(part) ?? false
     }
 
-    private func footnote(_ text: String) -> some View {
+    private func footnote(_ text: LocalizedStringKey) -> some View {
         Text(text)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+    }
+
+    /// A footnote whose text is already in the user's language.
+    private func footnote(resolved text: String) -> some View {
+        Text(verbatim: text)
             .font(.footnote)
             .foregroundStyle(.secondary)
     }
@@ -107,7 +114,7 @@ struct AppearanceSettingsPane: View {
                 ThawSection("Thaw") {
                     Toggle("Follow Thaw's menu bar appearance", isOn: $settings.followsThawAppearance)
                     if settings.followsThawAppearance {
-                        ForEach(ThawAppearanceNote.lines(status: follower.status, mirror: mirror), id: \.self, content: footnote)
+                        ForEach(ThawAppearanceNote.lines(status: follower.status, mirror: mirror), id: \.self) { footnote(resolved: $0) }
                     }
                 }
             }
@@ -212,7 +219,7 @@ struct AppearanceSettingsPane: View {
     }
 
     @ViewBuilder
-    private func tintControls(_ title: String, _ tint: Binding<LauncherTint>) -> some View {
+    private func tintControls(_ title: LocalizedStringKey, _ tint: Binding<LauncherTint>) -> some View {
         let solid = Binding(
             get: { tint.wrappedValue.solid.color },
             set: { tint.wrappedValue.solid = StoredColor($0) }
@@ -344,21 +351,30 @@ enum ThawAppearanceNote {
         case .idle, .following:
             nil
         case .noAnswer:
-            "Thaw has not answered, so the launcher keeps the last look it had. "
-                + "A development build of Floe has to be allowed first: run \"\(ThawAction.authorize.title)\" from the search."
+            String(
+                localized: "Thaw has not answered, so the launcher keeps the last look it had. A development build of Floe has to be allowed first: run \"\(ThawAction.authorize.title)\" from the search.",
+                bundle: .floe,
+                comment: "The placeholder is the name of a command in the search."
+            )
         case .notRunning:
-            "Thaw is not running. The launcher keeps the last look it had and asks again when Thaw opens."
+            String(localized: "Thaw is not running. The launcher keeps the last look it had and asks again when Thaw opens.", bundle: .floe)
         case .unreadable:
-            "Thaw answered in a form this version of Floe cannot read, so the launcher keeps the last look it had. Update Floe and Thaw."
+            String(localized: "Thaw answered in a form this version of Floe cannot read, so the launcher keeps the last look it had. Update Floe and Thaw.", bundle: .floe)
         }
     }
 
     /// Names the fills Thaw takes from the wallpaper, which carry no colour to copy.
     private static func wallpaper(_ mirror: ThawMirror?) -> String? {
         guard let mirror, !mirror.unmirrored.isEmpty else { return nil }
-        let names = mirror.unmirrored.map(\.rawValue).joined(separator: " and ")
-        let verb = mirror.unmirrored.count == 1 ? "follows" : "follow"
-        let outcome = mirror.followed.contains(.tint) ? "it is left out" : "the launcher keeps its own tint"
-        return "Thaw's \(names) \(verb) the wallpaper, which the launcher cannot copy, so \(outcome)."
+        // One whole sentence per case: the layers are named in Thaw's order, tint first.
+        let isLeftOut = mirror.followed.contains(.tint)
+        switch (mirror.unmirrored, isLeftOut) {
+        case ([.tint], true): return String(localized: "Thaw's tint follows the wallpaper, which the launcher cannot copy, so it is left out.", bundle: .floe)
+        case ([.tint], false): return String(localized: "Thaw's tint follows the wallpaper, which the launcher cannot copy, so the launcher keeps its own tint.", bundle: .floe)
+        case ([.background], true): return String(localized: "Thaw's background follows the wallpaper, which the launcher cannot copy, so it is left out.", bundle: .floe)
+        case ([.background], false): return String(localized: "Thaw's background follows the wallpaper, which the launcher cannot copy, so the launcher keeps its own tint.", bundle: .floe)
+        case (_, true): return String(localized: "Thaw's tint and background follow the wallpaper, which the launcher cannot copy, so it is left out.", bundle: .floe)
+        case (_, false): return String(localized: "Thaw's tint and background follow the wallpaper, which the launcher cannot copy, so the launcher keeps its own tint.", bundle: .floe)
+        }
     }
 }

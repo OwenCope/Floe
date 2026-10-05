@@ -97,7 +97,7 @@ struct ClipboardSettingsSection: View {
         ThawSection("Clipboard") {
             Toggle(isOn: Binding(get: { settings.recordsClipboardHistory }, set: { settings.clipboardHistoryEnabled = $0 })) {
                 Text("Save clipboard history")
-                Text(notice ?? "Keeps text, links, images and files you copy. Pins survive Clear.")
+                Text(notice ?? String(localized: "Keeps text, links, images and files you copy. Pins survive Clear.", bundle: .floe))
             }
             .disabled(notice != nil)
             LabeledContent("History") {

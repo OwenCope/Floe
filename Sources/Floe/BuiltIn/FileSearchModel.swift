@@ -51,13 +51,13 @@ final class FileSearchModel: ObservableObject {
     func copySelectedFilePath() {
         guard let file = selectedFile else { return }
         NSPasteboard.general.copy(file.url.path)
-        host.showHUD("Copied")
+        host.showHUD(String(localized: "Copied", bundle: .floe, comment: "Said after something was copied."))
     }
 
     func actions(for file: FileResult) -> [ItemAction?] {
         let actionHost = ActionHost(showHUD: host.showHUD, dismiss: host.dismiss, preferredApps: preferredApps())
         return [
-            ItemAction(title: "Open", symbol: "return") { [weak self] in self?.openSelectedFile() },
+            ItemAction(title: String(localized: "Open", bundle: .floe, comment: "A button that opens the selected file."), symbol: "return") { [weak self] in self?.openSelectedFile() },
         ] + FileActions.actions(for: file.url, host: actionHost)
     }
 

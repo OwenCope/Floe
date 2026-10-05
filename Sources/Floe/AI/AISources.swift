@@ -53,8 +53,10 @@ nonisolated struct AISources: Sendable {
 }
 
 nonisolated extension AIAnswer {
-    static let localOnlyMessage = "“Only use AI that runs on this Mac” is on, and the AI source you chose sends questions elsewhere, so nothing was asked. "
-        + "Turn the switch off under Settings › Privacy, or choose Apple Intelligence or a server on this Mac under Settings › General › AI."
+    static let localOnlyMessage = String(
+        localized: "“Only use AI that runs on this Mac” is on, and the AI source you chose sends questions elsewhere, so nothing was asked. Turn the switch off under Settings › Privacy, or choose Apple Intelligence or a server on this Mac under Settings › General › AI.",
+        bundle: .floe
+    )
 
     /// Why the chosen source will not be asked, as one message for the person who asked; nil when it may be.
     static func refusal(for choice: Choice, localOnly: Bool) -> String? {

@@ -27,27 +27,7 @@ struct Credit: Identifiable {
     }
 }
 
-/// Someone who builds Floe.
-struct Contributor: Identifiable {
-    let name: String
-    /// The GitHub account, without the @.
-    let handle: String
-
-    var id: String {
-        handle
-    }
-
-    var profile: URL? {
-        URL(string: "https://github.com/\(handle)")
-    }
-}
-
 enum Credits {
-    static let contributors: [Contributor] = [
-        Contributor(name: "René Jiménez", handle: "diazdesandi"),
-        Contributor(name: "Owen Cope", handle: "OwenCope"),
-    ]
-
     static let all: [Credit] = [
         Credit(name: "Thaw", detail: "ThawUI, ThawConcurrency, the hotkey code, the HUD, the glass styles, the Privacy pane, the About and acknowledgements pages, the diagnostic logger, the release notes reader and the search panel design. Copyright © 2026 Toni Förster et al. GPL-3.0.", link: "thaw", group: .origin),
         Credit(name: "Droppy Code", detail: "Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer AI.ask and Ask AI, its reading of the claude tool's streamed answer, the way it starts pi and hands opencode its configuration, its hang watchdog and the folder watcher behind hot reload, each modified for Floe and used with his permission. AGPL-3.0.", link: "droppyCode", group: .origin),

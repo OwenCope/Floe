@@ -66,17 +66,20 @@ struct OnboardingWelcomeView: View {
     /// Keep the reading sequence together so centering spacers move it as one block.
     private var copyBlock: some View {
         VStack(spacing: 0) {
-            Text(verbatim: "Welcome to \(AppInfo.displayName)")
+            Text("Welcome to \(AppInfo.displayName)", comment: "The placeholder is the name of this app.")
                 .font(ThawType.display)
                 .multilineTextAlignment(.center)
 
-            Text(verbatim: "\(AppInfo.displayName) is a launcher for your apps and commands. It runs Raycast extensions and searches your menu bar.")
-                .font(ThawType.heading)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 440)
-                .padding(.top, ThawSpacing.compact)
+            Text(
+                "\(AppInfo.displayName) is a launcher for your apps and commands. It runs Raycast extensions and searches your menu bar.",
+                comment: "The placeholder is the name of this app."
+            )
+            .font(ThawType.heading)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: 440)
+            .padding(.top, ThawSpacing.compact)
 
             factsRow
                 .padding(.top, ThawSpacing.gutter)
@@ -94,13 +97,13 @@ struct OnboardingWelcomeView: View {
     }
 
     /// Scale a long label rather than wrapping one capsule taller than its neighbours.
-    private func fact(symbol: String, label: String, spoken: String) -> some View {
+    private func fact(symbol: String, label: LocalizedStringKey, spoken: LocalizedStringKey) -> some View {
         HStack(spacing: ThawSpacing.compact) {
             Image(systemName: symbol)
                 .font(ThawType.symbol)
                 .foregroundStyle(.secondary)
 
-            Text(verbatim: label)
+            Text(label)
                 .font(ThawType.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -111,6 +114,6 @@ struct OnboardingWelcomeView: View {
         .frame(height: 30)
         .thawGlass(.control, in: Capsule(style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(verbatim: spoken))
+        .accessibilityLabel(Text(spoken))
     }
 }

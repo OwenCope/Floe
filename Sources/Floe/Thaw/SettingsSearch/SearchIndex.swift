@@ -8,9 +8,9 @@
 //  Floe changes © 2026 René Jiménez, under the same license.
 //
 //  Thaw 3's settings search index (Settings/Search/SearchIndex.swift), with the entry reshaped
-//  for Floe: plain strings instead of localization keys, Floe's SettingsPage as the pane, and a
-//  scroll anchor where Thaw has a disclosure. The entries themselves are Floe's and live in
-//  SettingsSearchEntries.swift.
+//  for Floe: strings already in the user's language instead of localization keys, so the search
+//  matches what is on screen, Floe's SettingsPage as the pane, and a scroll anchor where Thaw
+//  has a disclosure. The entries themselves are Floe's and live in SettingsSearchEntries.swift.
 
 import Foundation
 
@@ -52,7 +52,7 @@ struct SearchEntry: Identifiable {
     let paneLabel: SearchPaneLabel
     /// The section heading the control sits under, when its pane has sections.
     let section: String?
-    /// Other words someone might type to find the control. Each is matched on its own.
+    /// Other words someone might type to find the control, translated as one list. Each is matched on its own.
     let keywords: [String]
     /// The id of the view to scroll to once the pane is showing; nil leaves the pane at its top.
     let anchor: String?

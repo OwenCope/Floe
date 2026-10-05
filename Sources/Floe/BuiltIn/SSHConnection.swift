@@ -57,8 +57,8 @@ nonisolated enum SSHConnection {
     /// Read from Ghostty 1.3.1's Info.plist. It registers no "ssh://" link; its scripting dictionary opens windows.
     static let ghostty = "com.mitchellh.ghostty"
 
-    static let unsafeAliasNotice = "Not connected. Floe only passes on host names made of letters, digits, dots, hyphens and underscores."
-    static let noTerminalNotice = "Not connected. Choose a terminal in Floe Settings."
+    static let unsafeAliasNotice = String(localized: "Not connected. Floe only passes on host names made of letters, digits, dots, hyphens and underscores.", bundle: .floe)
+    static let noTerminalNotice = String(localized: "Not connected. Choose a terminal in Floe Settings.", bundle: .floe)
 
     /// An alias that can go into a link or a script as it is: a line in the configuration must not
     /// become an option of ssh or a second command.
@@ -122,7 +122,7 @@ nonisolated enum SSHConnection {
               let step = step(alias: alias, app: fallback, using: connector)
         else { return SSHConnectionPlan(step: .nothing, notice: noTerminalNotice) }
         let name = ResolvedApp(url: fallback).name
-        let notice = terminal.map { "\($0.name) takes no command from Floe, so the connection opened in \(name)" }
+        let notice = terminal.map { String(localized: "\($0.name) takes no command from Floe, so the connection opened in \(name)", bundle: .floe, comment: "Both placeholders are names of terminal apps.") }
         return SSHConnectionPlan(step: step, app: name, notice: notice)
     }
 
@@ -151,7 +151,7 @@ nonisolated enum SSHConnection {
             switch await run(source, with: connector.runScript) {
             case .text: return .finished(plan.notice)
             case .refused: return .automationRefused(app: plan.app)
-            case .failed: return .finished("Couldn't open the connection in \(plan.app)")
+            case .failed: return .finished(String(localized: "Couldn't open the connection in \(plan.app)", bundle: .floe, comment: "The placeholder is the name of a terminal app."))
             }
         }
     }
@@ -185,17 +185,22 @@ nonisolated enum SSHConnection {
 
 /// The Actions menu of a host, after Connect.
 enum SSHHostActions {
-    static func actions(for host: SSHHost, host actionHost: ActionHost) -> [ItemAction?] {
+    /// `copy` is a parameter so a test can read what would be copied.
+    static func actions(
+        for host: SSHHost,
+        host actionHost: ActionHost,
+        copy: @escaping (String) -> Void = { NSPasteboard.general.copy($0) }
+    ) -> [ItemAction?] {
         let command = SSHConnection.command(for: host.alias)
         return [
             nil,
-            ItemAction(title: "Copy Host Name", symbol: "doc.on.doc") {
-                NSPasteboard.general.copy(host.copyableName)
-                actionHost.showHUD("Copied \(host.copyableName)")
+            ItemAction(title: String(localized: "Copy Host Name", bundle: .floe), symbol: "doc.on.doc") {
+                copy(host.copyableName)
+                actionHost.showHUD(String(localized: "Copied \(host.copyableName)", bundle: .floe, comment: "The placeholder is the text that was copied."))
             },
-            ItemAction(title: "Copy SSH Command", symbol: "terminal") {
-                NSPasteboard.general.copy(command)
-                actionHost.showHUD("Copied \(command)")
+            ItemAction(title: String(localized: "Copy SSH Command", bundle: .floe), symbol: "terminal") {
+                copy(command)
+                actionHost.showHUD(String(localized: "Copied \(command)", bundle: .floe, comment: "The placeholder is the text that was copied."))
             },
         ]
     }

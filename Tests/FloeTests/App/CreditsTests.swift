@@ -51,10 +51,11 @@ struct CreditsTests {
         #expect(Credits.libraries.allSatisfy { $0.group == .library })
     }
 
-    @Test func theContributorsAreFloesOwnWithTheirGitHubProfiles() {
-        #expect(Credits.contributors.map(\.label) == ["René Jiménez (@diazdesandi)", "Owen Cope (@OwenCope)"])
-        #expect(Credits.contributors.map(\.profile) == [URL(string: "https://github.com/diazdesandi"), URL(string: "https://github.com/OwenCope")])
-        #expect(Set(Credits.contributors.map(\.id)).count == Credits.contributors.count)
+    @Test func theCreditsPageLinksToTheRepositoryAndNamesNobody() {
+        let repository = URL(string: "https://github.com/thaw-app/Floe")
+        #expect(AcknowledgementLinks.contributors(repository: repository)?.absoluteString == "https://github.com/thaw-app/Floe/graphs/contributors")
+        #expect(AcknowledgementLinks.translators(repository: repository)?.absoluteString == "https://github.com/thaw-app/Floe/blob/main/CREDITS.md")
+        #expect(AcknowledgementLinks.contributors(repository: nil) == nil, "a build with no repository link shows no link")
     }
 
     @Test func aLinkIsPrintedAsItsHostAndPath() throws {

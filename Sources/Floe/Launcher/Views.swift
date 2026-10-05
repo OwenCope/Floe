@@ -124,12 +124,12 @@ struct RootView: View {
     var body: some View {
         let results = model.results
         PanelSections(showsContent: !isCollapsed) {
-            SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken, isLoading: model.isLoadingCatalog || model.isAwaitingResults) { EmptyView() }
+            SearchBar(placeholder: String(localized: "Search apps and commands…", bundle: .floe), text: $model.query, focusToken: model.focusToken, isLoading: model.isLoadingCatalog || model.isAwaitingResults) { EmptyView() }
         } content: {
             if results.isEmpty, !model.isLoadingCatalog, !model.isAwaitingResults {
                 ThawEmptyState(
                     systemImage: "magnifyingglass",
-                    title: LocalizedStringKey(model.activeScope?.scope.emptyTitle ?? "Nothing matches"),
+                    title: .verbatim(model.activeScope?.scope.emptyTitle ?? String(localized: "Nothing matches", bundle: .floe)),
                     caption: model.activeScope == nil ? "Try part of an app's or a command's name, or an alias." : nil
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -173,7 +173,7 @@ struct RootView: View {
 
             if let selected = results.indices.contains(model.selection) ? results[model.selection].item : nil {
                 if !selected.isScopeResult {
-                    ShortcutHintButton(title: "Favorite") { model.toggleFavorite(selected) } hint: {
+                    ShortcutHintButton(title: String(localized: "Favorite", bundle: .floe, comment: "A verb on a button: add the selected result to the favorites.")) { model.toggleFavorite(selected) } hint: {
                         KeyCapView(text: "⌘")
                         Text(verbatim: "+")
                         KeyCapView(text: "⇧")
@@ -266,7 +266,7 @@ struct RootIcon: View {
         case .menuBarSearch:
             IconView(value: "icon:MenubarRectangle", assetsPath: "", size: 24)
         case .emojiSearch:
-            Text("😀").font(.system(size: 20))
+            Text(verbatim: "😀").font(.system(size: 20))
         case .clipboardHistory:
             IconView(value: "icon:Clipboard", assetsPath: "", size: 24)
         case let .clipboardApp(destination):

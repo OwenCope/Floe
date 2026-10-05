@@ -86,19 +86,21 @@ struct SettingsView: View {
     private var subtitle: String {
         guard !search.isSearching else { return "" }
         switch selection.page {
-        case .general: return "Startup, hotkeys and built-in commands"
-        case .applications: return "Aliases and hotkeys for apps"
-        case .quicklinks: return "Keywords and fallbacks for web search"
-        case .snippets: return "Text you paste or type by keyword"
-        case .extensionStore: return "Install extensions from the Raycast store"
-        case .appearance: return "Tint, border and shadow for the launcher"
-        case .privacy: return "Permissions and what Floe contacts"
-        case .about: return "Version, updates and credits"
+        case .general: return String(localized: "Startup, hotkeys and built-in commands", bundle: .floe)
+        case .applications: return String(localized: "Aliases and hotkeys for apps", bundle: .floe)
+        case .quicklinks: return String(localized: "Keywords and fallbacks for web search", bundle: .floe)
+        case .snippets: return String(localized: "Text you paste or type by keyword", bundle: .floe)
+        case .extensionStore: return String(localized: "Install extensions from the Raycast store", bundle: .floe)
+        case .appearance: return String(localized: "Tint, border and shadow for the launcher", bundle: .floe)
+        case .privacy: return String(localized: "Permissions and what Floe contacts", bundle: .floe)
+        case .about: return String(localized: "Version, updates and credits", bundle: .floe)
         case let .extensionPage(name):
             guard let command = catalog.allCommands.first(where: { $0.extensionName == name }) else { return "" }
             let count = catalog.allCommands.filter { $0.extensionName == name }.count
-            let commands = count == 1 ? "1 command" : "\(count) commands"
-            return command.source == .raycast ? "From Raycast · \(commands)" : commands
+            // The catalog holds the singular of both as a plural variation.
+            return command.source == .raycast
+                ? String(localized: "From Raycast · \(count) commands", bundle: .floe, comment: "The placeholder is how many commands an extension has.")
+                : String(localized: "\(count) commands", bundle: .floe, comment: "The placeholder is how many commands an extension has.")
         }
     }
 }
@@ -155,15 +157,15 @@ private struct SettingsSidebarPaneList: View {
                 )
             }
         return [
-            Row(page: .general, title: "General", symbol: "gearshape", icon: nil, assetsPath: ""),
-            Row(page: .applications, title: "Applications", symbol: "square.grid.2x2", icon: nil, assetsPath: ""),
-            Row(page: .quicklinks, title: "Quicklinks", symbol: "link", icon: nil, assetsPath: ""),
-            Row(page: .snippets, title: "Snippets", symbol: "text.quote", icon: nil, assetsPath: ""),
-            Row(page: .extensionStore, title: "Extension Store", symbol: "bag", icon: nil, assetsPath: ""),
-            Row(page: .appearance, title: "Appearance", symbol: "paintbrush", icon: nil, assetsPath: ""),
-            Row(page: .privacy, title: "Privacy", symbol: "hand.raised", icon: nil, assetsPath: ""),
+            Row(page: .general, title: SearchPaneLabel.general.title, symbol: "gearshape", icon: nil, assetsPath: ""),
+            Row(page: .applications, title: SearchPaneLabel.applications.title, symbol: "square.grid.2x2", icon: nil, assetsPath: ""),
+            Row(page: .quicklinks, title: SearchPaneLabel.quicklinks.title, symbol: "link", icon: nil, assetsPath: ""),
+            Row(page: .snippets, title: SearchPaneLabel.snippets.title, symbol: "text.quote", icon: nil, assetsPath: ""),
+            Row(page: .extensionStore, title: SearchPaneLabel.extensionStore.title, symbol: "bag", icon: nil, assetsPath: ""),
+            Row(page: .appearance, title: SearchPaneLabel.appearance.title, symbol: "paintbrush", icon: nil, assetsPath: ""),
+            Row(page: .privacy, title: SearchPaneLabel.privacy.title, symbol: "hand.raised", icon: nil, assetsPath: ""),
         ] + extensions + [
-            Row(page: .about, title: "About", symbol: "cube", icon: nil, assetsPath: ""),
+            Row(page: .about, title: SearchPaneLabel.about.title, symbol: "cube", icon: nil, assetsPath: ""),
         ]
     }
 
@@ -261,18 +263,25 @@ struct GeneralSettingsView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let archive = try SettingsTransfer.decode(Data(contentsOf: url))
-            let detail = "Aliases, hotkeys, favorites and appearance are replaced by the file's. Passwords aren't included in exports."
-            guard Confirm.destructive("Replace your settings?", detail: detail, button: "Replace") else { return }
+            let detail = String(localized: "Aliases, hotkeys, favorites and appearance are replaced by the file's. Passwords aren't included in exports.", bundle: .floe)
+            guard Confirm.destructive(String(localized: "Replace your settings?", bundle: .floe), detail: detail, button: String(localized: "Replace", bundle: .floe, comment: "The button that replaces the settings with the ones in a file.")) else { return }
             try settings.importJSON(archive.settings)
             for (name, values) in archive.preferences {
                 PreferenceStore.merge(values, extensionName: name)
             }
             let summary = SettingsTransfer.summary(of: archive) { Keychain.read(account: "\($0)/\($1)") != nil }
             let done = NSAlert()
-            done.messageText = "Settings imported"
-            var lines = ["\(summary.aliases) aliases, \(summary.hotkeys) hotkeys, \(summary.favorites) favorites, preferences for \(summary.extensions) extensions."]
+            done.messageText = String(localized: "Settings imported", bundle: .floe)
+            var lines = [
+                String(
+                    localized: "\(summary.aliases) aliases, \(summary.hotkeys) hotkeys, \(summary.favorites) favorites, preferences for \(summary.extensions) extensions.",
+                    bundle: .floe,
+                    comment: "What a settings file brought in. Each placeholder is a count."
+                ),
+            ]
             if !summary.missingSecrets.isEmpty {
-                lines.append("Enter these again:\n" + summary.missingSecrets.joined(separator: "\n"))
+                let names = summary.missingSecrets.joined(separator: "\n")
+                lines.append(String(localized: "Enter these again:\n\(names)", bundle: .floe, comment: "The placeholder is a list of password fields, one on each line."))
             }
             done.informativeText = lines.joined(separator: "\n\n")
             done.runModal()
@@ -283,7 +292,7 @@ struct GeneralSettingsView: View {
 
     private static func show(_ error: Error) {
         let alert = NSAlert()
-        alert.messageText = "Couldn't transfer settings"
+        alert.messageText = String(localized: "Couldn't transfer settings", bundle: .floe)
         alert.informativeText = error.localizedDescription
         alert.runModal()
     }

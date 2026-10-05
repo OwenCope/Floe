@@ -31,20 +31,20 @@ enum ThawAction: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .toggleHidden: "Toggle the Hidden Section"
-        case .toggleAlwaysHidden: "Toggle the Always Hidden Section"
-        case .toggleSwap: "Swap Shown and Hidden Items"
-        case .search: "Search Menu Bar Items in Thaw"
-        case .itemHints: "Open an Item by Letter"
-        case .toggleThawBar: "Turn Thaw Bar On or Off"
-        case .toggleApplicationMenus: "Toggle Application Menus"
-        case .toggleZenMode: "Toggle Zen Mode"
-        case .toggleLayoutEditor: "Show Layout"
-        case .openSettings: "Thaw Settings"
-        case .toggleAutoRehide: "Toggle Automatic Rehiding"
-        case .toggleShowOnHover: "Toggle Show on Hover"
-        case .toggleHideApplicationMenus: "Toggle Hiding Application Menus"
-        case .authorize: "Allow Floe to Change Thaw Settings"
+        case .toggleHidden: String(localized: "Toggle the Hidden Section", bundle: .floe)
+        case .toggleAlwaysHidden: String(localized: "Toggle the Always Hidden Section", bundle: .floe)
+        case .toggleSwap: String(localized: "Swap Shown and Hidden Items", bundle: .floe)
+        case .search: String(localized: "Search Menu Bar Items in Thaw", bundle: .floe)
+        case .itemHints: String(localized: "Open an Item by Letter", bundle: .floe)
+        case .toggleThawBar: String(localized: "Turn Thaw Bar On or Off", bundle: .floe)
+        case .toggleApplicationMenus: String(localized: "Toggle Application Menus", bundle: .floe)
+        case .toggleZenMode: String(localized: "Toggle Zen Mode", bundle: .floe)
+        case .toggleLayoutEditor: String(localized: "Show Layout", bundle: .floe, comment: "A command that opens the layout editor of the app Thaw.")
+        case .openSettings: String(localized: "Thaw Settings", bundle: .floe)
+        case .toggleAutoRehide: String(localized: "Toggle Automatic Rehiding", bundle: .floe)
+        case .toggleShowOnHover: String(localized: "Toggle Show on Hover", bundle: .floe)
+        case .toggleHideApplicationMenus: String(localized: "Toggle Hiding Application Menus", bundle: .floe)
+        case .authorize: String(localized: "Allow Floe to Change Thaw Settings", bundle: .floe)
         }
     }
 
@@ -81,22 +81,23 @@ enum ThawAction: String, CaseIterable, Identifiable {
     }
 
     var keywords: [String] {
-        switch self {
-        case .toggleHidden: ["thaw", "menu bar", "hidden", "show hidden"]
-        case .toggleAlwaysHidden: ["thaw", "menu bar", "always hidden"]
-        case .toggleSwap: ["thaw", "menu bar", "swap"]
-        case .search: ["thaw", "menu bar", "find item"]
-        case .itemHints: ["thaw", "item hints", "letters"]
-        case .toggleThawBar: ["thaw", "thawbar", "bar"]
-        case .toggleApplicationMenus: ["thaw", "app menus", "menus"]
-        case .toggleZenMode: ["thaw", "zen", "focus"]
-        case .toggleLayoutEditor: ["thaw", "edit layout", "arrange"]
-        case .openSettings: ["thaw", "preferences", "open settings"]
-        case .toggleAutoRehide: ["thaw", "rehide", "auto hide"]
-        case .toggleShowOnHover: ["thaw", "hover", "reveal"]
-        case .toggleHideApplicationMenus: ["thaw", "hide menus"]
-        case .authorize: ["thaw", "authorize", "permission", "automation"]
+        let words = switch self {
+        case .toggleHidden: String(localized: "thaw, menu bar, hidden, show hidden", bundle: .floe, comment: "Words that find the Toggle the Hidden Section command of the app Thaw, separated by commas.")
+        case .toggleAlwaysHidden: String(localized: "thaw, menu bar, always hidden", bundle: .floe, comment: "Words that find the Toggle the Always Hidden Section command of the app Thaw, separated by commas.")
+        case .toggleSwap: String(localized: "thaw, menu bar, swap", bundle: .floe, comment: "Words that find the Swap Shown and Hidden Items command of the app Thaw, separated by commas.")
+        case .search: String(localized: "thaw, menu bar, find item", bundle: .floe, comment: "Words that find the Search Menu Bar Items in Thaw command of the app Thaw, separated by commas.")
+        case .itemHints: String(localized: "thaw, item hints, letters", bundle: .floe, comment: "Words that find the Open an Item by Letter command of the app Thaw, separated by commas.")
+        case .toggleThawBar: String(localized: "thaw, thawbar, bar", bundle: .floe, comment: "Words that find the Turn Thaw Bar On or Off command of the app Thaw, separated by commas.")
+        case .toggleApplicationMenus: String(localized: "thaw, app menus, menus", bundle: .floe, comment: "Words that find the Toggle Application Menus command of the app Thaw, separated by commas.")
+        case .toggleZenMode: String(localized: "thaw, zen, focus", bundle: .floe, comment: "Words that find the Toggle Zen Mode command of the app Thaw, separated by commas.")
+        case .toggleLayoutEditor: String(localized: "thaw, edit layout, arrange", bundle: .floe, comment: "Words that find the Show Layout command of the app Thaw, separated by commas.")
+        case .openSettings: String(localized: "thaw, preferences, open settings", bundle: .floe, comment: "Words that find the Thaw Settings command of the app Thaw, separated by commas.")
+        case .toggleAutoRehide: String(localized: "thaw, rehide, auto hide", bundle: .floe, comment: "Words that find the Toggle Automatic Rehiding command of the app Thaw, separated by commas.")
+        case .toggleShowOnHover: String(localized: "thaw, hover, reveal", bundle: .floe, comment: "Words that find the Toggle Show on Hover command of the app Thaw, separated by commas.")
+        case .toggleHideApplicationMenus: String(localized: "thaw, hide menus", bundle: .floe, comment: "Words that find the Toggle Hiding Application Menus command of the app Thaw, separated by commas.")
+        case .authorize: String(localized: "thaw, authorize, permission, automation", bundle: .floe, comment: "Words that find the Allow Floe to Change Thaw Settings command of the app Thaw, separated by commas.")
         }
+        return words.keywordList
     }
 }
 

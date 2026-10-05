@@ -77,8 +77,8 @@ final class MenuBarSearchModel: ObservableObject {
         guard !query.isEmpty else {
             let recent = recents.resolve(in: extras)
             let recentIDs = Set(recent.map(\.id))
-            results = recent.map { MenuBarResult(extra: $0, section: "Recent") }
-                + extras.filter { !recentIDs.contains($0.id) }.map { MenuBarResult(extra: $0, section: "Menu Bar") }
+            results = recent.map { MenuBarResult(extra: $0, section: String(localized: "Recent", bundle: .floe, comment: "The heading over the menu bar items opened lately.")) }
+                + extras.filter { !recentIDs.contains($0.id) }.map { MenuBarResult(extra: $0, section: String(localized: "Menu Bar", bundle: .floe, comment: "The heading over every menu bar item.")) }
             return
         }
         results = MenuBarSearchScope.ranked(extras, query: query, names: settings.menuBarItemNames)
@@ -125,27 +125,27 @@ final class MenuBarSearchModel: ObservableObject {
     /// Things Floe can do with an item; Thaw's moving between sections stays with Thaw.
     func actions(for extra: MenuBarExtra) -> [ItemAction?] {
         var actions: [ItemAction?] = [
-            ItemAction(title: "Click Item", symbol: "cursorarrow.click") { [weak self] in self?.open(extra) },
-            ItemAction(title: "Edit Name", symbol: "pencil") { [weak self] in self?.beginRenamingSelection() },
-            ItemAction(title: "Copy Name", symbol: "doc.on.doc") { [weak self] in
+            ItemAction(title: String(localized: "Click Item", bundle: .floe, comment: "A button that clicks the selected menu bar item."), symbol: "cursorarrow.click") { [weak self] in self?.open(extra) },
+            ItemAction(title: String(localized: "Edit Name", bundle: .floe), symbol: "pencil") { [weak self] in self?.beginRenamingSelection() },
+            ItemAction(title: String(localized: "Copy Name", bundle: .floe), symbol: "doc.on.doc") { [weak self] in
                 guard let self else { return }
                 NSPasteboard.general.copy(displayName(for: extra))
-                host.showHUD("Copied \(displayName(for: extra))")
+                host.showHUD(String(localized: "Copied \(displayName(for: extra))", bundle: .floe, comment: "The placeholder is the text that was copied."))
             },
         ]
         if settings.menuBarItemNames[extra.id] != nil {
-            actions.append(ItemAction(title: "Restore Original Name", symbol: "arrow.uturn.backward") { [weak self] in
+            actions.append(ItemAction(title: String(localized: "Restore Original Name", bundle: .floe), symbol: "arrow.uturn.backward") { [weak self] in
                 self?.settings.menuBarItemNames[extra.id] = nil
                 self?.refresh()
             })
         }
         if let url = extra.ownerURL {
             actions.append(nil)
-            actions.append(ItemAction(title: "Open \(extra.ownerName)", symbol: "app") { [weak self] in
+            actions.append(ItemAction(title: String(localized: "Open \(extra.ownerName)", bundle: .floe, comment: "The placeholder is the name of an app."), symbol: "app") { [weak self] in
                 NSWorkspace.shared.open(url)
                 self?.host.hidePanel()
             })
-            actions.append(ItemAction(title: "Show \(extra.ownerName) in Finder", symbol: "folder") { [weak self] in
+            actions.append(ItemAction(title: String(localized: "Show \(extra.ownerName) in Finder", bundle: .floe, comment: "The placeholder is the name of an app."), symbol: "folder") { [weak self] in
                 NSWorkspace.shared.activateFileViewerSelecting([url])
                 self?.host.hidePanel()
             })

@@ -50,21 +50,21 @@ struct PrivacySettingsPane: View {
                         Text(source.detail)
                     }
                 }
-                row("SSH Hosts", "Floe reads the host names in your SSH configuration to find them in the search, and connects by handing the name to your terminal.")
+                row("SSH Hosts", String(localized: "Floe reads the host names in your SSH configuration to find them in the search, and connects by handing the name to your terminal.", bundle: .floe))
             }
             ThawSection("Network Access") {
                 if let host = PrivacyNetwork.updateHost {
                     AutomaticUpdateCheckToggle()
-                    row("Updates", "Checking asks \(host) whether a newer version exists. Floe asked before it started doing this.")
+                    row("Updates", String(localized: "Checking asks \(host) whether a newer version exists. Floe asked before it started doing this.", bundle: .floe, comment: "The placeholder is the address of a server."))
                 }
-                row("Extension Store", "Opening the Extension Store lists extensions from GitHub. Installing or updating one downloads it from GitHub and its packages from the npm registry.")
+                row("Extension Store", String(localized: "Opening the Extension Store lists extensions from GitHub. Installing or updating one downloads it from GitHub and its packages from the npm registry.", bundle: .floe))
                 row("AI", PrivacyNetwork.aiLine(source: settings.aiSource, baseURL: settings.aiBaseURL, tool: AskAI.configuredTool(settings), onThisMacOnly: settings.aiOnThisMacOnly))
                 Toggle(isOn: $settings.aiOnThisMacOnly) {
                     Text("Only use AI that runs on this Mac")
                     Text("A source that sends questions elsewhere is refused, for Ask AI and for extensions. Nothing else is asked in its place.")
                 }
-                row("Release notes", "Opening What’s New from About reads Floe’s changelog from GitHub and keeps the last copy.")
-                row("Extensions", "Each extension makes its own requests, and the images it shows are loaded from wherever it points.")
+                row("Release notes", String(localized: "Opening What’s New from About reads Floe’s changelog from GitHub and keeps the last copy.", bundle: .floe))
+                row("Extensions", String(localized: "Each extension makes its own requests, and the images it shows are loaded from wherever it points.", bundle: .floe))
             }
         }
         .formStyle(.grouped)
@@ -85,7 +85,7 @@ struct PrivacySettingsPane: View {
         }
     }
 
-    private func row(_ title: String, _ detail: String) -> some View {
+    private func row(_ title: LocalizedStringKey, _ detail: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
             Text(detail).font(.callout).foregroundStyle(ThawInk.supporting)
@@ -105,26 +105,27 @@ enum PrivacyNetwork {
     /// Where a question goes, for the source chosen in General; `tool` is the command line tool that would answer, if any.
     /// With `onThisMacOnly`, a source that is not on this Mac is said to be refused.
     static func aiLine(source: AISource, baseURL: String, tool: String? = nil, onThisMacOnly: Bool = false) -> String {
-        let refused = "While the switch below is on, Floe refuses to ask it, so no question is sent."
         switch source {
         case .tools where onThisMacOnly:
-            let chosen = tool.map { "The \($0) tool" } ?? "A command line tool"
-            return "\(chosen) is chosen, which sends questions to the service it is signed in to. \(refused)"
+            guard let tool else {
+                return String(localized: "A command line tool is chosen, which sends questions to the service it is signed in to. While the switch below is on, Floe refuses to ask it, so no question is sent.", bundle: .floe)
+            }
+            return String(localized: "The \(tool) tool is chosen, which sends questions to the service it is signed in to. While the switch below is on, Floe refuses to ask it, so no question is sent.", bundle: .floe, comment: "The placeholder is the name of a command line tool.")
         case .tools:
-            guard let tool else { return "The command line tool set in General is not installed, so no question is sent." }
-            return "Questions go to the \(tool) tool, which sends them to the service it is signed in to, on your account there."
+            guard let tool else { return String(localized: "The command line tool set in General is not installed, so no question is sent.", bundle: .floe) }
+            return String(localized: "Questions go to the \(tool) tool, which sends them to the service it is signed in to, on your account there.", bundle: .floe, comment: "The placeholder is the name of a command line tool.")
         case .appleIntelligence:
-            return "Questions are answered by Apple Intelligence on this Mac. Nothing is sent anywhere."
+            return String(localized: "Questions are answered by Apple Intelligence on this Mac. Nothing is sent anywhere.", bundle: .floe)
         case .api:
             let url = AIEndpoint.chatURL(baseURL: baseURL)
-            guard let host = url?.host else { return "Questions go to the address set in General, once it is filled in." }
+            guard let host = url?.host else { return String(localized: "Questions go to the address set in General, once it is filled in.", bundle: .floe) }
             let isOnThisMac = AIEndpoint.isOnThisMac(url)
             if onThisMacOnly, !isOnThisMac {
-                return "\(host) is chosen, which is not on this Mac. \(refused)"
+                return String(localized: "\(host) is chosen, which is not on this Mac. While the switch below is on, Floe refuses to ask it, so no question is sent.", bundle: .floe, comment: "The placeholder is the address of a server.")
             }
             return isOnThisMac
-                ? "Questions go to the server on this Mac at \(host). Nothing leaves the machine."
-                : "Questions go to \(host), with your key, and nowhere else."
+                ? String(localized: "Questions go to the server on this Mac at \(host). Nothing leaves the machine.", bundle: .floe, comment: "The placeholder is the address of a server.")
+                : String(localized: "Questions go to \(host), with your key, and nowhere else.", bundle: .floe, comment: "The placeholder is the address of a server.")
         }
     }
 }

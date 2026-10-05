@@ -72,9 +72,9 @@ nonisolated struct ShortcutsTool: Sendable {
         let result = await run(["run", shortcut.identifier])
         guard !result.succeeded else { return nil }
         guard let line = Self.lastLine(result.errorOutput) else {
-            return "\(shortcut.name) failed. Open it in Shortcuts to see why."
+            return String(localized: "\(shortcut.name) failed. Open it in Shortcuts to see why.", bundle: .floe, comment: "The placeholder is the name of a shortcut, and Shortcuts is the app.")
         }
-        return "\(shortcut.name) failed: \(line)"
+        return String(localized: "\(shortcut.name) failed: \(line)", bundle: .floe, comment: "The first placeholder is the name of a shortcut and the second is what the Shortcuts tool said.")
     }
 
     /// Shows a shortcut in the Shortcuts app. The tool's "view" takes a name, so "--" keeps a
@@ -84,9 +84,9 @@ nonisolated struct ShortcutsTool: Sendable {
         let result = await run(["view", "--", shortcut.name])
         guard !result.succeeded else { return nil }
         guard let line = Self.lastLine(result.errorOutput) else {
-            return "Couldn't open \(shortcut.name) in Shortcuts. Open the Shortcuts app and look for it there."
+            return String(localized: "Couldn't open \(shortcut.name) in Shortcuts. Open the Shortcuts app and look for it there.", bundle: .floe, comment: "The placeholder is the name of a shortcut, and Shortcuts is the app.")
         }
-        return "Couldn't open \(shortcut.name) in Shortcuts: \(line)"
+        return String(localized: "Couldn't open \(shortcut.name) in Shortcuts: \(line)", bundle: .floe, comment: "The first placeholder is the name of a shortcut and the second is what the Shortcuts tool said.")
     }
 
     /// The last line that says something, cut to what a HUD can show.

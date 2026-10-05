@@ -14,7 +14,7 @@ import System
 extension ExtensionSession {
     func start() {
         guard let bun = Paths.bun else {
-            toast = ToastState(id: 0, style: "failure", title: "Bun isn't installed", message: "brew install bun")
+            toast = ToastState(id: 0, style: "failure", title: String(localized: "Bun isn't installed", bundle: .floe, comment: "Bun is the name of a tool."), message: "brew install bun")
             return
         }
         let argumentsJSON = (try? JSONSerialization.data(withJSONObject: arguments)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
@@ -127,7 +127,7 @@ extension ExtensionSession {
         watchdog?.invalidate()
         cancelRequests()
         guard !isStopping, failure == nil else { return }
-        let message = hadStarted ? "The extension stopped unexpectedly." : "The extension couldn't start."
+        let message = hadStarted ? String(localized: "The extension stopped unexpectedly.", bundle: .floe) : String(localized: "The extension couldn't start.", bundle: .floe)
         failure = SessionFailure(kind: hadStarted ? .crashed : .error, message: message, details: error.localizedDescription)
     }
 

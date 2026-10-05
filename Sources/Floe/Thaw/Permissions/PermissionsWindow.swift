@@ -57,7 +57,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Welcome to \(AppInfo.displayName)"
+        window.title = String(localized: "Welcome to \(AppInfo.displayName)", bundle: .floe, comment: "The placeholder is the name of this app.")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true

@@ -12,7 +12,7 @@ extension AskAIModel {
     func copyAnswer() {
         guard !answer.isEmpty else { return }
         NSPasteboard.general.copy(answer)
-        host.showHUD("Copied Answer")
+        host.showHUD(String(localized: "Copied Answer", bundle: .floe))
     }
 
     /// Into the app the user came from, as a snippet is pasted.
@@ -34,12 +34,12 @@ extension AskAIModel {
         var actions: [ItemAction?] = []
         if !answer.isEmpty {
             actions += [
-                ItemAction(title: "Copy Answer", symbol: "doc.on.doc") { [weak self] in self?.copyAnswer() },
-                ItemAction(title: "Paste Answer", symbol: "doc.on.clipboard") { [weak self] in self?.pasteAnswer() },
+                ItemAction(title: String(localized: "Copy Answer", bundle: .floe), symbol: "doc.on.doc") { [weak self] in self?.copyAnswer() },
+                ItemAction(title: String(localized: "Paste Answer", bundle: .floe), symbol: "doc.on.clipboard") { [weak self] in self?.pasteAnswer() },
                 nil,
             ]
         }
-        actions.append(ItemAction(title: "Ask Again", symbol: "arrow.clockwise") { [weak self] in self?.ask() })
+        actions.append(ItemAction(title: String(localized: "Ask Again", bundle: .floe), symbol: "arrow.clockwise") { [weak self] in self?.ask() })
         return actions
     }
 

@@ -41,7 +41,9 @@ struct ThawOnboardingView: View {
     }
 
     private var finishTitle: String {
-        isReplay ? "Done" : "Open \(AppInfo.displayName)"
+        isReplay
+            ? String(localized: "Done", bundle: .floe, comment: "The button that closes the welcome window.")
+            : String(localized: "Open \(AppInfo.displayName)", bundle: .floe, comment: "The placeholder is the name of this app.")
     }
 
     private func advance() {
@@ -59,7 +61,7 @@ struct ThawOnboardingView: View {
                 OnboardingWelcomeView(onContinue: advance, onSkip: onFinish)
                     .transition(.opacity)
             case .tour:
-                OnboardingTourView(continueTitle: skipsAccessStep ? finishTitle : "Continue", onContinue: advance)
+                OnboardingTourView(continueTitle: skipsAccessStep ? finishTitle : String(localized: "Continue", bundle: .floe, comment: "The button that goes to the next step of the welcome window."), onContinue: advance)
                     .transition(.opacity)
             case .access:
                 ThawPermissionsView(finishTitle: finishTitle, onContinue: advance)
