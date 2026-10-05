@@ -127,7 +127,7 @@ struct FieldEditor: View {
 
 /// Asks for a command's required preferences or its arguments before it runs.
 struct SetupView: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var form: SetupFormModel
     let request: SetupRequest
     @FocusState private var focusedField: String?
 
@@ -143,8 +143,8 @@ struct SetupView: View {
                 Section {
                     ForEach(request.fields) { field in
                         FieldEditor(field: field, value: Binding(
-                            get: { model.setupValues[field.name] ?? "" },
-                            set: { model.setupValues[field.name] = $0 }
+                            get: { form.values[field.name] ?? "" },
+                            set: { form.values[field.name] = $0 }
                         ))
                         .focused($focusedField, equals: field.name)
                     }
@@ -159,7 +159,7 @@ struct SetupView: View {
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
             Footer(primary: request.kind == .preferences ? "Save and Continue" : "Run Command") {
-                if let error = model.setupError {
+                if let error = form.error {
                     Text(error).foregroundStyle(.red).lineLimit(1)
                 } else {
                     Text("Esc to cancel").foregroundStyle(.secondary)

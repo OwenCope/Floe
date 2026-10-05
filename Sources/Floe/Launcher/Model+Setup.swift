@@ -7,32 +7,17 @@
 
 import Foundation
 
-/// The fields a command asks for before it runs: its required preferences, or its arguments.
+/// Showing a command's setup form and running the command once it is filled in; the typed values are `SetupFormModel`'s.
 extension LauncherModel {
     func beginSetup(_ request: SetupRequest) {
-        var values: [String: String] = [:]
-        for field in request.fields {
-            let scope = request.command.commandPreferences.contains { $0.name == field.name } ? request.command : nil
-            let stored = request.kind == .preferences
-                ? PreferenceStore.value(field, extensionName: request.command.extensionName, command: scope)
-                : nil
-            values[field.name] = FieldValues.initialText(for: field, stored: stored)
-        }
-        setupValues = values
-        setupError = nil
+        setupForm.begin(request)
         setup = request
         showPanel()
         focusToken += 1
     }
 
     func submitSetup() {
-        guard let request = setup else { return }
-        let missing = FieldValues.missing(request.fields, texts: setupValues)
-        guard missing.isEmpty else {
-            setupError = "Fill in \(missing.map(\.title).joined(separator: ", "))."
-            return
-        }
-        let values = FieldValues.typed(setupValues, fields: request.fields)
+        guard let request = setup, let values = setupForm.validated(for: request) else { return }
         setup = nil
         switch request.kind {
         case .preferences:

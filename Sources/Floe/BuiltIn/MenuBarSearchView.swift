@@ -11,7 +11,10 @@ import ThawUI
 /// The menu bar search in the face of Thaw 3's inspector panel: a field in a glass capsule above the list,
 /// rows with each item's owning app and name, and a bar of actions below.
 struct MenuBarSearchView: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var search: MenuBarSearchModel
+    /// For the gear and the Actions menu. Not observed: nothing here is drawn from it.
+    let launcher: LauncherModel
+    let focusToken: Int
     @ObservedObject var settings: AppSettings = .shared
 
     var body: some View {
@@ -29,9 +32,9 @@ struct MenuBarSearchView: View {
     private var queryField: some View {
         SearchQueryField(
             prompt: "Search menu bar items…",
-            text: $model.menuBarQuery,
-            focusToken: model.focusToken,
-            isLoading: model.isScanningMenuBar
+            text: $search.query,
+            focusToken: focusToken,
+            isLoading: search.isScanning
         ) { EmptyView() }
     }
 
@@ -40,25 +43,25 @@ struct MenuBarSearchView: View {
     /// Either the matching rows or the state that explains why there are none.
     @ViewBuilder
     private var content: some View {
-        let hasQuery = !model.menuBarQuery.trimmingCharacters(in: .whitespaces).isEmpty
-        if !model.menuBarAccessGranted {
+        let hasQuery = !search.query.trimmingCharacters(in: .whitespaces).isEmpty
+        if !search.accessGranted {
             // Distinct from "nothing matched": without Accessibility the walk returns an empty list.
             ThawEmptyState(
                 systemImage: "hand.raised",
                 title: "Accessibility is off",
                 caption: "Floe needs Accessibility to list your menu bar items.",
                 actionTitle: "Grant Access",
-                action: { model.requestMenuBarAccess() }
+                action: { search.requestAccess() }
             )
-        } else if model.isScanningMenuBar, model.menuBarResults.isEmpty {
+        } else if search.isScanning, search.results.isEmpty {
             ThawEmptyState(systemImage: "menubar.rectangle", title: "Reading your menu bar…", isLoading: true)
-        } else if hasQuery, model.menuBarResults.isEmpty {
+        } else if hasQuery, search.results.isEmpty {
             ThawEmptyState(
                 systemImage: "magnifyingglass",
                 title: "No items match",
                 caption: "Try part of the item's name or the app that owns it."
             )
-        } else if model.menuBarResults.isEmpty {
+        } else if search.results.isEmpty {
             ThawEmptyState(
                 systemImage: "menubar.rectangle",
                 title: "No menu bar items found",
@@ -70,7 +73,7 @@ struct MenuBarSearchView: View {
     }
 
     private var rows: some View {
-        let results = model.menuBarResults
+        let results = search.results
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
@@ -82,12 +85,12 @@ struct MenuBarSearchView: View {
                             }
                             InspectorItemRow(
                                 extra: result.extra,
-                                name: model.displayName(for: result.extra),
-                                renameDraft: model.renamingMenuBarItem == result.extra.id ? $model.menuBarRenameDraft : nil
+                                name: search.displayName(for: result.extra),
+                                renameDraft: search.renamingItem == result.extra.id ? $search.renameDraft : nil
                             )
-                            .modifier(SearchRowBackground(selected: index == model.menuBarSelection))
-                            .onTapGesture(count: 2) { model.openMenuBarExtra(result.extra) }
-                            .onTapGesture { model.menuBarSelection = index }
+                            .modifier(SearchRowBackground(selected: index == search.selection))
+                            .onTapGesture(count: 2) { search.open(result.extra) }
+                            .onTapGesture { search.selection = index }
                         }
                         .id(result.id)
                     }
@@ -96,9 +99,9 @@ struct MenuBarSearchView: View {
             .scrollIndicatorsFlash(onAppear: true)
             .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
             .scrollContentBackground(.hidden)
-            .onChange(of: model.menuBarSelection) {
-                if results.indices.contains(model.menuBarSelection) {
-                    proxy.scrollTo(results[model.menuBarSelection].id)
+            .onChange(of: search.selection) {
+                if results.indices.contains(search.selection) {
+                    proxy.scrollTo(results[search.selection].id)
                 }
             }
         }
@@ -108,7 +111,7 @@ struct MenuBarSearchView: View {
 
     private var bottomBar: some View {
         HStack {
-            OpenSettingsButton(model: model)
+            OpenSettingsButton(model: launcher)
 
             Toggle("Remember last search", isOn: $settings.rememberMenuBarQuery)
                 .toggleStyle(.switch)
@@ -116,21 +119,21 @@ struct MenuBarSearchView: View {
 
             Spacer()
 
-            if model.renamingMenuBarItem != nil {
-                ShortcutHintButton(title: "Cancel") { model.cancelRename() } hint: {
+            if search.renamingItem != nil {
+                ShortcutHintButton(title: "Cancel") { search.cancelRename() } hint: {
                     KeyCapView(text: "⎋", font: ThawType.detail)
                 }
-                ShortcutHintButton(title: "Rename") { model.commitRename() } hint: {
+                ShortcutHintButton(title: "Rename") { search.commitRename() } hint: {
                     KeyCapView(systemImage: "return")
                 }
-            } else if let extra = model.selectedMenuBarExtra {
-                ShortcutHintButton(title: "Edit Name") { model.beginRenamingSelection() } hint: {
+            } else if let extra = search.selectedExtra {
+                ShortcutHintButton(title: "Edit Name") { search.beginRenamingSelection() } hint: {
                     KeyCapView(text: "⌘")
                     Text(verbatim: "+")
                     KeyCapView(text: "E")
                 }
-                ActionsButton(model: model) { $0.selectedMenuBarExtra.map($0.menuBarActions) ?? [] }
-                ShortcutHintButton(title: "Click Item") { model.openMenuBarExtra(extra) } hint: {
+                ActionsButton(model: launcher) { $0.menuBarSearch.selectedExtra.map($0.menuBarSearch.actions) ?? [] }
+                ShortcutHintButton(title: "Click Item") { search.open(extra) } hint: {
                     KeyCapView(systemImage: "return")
                 }
             }

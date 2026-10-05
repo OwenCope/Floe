@@ -213,7 +213,7 @@ struct PreferredAppsTests {
         #expect(model.results.prefix(2).map(\.item.title).sorted() == ["Open Finder Selection in Ghostty", "Open Finder Selection in TextEdit"])
         let url = URL(fileURLWithPath: "/Fake/Documents/notes.txt")
         let file = FileResult(url: url, name: "notes.txt", displayPath: url.path, contentType: nil, lastUsed: nil)
-        let titles = model.fileActions(for: file).map { $0?.title ?? "-" }
+        let titles = model.fileSearch.actions(for: file).map { $0?.title ?? "-" }
         #expect(titles.contains("Open in Ghostty") && titles.contains("Open in TextEdit"))
     }
 }

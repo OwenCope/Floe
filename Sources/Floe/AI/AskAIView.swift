@@ -11,7 +11,8 @@ import ThawUI
 /// The answer to one question: the question on top, the answer under it as it arrives, and a line
 /// that says who answered and where. Return copies, Escape goes back to the search.
 struct AskAIView: View {
-    @ObservedObject var model: LauncherModel
+    /// For leaving the view and the Actions menu. Not observed: nothing here is drawn from it.
+    let launcher: LauncherModel
     @ObservedObject var asking: AskAIModel
     @State private var position = ScrollPosition(edge: .top)
     @State private var offset: CGFloat = 0
@@ -26,7 +27,7 @@ struct AskAIView: View {
             bottomBar
         }
         // Something else took the panel: the request stops with the view.
-        .onDisappear { model.leaveAskAI(asking) }
+        .onDisappear { launcher.leaveAskAI(asking) }
     }
 
     private var header: some View {
@@ -100,7 +101,7 @@ struct AskAIView: View {
 
     private var bottomBar: some View {
         PanelBottomBar {
-            ShortcutHintButton(title: "Back") { model.closeAskAI() } hint: {
+            ShortcutHintButton(title: "Back") { launcher.closeAskAI() } hint: {
                 KeyCapView(text: "esc")
             }
             Spacer(minLength: 0)
@@ -108,14 +109,14 @@ struct AskAIView: View {
                 KeyCapView(text: "⌘")
                 KeyCapView(text: "R")
             }
-            ActionsButton(model: model) { $0.askAIActions() }
+            ActionsButton(model: launcher) { $0.askAI?.actions() ?? [] }
             if !asking.shown.text.isEmpty {
-                ShortcutHintButton(title: "Paste Answer") { model.pasteAskAIAnswer() } hint: {
+                ShortcutHintButton(title: "Paste Answer") { asking.pasteAnswer() } hint: {
                     KeyCapView(text: "⌘")
                     KeyCapView(systemImage: "return")
                 }
                 if !asking.isWorking, !isFailed {
-                    ShortcutHintButton(title: "Copy Answer") { model.copyAskAIAnswer() } hint: {
+                    ShortcutHintButton(title: "Copy Answer") { asking.copyAnswer() } hint: {
                         KeyCapView(systemImage: "return")
                     }
                 }

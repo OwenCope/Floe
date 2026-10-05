@@ -8,22 +8,6 @@
 import AppKit
 import ApplicationServices
 
-struct MenuBarResult: Identifiable {
-    let extra: MenuBarExtra
-    let section: String?
-    var id: String {
-        extra.id
-    }
-}
-
-/// Fields to fill in before a command can run: its required preferences, or its arguments.
-struct SetupRequest {
-    enum Kind { case preferences, arguments }
-    let command: ExtensionCommand
-    let kind: Kind
-    let fields: [FieldSpec]
-}
-
 final class LauncherModel: ObservableObject {
     @Published var query = "" {
         didSet { refresh() }
@@ -32,10 +16,10 @@ final class LauncherModel: ObservableObject {
     @Published private(set) var results: [RootResult] = []
     @Published var selection = 0
     @Published private(set) var session: ExtensionSession?
+    /// The setup form on screen, if any. What is typed into it is `setupForm`'s.
     @Published var setup: SetupRequest?
-    /// Field values for `setup`, as text; checkboxes are "true" or "false".
-    @Published var setupValues: [String: String] = [:]
-    @Published var setupError: String?
+    /// Not published: typing in the form redraws the form only.
+    let setupForm = SetupFormModel()
     /// Bumped whenever the panel is shown so the search field can take focus again.
     @Published var focusToken = 0
     /// Every command found, including those of disabled extensions; the settings window lists these.
@@ -51,44 +35,23 @@ final class LauncherModel: ObservableObject {
 
     /// True while the panel shows the file search instead of the root search.
     @Published var isSearchingFiles = false
-    @Published var fileSearchQuery = "" {
-        didSet {
-            fileSearchSelection = 0
-            fileSearch.search(fileSearchQuery)
-        }
-    }
-
-    @Published var fileSearchSelection = 0
-    let fileSearch = FileSearch()
+    /// The file search's own state. Not published: its changes redraw its view only.
+    let fileSearch = FileSearchModel()
 
     /// True while the panel shows the menu bar item search instead of the root search.
     @Published var isSearchingMenuBar = false
     /// True while the panel shows the clipboard history instead of the root search.
     @Published var isShowingClipboardHistory = false
-    @Published var clipboardQuery = "" {
-        didSet { clipboardSelection = 0 }
-    }
-
-    @Published var clipboardSelection = 0
+    /// The clipboard history view's own state. Not published: its changes redraw its view only.
+    let clipboardHistory: ClipboardHistoryModel
     /// The question on screen and its answer, while the panel shows them instead of the root search.
     @Published var askAI: AskAIModel?
     /// Answers the question. A test replaces it: the real thing reaches the chosen AI source.
     var askAIRequest: AskAIModel.Request = AskAIModel.live
     /// Whether an AI source can answer. The app delegate sets it; without one no Ask AI row is offered.
     var canAskAI: () -> Bool = { false }
-    @Published var menuBarQuery = "" {
-        didSet { refreshMenuBar() }
-    }
-
-    @Published var menuBarResults: [MenuBarResult] = []
-    @Published var menuBarSelection = 0
-    @Published var isScanningMenuBar = false
-    @Published var menuBarAccessGranted = MenuBarExtras.isTrusted
-    /// The item being renamed with Edit Name, and the text typed so far.
-    @Published var renamingMenuBarItem: String?
-    @Published var menuBarRenameDraft = ""
-    var menuBarExtras: [MenuBarExtra] = []
-    let menuBarRecents = MenuBarSearchRecents()
+    /// The menu bar item search's own state. Not published: its changes redraw its view only.
+    let menuBarSearch: MenuBarSearchModel
 
     // The app delegate replaces these; the defaults keep the model usable without a window.
     var hidePanel: () -> Void = { /* no panel */ }
@@ -188,6 +151,8 @@ final class LauncherModel: ObservableObject {
         self.scanner = scanner
         self.settings = settings
         self.usage = usage
+        menuBarSearch = MenuBarSearchModel(settings: settings)
+        clipboardHistory = ClipboardHistoryModel(usage: usage)
         if let snapshot {
             apps = snapshot.apps
             allCommands = snapshot.commands
@@ -199,6 +164,7 @@ final class LauncherModel: ObservableObject {
             hasLoadedScripts = true
             isLoadingCatalog = false
         }
+        connectModes()
         EmojiCatalog.preload()
         CalendarAgenda.shared.onChange = { [weak self] in self?.refresh() }
         refresh()

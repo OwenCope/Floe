@@ -7,7 +7,7 @@
 
 import AppKit
 
-/// The Actions menus of the root search and the file search.
+/// The Actions menu of the root search.
 extension LauncherModel {
     private var actionHost: ActionHost {
         ActionHost(
@@ -40,9 +40,9 @@ extension LauncherModel {
     /// Opens a scope's row the way its own view does: the file, the pasted entry, the clicked item.
     func openScopeResult(_ item: RootItem) {
         switch item {
-        case let .file(file): open(file)
-        case let .clipboardEntry(entry): pasteClipboardEntry(entry)
-        case let .menuBarItem(extra, _): openMenuBarExtra(extra)
+        case let .file(file): fileSearch.open(file)
+        case let .clipboardEntry(entry): clipboardHistory.paste(entry)
+        case let .menuBarItem(extra, _): menuBarSearch.open(extra)
         case .menuBarAccess: openMenuBarSearch()
         case let .browserTab(.tab(tab)): switchToBrowserTab(tab)
         case let .browserTab(.access(browser)): SystemCommand.askForAutomation(toControl: browser.name)
@@ -78,7 +78,7 @@ extension LauncherModel {
         case let .file(file):
             actions += FileActions.actions(for: file.url, host: actionHost)
         case let .clipboardEntry(entry):
-            actions.append(ItemAction(title: "Copy", symbol: "doc.on.doc") { [weak self] in self?.copyClipboardEntry(entry) })
+            actions.append(ItemAction(title: "Copy", symbol: "doc.on.doc") { [weak self] in self?.clipboardHistory.copy(entry) })
         default:
             break
         }
@@ -103,11 +103,5 @@ extension LauncherModel {
         case .askAI: false
         default: true
         }
-    }
-
-    func fileActions(for file: FileResult) -> [ItemAction?] {
-        [
-            ItemAction(title: "Open", symbol: "return") { [weak self] in self?.openSelectedFile() },
-        ] + FileActions.actions(for: file.url, host: actionHost)
     }
 }

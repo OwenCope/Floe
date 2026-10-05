@@ -134,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             .store(in: &cancellables)
         // Everything the panel needs is wired up: the catalog can fill in behind it now.
         model.startCatalogLoading()
-        model.warmMenuBar()
+        model.menuBarSearch.warm()
         Log.app.notice("Launched in \(Log.milliseconds(since: processStart)) ms")
 
         UpdatesManager.shared.performSetup()

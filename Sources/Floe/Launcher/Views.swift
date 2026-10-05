@@ -23,17 +23,17 @@ struct LauncherView: View {
         let size = model.panelState.contentSize(in: settings.launcherLayout)
         GlassEffectContainer {
             if let setup = model.setup {
-                SetupView(model: model, request: setup)
+                SetupView(form: model.setupForm, request: setup)
             } else if let session = model.session, session.command.mode == "view" {
                 SessionContainer(model: model, session: session)
             } else if model.isSearchingMenuBar {
-                MenuBarSearchView(model: model)
+                MenuBarSearchView(search: model.menuBarSearch, launcher: model, focusToken: model.focusToken)
             } else if model.isShowingClipboardHistory {
-                ClipboardHistoryView(model: model)
+                ClipboardHistoryView(clipboard: model.clipboardHistory, launcher: model, focusToken: model.focusToken)
             } else if model.isSearchingFiles {
-                FileSearchView(model: model, fileSearch: model.fileSearch)
+                FileSearchView(search: model.fileSearch, spotlight: model.fileSearch.spotlight, launcher: model, focusToken: model.focusToken)
             } else if let asking = model.askAI {
-                AskAIView(model: model, asking: asking)
+                AskAIView(launcher: model, asking: asking)
             } else {
                 RootView(model: model, isCollapsed: model.panelState.isCollapsed(in: settings.launcherLayout))
             }

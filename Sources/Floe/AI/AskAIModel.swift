@@ -47,6 +47,9 @@ final class AskAIModel: ObservableObject {
     @Published private(set) var shown = MarkdownContent.empty
     @Published private(set) var scroll = Scroll()
 
+    /// How the answer view reaches the panel. The launcher model fills it in when it shows the view.
+    var host = ModeHost()
+
     private let request: Request
     private let parse: Parse
     private let pause: Pause

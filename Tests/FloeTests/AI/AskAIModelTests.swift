@@ -209,6 +209,11 @@ struct AskAIModelTests {
         return model
     }
 
+    /// What the Actions button of the answer view shows: nothing when the view is not on screen.
+    private func actions(of model: LauncherModel) -> [ItemAction?] {
+        model.askAI?.actions() ?? []
+    }
+
     private func key(_ code: UInt16, _ flags: NSEvent.ModifierFlags = []) throws -> NSEvent {
         try #require(NSEvent.keyEvent(
             with: .keyDown, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: 0, context: nil,
@@ -523,13 +528,13 @@ struct AskAIModelTests {
     @Test func theActionsAreCopyPasteAndAskAgainOnceThereIsAnAnswer() async {
         let fake = FakeSource(result: .success("an answer"))
         let model = makeLauncher(fake)
-        #expect(model.askAIActions().isEmpty, "there is no menu without the view")
+        #expect(actions(of: model).isEmpty, "there is no menu without the view")
         model.openAskAI("q")
-        #expect(model.askAIActions().compactMap { $0?.title } == ["Ask Again"], "nothing to copy while waiting")
+        #expect(actions(of: model).compactMap { $0?.title } == ["Ask Again"], "nothing to copy while waiting")
         await waitFor("the request") { fake.prompts.count == 1 }
         fake.open()
         await waitFor("the answer") { model.askAI?.state == .finished }
-        #expect(model.askAIActions().compactMap { $0?.title } == ["Copy Answer", "Paste Answer", "Ask Again"])
+        #expect(actions(of: model).compactMap { $0?.title } == ["Copy Answer", "Paste Answer", "Ask Again"])
     }
 
     @Test func commandRAndTheMenuAskAgain() async throws {
@@ -539,7 +544,7 @@ struct AskAIModelTests {
         await waitFor("the first request") { fake.prompts.count == 1 }
         #expect(try model.handleKey(key(15, .command)))
         await waitFor("the second request") { fake.prompts.count == 2 }
-        model.askAIActions().compactMap(\.self).last?.run()
+        actions(of: model).compactMap(\.self).last?.run()
         await waitFor("the third request") { fake.prompts.count == 3 }
         #expect(fake.prompts == ["q", "q", "q"])
         model.closeAskAI()

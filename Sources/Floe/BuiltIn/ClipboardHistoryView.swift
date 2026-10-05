@@ -14,13 +14,16 @@ import ThawUI
 /// with metadata. Return pastes (Command-V when Accessibility allows it),
 /// Escape goes back to the root search.
 struct ClipboardHistoryView: View {
-    @ObservedObject var model: LauncherModel
+    @ObservedObject var clipboard: ClipboardHistoryModel
+    /// For the gear. Not observed: nothing here is drawn from it.
+    let launcher: LauncherModel
+    let focusToken: Int
     @ObservedObject var history = ClipboardHistoryStore.shared
     @ObservedObject var settings = AppSettings.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            SearchBar(placeholder: "Search clipboard history…", text: $model.clipboardQuery, focusToken: model.focusToken) { EmptyView() }
+            SearchBar(placeholder: "Search clipboard history…", text: $clipboard.query, focusToken: focusToken) { EmptyView() }
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             bottomBar()
@@ -36,7 +39,7 @@ struct ClipboardHistoryView: View {
                 caption: "Turn on Save clipboard history in Settings to keep copies here."
             )
         } else {
-            let entries = model.filteredClipboardEntries()
+            let entries = clipboard.filteredEntries()
             if history.entries.isEmpty {
                 ThawEmptyState(
                     systemImage: "doc.on.clipboard",
@@ -76,9 +79,9 @@ struct ClipboardHistoryView: View {
                 }
             }
             .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
-            .onChange(of: model.clipboardSelection) {
-                if entries.indices.contains(model.clipboardSelection) {
-                    proxy.scrollTo(entries[model.clipboardSelection].id)
+            .onChange(of: clipboard.selection) {
+                if entries.indices.contains(clipboard.selection) {
+                    proxy.scrollTo(entries[clipboard.selection].id)
                 }
             }
         }
@@ -86,7 +89,7 @@ struct ClipboardHistoryView: View {
 
     private func row(_ entry: ClipboardEntry, entries: [ClipboardEntry]) -> some View {
         let index = entries.firstIndex(where: { $0.id == entry.id }) ?? 0
-        let selected = index == model.clipboardSelection
+        let selected = index == clipboard.selection
         return HStack(spacing: 10) {
             Image(systemName: entry.kind.symbol)
                 .foregroundStyle(.secondary)
@@ -108,13 +111,13 @@ struct ClipboardHistoryView: View {
         .font(ThawType.body)
         .modifier(RowBackground(selected: selected))
         .id(entry.id)
-        .onTapGesture(count: 2) { model.pasteClipboardEntry(entry) }
-        .onTapGesture { model.clipboardSelection = index }
+        .onTapGesture(count: 2) { clipboard.paste(entry) }
+        .onTapGesture { clipboard.selection = index }
     }
 
     @ViewBuilder
     private var preview: some View {
-        if let entry = model.selectedClipboardEntry {
+        if let entry = clipboard.selectedEntry {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if entry.kind == .image, let image = history.image(for: entry) {
@@ -159,19 +162,19 @@ struct ClipboardHistoryView: View {
 
     private func bottomBar() -> some View {
         HStack(spacing: ThawSpacing.row) {
-            OpenSettingsButton(model: model)
+            OpenSettingsButton(model: launcher)
             Spacer(minLength: 0)
-            if let entry = model.selectedClipboardEntry {
-                ShortcutHintButton(title: entry.pinned ? "Unpin" : "Pin") { model.toggleClipboardPin(entry) } hint: {
+            if let entry = clipboard.selectedEntry {
+                ShortcutHintButton(title: entry.pinned ? "Unpin" : "Pin") { clipboard.togglePin(entry) } hint: {
                     KeyCapView(systemImage: "pin")
                 }
-                ShortcutHintButton(title: "Delete") { model.deleteClipboardEntry(entry) } hint: {
+                ShortcutHintButton(title: "Delete") { clipboard.delete(entry) } hint: {
                     KeyCapView(text: "⌫")
                 }
-                ShortcutHintButton(title: "Copy") { model.copyClipboardEntry(entry) } hint: {
+                ShortcutHintButton(title: "Copy") { clipboard.copy(entry) } hint: {
                     KeyCapView(text: "⌘C")
                 }
-                ShortcutHintButton(title: "Paste") { model.pasteClipboardEntry(entry) } hint: {
+                ShortcutHintButton(title: "Paste") { clipboard.paste(entry) } hint: {
                     KeyCapView(systemImage: "return")
                 }
             }

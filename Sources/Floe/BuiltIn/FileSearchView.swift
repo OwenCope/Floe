@@ -14,12 +14,15 @@ import ThawUI
 /// The file search: a query field above a list of files beside a preview of
 /// the selected file, and the file's actions below.
 struct FileSearchView: View {
-    @ObservedObject var model: LauncherModel
-    @ObservedObject var fileSearch: FileSearch
+    @ObservedObject var search: FileSearchModel
+    @ObservedObject var spotlight: FileSearch
+    /// For the gear and the Actions menu. Not observed: nothing here is drawn from it.
+    let launcher: LauncherModel
+    let focusToken: Int
 
     var body: some View {
         VStack(spacing: 0) {
-            SearchBar(placeholder: "Search files…", text: $model.fileSearchQuery, focusToken: model.focusToken, isLoading: fileSearch.isSearching) { EmptyView() }
+            SearchBar(placeholder: "Search files…", text: $search.query, focusToken: focusToken, isLoading: spotlight.isSearching) { EmptyView() }
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             bottomBar
@@ -29,10 +32,10 @@ struct FileSearchView: View {
     /// Either the matching files or the state that explains why there are none.
     @ViewBuilder
     private var content: some View {
-        let results = fileSearch.results
-        if fileSearch.isSearching, results.isEmpty {
+        let results = spotlight.results
+        if spotlight.isSearching, results.isEmpty {
             ThawEmptyState(systemImage: "doc", title: "Searching files…", isLoading: true)
-        } else if results.isEmpty, model.fileSearchQuery.isEmpty {
+        } else if results.isEmpty, search.query.isEmpty {
             ThawEmptyState(
                 systemImage: "doc",
                 title: "No recent files",
@@ -50,22 +53,22 @@ struct FileSearchView: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(results.enumerated()), id: \.element.id) { index, file in
-                                FileSearchRow(file: file, selected: index == model.fileSearchSelection)
+                                FileSearchRow(file: file, selected: index == search.selection)
                                     .id(file.id)
-                                    .onTapGesture(count: 2) { model.openSelectedFile() }
-                                    .onTapGesture { model.fileSearchSelection = index }
+                                    .onTapGesture(count: 2) { search.openSelectedFile() }
+                                    .onTapGesture { search.selection = index }
                             }
                         }
                     }
                     .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
-                    .onChange(of: model.fileSearchSelection) {
-                        if results.indices.contains(model.fileSearchSelection) {
-                            proxy.scrollTo(results[model.fileSearchSelection].id)
+                    .onChange(of: search.selection) {
+                        if results.indices.contains(search.selection) {
+                            proxy.scrollTo(results[search.selection].id)
                         }
                     }
                 }
                 Divider()
-                if let file = model.selectedFile {
+                if let file = search.selectedFile {
                     FilePreview(file: file)
                         .frame(width: 250)
                 } else {
@@ -77,19 +80,19 @@ struct FileSearchView: View {
 
     private var bottomBar: some View {
         PanelBottomBar {
-            OpenSettingsButton(model: model)
+            OpenSettingsButton(model: launcher)
 
             Spacer(minLength: 0)
 
-            ShortcutHintButton(title: "Open") { model.openSelectedFile() } hint: {
+            ShortcutHintButton(title: "Open") { search.openSelectedFile() } hint: {
                 KeyCapView(systemImage: "return")
             }
-            ShortcutHintButton(title: "Show in Finder") { model.revealSelectedFile() } hint: {
+            ShortcutHintButton(title: "Show in Finder") { search.revealSelectedFile() } hint: {
                 KeyCapView(text: "⌘")
                 KeyCapView(systemImage: "return")
             }
             // Copy Path keeps its shortcut and moves into the menu, with the rest of what a file can do.
-            ActionsButton(model: model) { $0.selectedFile.map($0.fileActions) ?? [] }
+            ActionsButton(model: launcher) { $0.fileSearch.selectedFile.map($0.fileSearch.actions) ?? [] }
         }
     }
 }

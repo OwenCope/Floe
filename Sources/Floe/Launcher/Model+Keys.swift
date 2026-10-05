@@ -9,130 +9,70 @@ import AppKit
 
 /// The panel's keys, for whichever view is on screen.
 extension LauncherModel {
-    /// Returns true when the key was consumed.
+    /// Returns true when the key was consumed. Each mode's own keys are its model's.
     func handleKey(_ event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
         if setup != nil {
-            switch event.keyCode {
-            case 53: cancelSetup()
-            case 36, 76: submitSetup()
-            default: return false
-            }
-            return true
+            return handleSetupKey(event)
         }
         if event.keyCode == 43, flags == .command {
             hidePanel()
             openSettings(nil)
             return true
         }
-        if isSearchingMenuBar, renamingMenuBarItem != nil {
-            switch event.keyCode {
-            case 36, 76: commitRename()
-            case 53: cancelRename()
-            default: return false
-            }
-            return true
-        }
-        if isSearchingMenuBar, flags == .command, event.keyCode == 14 {
-            beginRenamingSelection()
-            return true
-        }
-        if isSearchingMenuBar, flags == .command, event.keyCode == 40 {
-            showActions()
-            return true
-        }
         if isSearchingMenuBar {
-            if let delta = Shortcuts.navigationDelta(event.keyCode) {
-                menuBarSelection = max(0, min(menuBarSelection + delta, menuBarResults.count - 1))
-                return true
-            }
-            switch event.keyCode {
-            case 36, 76:
-                if menuBarResults.indices.contains(menuBarSelection) {
-                    openMenuBarExtra(menuBarResults[menuBarSelection].extra)
-                }
-            case 53:
-                if menuBarQuery.isEmpty {
-                    closeMenuBarSearch()
-                } else {
-                    menuBarQuery = ""
-                }
-            default: return false
-            }
-            return true
+            return menuBarSearch.handleKey(event, flags)
         }
         if let session, session.command.mode == "view", session.alert != nil {
-            switch event.keyCode {
-            case 36, 76: session.resolveAlert(true)
-            case 53: session.resolveAlert(false)
-            default: return false
-            }
-            return true
+            return handleAlertKey(event, session)
         }
         if isShowingClipboardHistory {
-            if let delta = Shortcuts.navigationDelta(event.keyCode) {
-                let count = filteredClipboardEntries().count
-                clipboardSelection = max(0, min(clipboardSelection + delta, count - 1))
-                return true
-            }
-            switch event.keyCode {
-            case 36, 76:
-                if let entry = selectedClipboardEntry {
-                    pasteClipboardEntry(entry)
-                }
-            case 51:
-                if let entry = selectedClipboardEntry {
-                    deleteClipboardEntry(entry)
-                }
-            case 53:
-                if clipboardQuery.isEmpty {
-                    closeClipboardHistory()
-                } else {
-                    clipboardQuery = ""
-                }
-            default: return false
-            }
-            return true
+            return clipboardHistory.handleKey(event)
         }
         if isSearchingFiles {
-            if let delta = Shortcuts.navigationDelta(event.keyCode) {
-                fileSearchSelection = max(0, min(fileSearchSelection + delta, fileSearch.results.count - 1))
-                return true
-            }
-            switch event.keyCode {
-            case 36 where flags == .command, 76 where flags == .command:
-                revealSelectedFile()
-            case 36, 76:
-                openSelectedFile()
-            case 53:
-                if fileSearchQuery.isEmpty {
-                    closeFileSearch()
-                } else {
-                    fileSearchQuery = ""
-                }
-            case 8 where flags == [.command, .shift]:
-                copySelectedFilePath()
-            case 40 where flags == .command:
-                showActions()
-            default: return false
-            }
-            return true
-        }
-        if let session, session.command.mode == "view", session.failure != nil {
-            switch event.keyCode {
-            case 36: retry()
-            case 53: end(session)
-            case 8 where flags == [.command, .shift]: copyFailure()
-            default: return false
-            }
-            return true
+            return fileSearch.handleKey(event, flags)
         }
         if let session, session.command.mode == "view" {
-            return handleSessionKey(event, flags, session)
+            return session.failure == nil ? handleSessionKey(event, flags, session) : handleFailureKey(event, flags, session)
         }
-        if askAI != nil {
-            return handleAskAIKey(event, flags)
+        if let askAI {
+            return askAI.handleKey(event, flags)
         }
+        return handleRootKey(event, flags)
+    }
+
+    /// A setup form: Return submits it and Escape cancels; every other key is a field's.
+    private func handleSetupKey(_ event: NSEvent) -> Bool {
+        switch event.keyCode {
+        case 53: cancelSetup()
+        case 36, 76: submitSetup()
+        default: return false
+        }
+        return true
+    }
+
+    private func handleAlertKey(_ event: NSEvent, _ session: ExtensionSession) -> Bool {
+        switch event.keyCode {
+        case 36, 76: session.resolveAlert(true)
+        case 53: session.resolveAlert(false)
+        default: return false
+        }
+        return true
+    }
+
+    /// The error screen of a command that failed.
+    private func handleFailureKey(_ event: NSEvent, _ flags: NSEvent.ModifierFlags, _ session: ExtensionSession) -> Bool {
+        switch event.keyCode {
+        case 36: retry()
+        case 53: end(session)
+        case 8 where flags == [.command, .shift]: copyFailure()
+        default: return false
+        }
+        return true
+    }
+
+    /// The root search, when nothing else has the panel.
+    private func handleRootKey(_ event: NSEvent, _ flags: NSEvent.ModifierFlags) -> Bool {
         if let delta = Shortcuts.navigationDelta(event.keyCode) {
             selection = max(0, min(selection + delta, results.count - 1))
             return true
