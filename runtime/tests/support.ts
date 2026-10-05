@@ -66,10 +66,15 @@ export function renderCount(): number {
 // Long enough for React to commit and the renderer to flush its debounced message, with room to spare.
 const quietPeriod = 30;
 
+// How long a first render may take on a machine busy with other work.
+const firstRenderLimit = 5000;
+
 // Waits until the host has gone quiet, then returns the last tree it rendered.
+// Quiet before anything was rendered is not settled: the render is still on its way.
 export async function settle(): Promise<TreeNode> {
+  const started = Date.now();
   let count = -1;
-  while (count !== received.length) {
+  while (count !== received.length || (renderCount() === 0 && Date.now() - started < firstRenderLimit)) {
     count = received.length;
     await Bun.sleep(quietPeriod);
   }
