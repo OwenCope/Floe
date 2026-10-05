@@ -345,7 +345,8 @@ function clipboardParams(content: ClipboardContent): { text?: string; html?: str
   if (typeof content === "object" && content !== null) {
     return { text: content.text, html: content.html, file: content.file };
   }
-  return { text: typeof content === "string" ? content : String(content) };
+  if (typeof content === "number") return { text: String(content) };
+  return { text: typeof content === "string" ? content : "" };
 }
 
 export const Clipboard = {

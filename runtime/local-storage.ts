@@ -62,27 +62,36 @@ export function createLocalStorage(file: () => string) {
         known = { file: path, stamp: storagePersistence.stamp(path), items };
     }
 
+    /// Runs a write inside a promise, so one that fails rejects and a caller's catch() sees it.
+    function writing(work: () => void): Promise<void> {
+        return new Promise((resolve) => {
+            work();
+            resolve();
+        });
+    }
+
     return {
         getItem<T = string>(key: string): Promise<T | undefined> {
             return Promise.resolve(load()[key] as T | undefined);
         },
-        // The writers are async so a failed write rejects; thrown from a plain function it would get past a caller's catch().
-        async setItem(key: string, value: unknown): Promise<void> {
-            save({ ...load(), [key]: value });
+        setItem(key: string, value: unknown): Promise<void> {
+            return writing(() => save({ ...load(), [key]: value }));
         },
-        async removeItem(key: string): Promise<void> {
-            const items = load();
-            if (!(key in items)) return;
-            const rest = { ...items };
-            delete rest[key];
-            save(rest);
+        removeItem(key: string): Promise<void> {
+            return writing(() => {
+                const items = load();
+                if (!(key in items)) return;
+                const rest = { ...items };
+                delete rest[key];
+                save(rest);
+            });
         },
         allItems<T = Items>(): Promise<T> {
             // A copy: what the caller does to it must not reach the next read.
             return Promise.resolve({ ...load() } as T);
         },
-        async clear(): Promise<void> {
-            save({});
+        clear(): Promise<void> {
+            return writing(() => save({}));
         },
     };
 }
