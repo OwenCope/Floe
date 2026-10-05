@@ -21,12 +21,32 @@ extension AskAIModel {
         host.paste(answer)
     }
 
-    /// What Return does: the answer is copied once there is one, and a failed question is asked again.
-    func primaryAction() {
+    /// What Return does, which is also what the bar says it does.
+    enum ReturnAction: Equatable {
+        case askFollowUp
+        case askAgain
+        case copyAnswer
+        case nothing
+    }
+
+    /// A follow-up typed in the field is asked. With the field empty, a failed question is asked again
+    /// and a finished answer is copied.
+    var returnAction: ReturnAction {
+        if hasDraft {
+            return .askFollowUp
+        }
         if case .failed = state {
-            ask()
-        } else if !isWorking {
-            copyAnswer()
+            return .askAgain
+        }
+        return isWorking || answer.isEmpty ? .nothing : .copyAnswer
+    }
+
+    func primaryAction() {
+        switch returnAction {
+        case .askFollowUp: askFollowUp()
+        case .askAgain: ask()
+        case .copyAnswer: copyAnswer()
+        case .nothing: break
         }
     }
 
@@ -43,7 +63,7 @@ extension AskAIModel {
         return actions
     }
 
-    /// Returns true when the key was consumed. Escape goes back; the arrows scroll the answer.
+    /// Returns true when the key was consumed. Escape goes back; the arrows scroll the conversation.
     func handleKey(_ event: NSEvent, _ flags: NSEvent.ModifierFlags) -> Bool {
         if let lines = Shortcuts.navigationDelta(event.keyCode) {
             scroll(by: lines)
@@ -55,8 +75,8 @@ extension AskAIModel {
         case 36, 76: primaryAction()
         case 15 where flags == .command: ask()
         case 40 where flags == .command: host.showActions()
-        // There is no field to type in; a shortcut such as Command-C still reaches the selected text.
-        default: return flags.subtracting(.shift).isEmpty
+        // Typing is the field's, and so is a shortcut such as Command-C.
+        default: return false
         }
         return true
     }

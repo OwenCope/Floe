@@ -306,6 +306,9 @@
     },
     "A command line tool is chosen, which sends questions to the service it is signed in to. While the switch below is on, Floe refuses to ask it, so no question is sent." : {},
     "A command line tool you are signed in to" : {},
+    "A follow-up in Ask AI sends the earlier questions and answers of that conversation again, to the same place. Floe keeps them in memory until the answer view closes and saves none of it." : {
+      "comment" : "Ask AI is the name of the feature that answers a question in the launcher."
+    },
     "A source that sends questions elsewhere is refused, for Ask AI and for extensions. Nothing else is asked in its place." : {},
     "AI" : {
       "comment" : "The heading over the settings for artificial intelligence.\nThe kind of a result, shown beside its title. Short for artificial intelligence."
@@ -495,6 +498,9 @@
       "comment" : "The placeholder is the question the user typed."
     },
     "Ask Again" : {},
+    "Ask a follow-up…" : {
+      "comment" : "The prompt of the field above an AI answer, where the next question about it is typed."
+    },
     "Asks each running browser (%@) for its open tabs and matches their titles and addresses. macOS asks for permission the first time, once per browser. The list stays on this Mac. Type “tabs” and a word to see every match." : {
       "comment" : "The placeholder is a list of browser names. “tabs” is a word the user types. It is a command and stays in English."
     },
@@ -999,6 +1005,7 @@
     },
     "Follow Thaw's Appearance" : {},
     "Follow Thaw's menu bar appearance" : {},
+    "Follow-up questions" : {},
     "For an extension that handles private text, a source on this Mac keeps its questions here." : {},
     "Force Quit" : {},
     "Force Quit…" : {},
@@ -2007,6 +2014,9 @@
     "The link that opens your clipboard app's history." : {},
     "The model gave no answer." : {},
     "The model's name, as the API lists it" : {},
+    "The oldest questions and answers were not sent with this one." : {
+      "comment" : "A note under an AI answer in a long conversation: only the most recent questions and answers went along as context."
+    },
     "The open source launcher for macOS" : {},
     "The repository could not be reached, so this is the last copy fetched." : {},
     "The search field is its own piece of glass, and the results are a second piece below it." : {},

@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Ask AI, the launcher's own way to the source chosen in Settings: one question, one answer.
+/// Ask AI, the launcher's own way to the source chosen in Settings: a question, its answer, and follow-ups to it.
 /// What is here is the part that needs no panel: the keyword, where a source runs, and who answered.
 enum AskAI {
     /// `ask why is the sky blue` leads the search with the question.
@@ -30,6 +30,12 @@ enum AskAI {
     ```
     high tide to high tide: about 12 h 25 min
     ```
+    """
+    /// Stands in for the answer to a follow-up, the same way.
+    static nonisolated let sampleFollowUp = """
+    The Earth turns once a day under **two** bulges, so a coast meets high water twice.
+
+    The Moon moves on meanwhile, which is why the two are 12 h 25 min apart and not 12 h.
     """
 
     /// Who answers, and whether the question stays on this Mac.

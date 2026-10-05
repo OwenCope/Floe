@@ -82,7 +82,7 @@ nonisolated enum HostRequest: Sendable, Equatable {
     static func answer(_ request: HostRequest, emit: @Sendable (String) async -> Void) async throws -> Any {
         switch request {
         case let .askAI(prompt, model):
-            // The one place a prompt is answered, for an extension and for Ask AI (see AISources.swift).
+            // An extension's prompt: one question, with nothing before it (see AISources.swift).
             let asking = AIAnswer.askingExtension
             let (choice, localOnly) = await MainActor.run { (AIAnswer.configured(for: asking), AppSettings.shared.aiOnThisMacOnly) }
             return try await AIAnswer.answer(prompt, model: model, choice: choice, localOnly: localOnly, emit: emit)

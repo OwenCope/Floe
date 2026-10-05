@@ -171,6 +171,47 @@ struct WhatLeavesTheMainActorTests {
         #expect(log.onMain == ["api": false, "appleIntelligence": false, "tools": false])
     }
 
+    @Test func aQuestionWithEarlierTurnsIsAnsweredOffTheMainThread() async throws {
+        let sources = AISources(
+            api: { [log] _, conversation, _ in
+                // What each source makes of the turns is made here, with the request.
+                log.note("api")
+                return "\(conversation.earlierMessages.count)"
+            },
+            appleIntelligence: { [log] conversation, _ in
+                log.note("appleIntelligence")
+                return "\(AppleIntelligence.transcript(of: conversation).count)"
+            },
+            tools: { [log] conversation, _, _ in
+                log.note("tools")
+                return conversation.replayedPrompt
+            }
+        )
+        let endpoint = AIEndpoint(baseURL: "http://localhost:11434/v1", model: "small", apiKey: nil)
+        let conversation = AIConversation(earlier: [AIConversation.Turn(question: "why?", answer: "because")], question: "and then?")
+        for choice in [AIAnswer.Choice.api(endpoint), .appleIntelligence, .tools] {
+            _ = try await AIAnswer.answer(conversation, model: nil, choice: choice, localOnly: false, sources: sources) { _ in /* nothing streams */ }
+        }
+        #expect(log.onMain == ["api": false, "appleIntelligence": false, "tools": false])
+    }
+
+    @Test func aFollowUpIsAskedOffTheMainThread() async {
+        let model = AskAIModel(
+            question: "why?",
+            source: nil,
+            request: { [log] conversation, _ in
+                log.note(conversation.earlier.isEmpty ? "first" : "follow-up")
+                return "because"
+            },
+            pause: { /* no time passes between two updates */ }
+        )
+        await model.ask().value
+        model.draft = "and then?"
+        await model.askFollowUp()?.value
+        #expect(model.turns.count == 1)
+        #expect(log.onMain == ["first": false, "follow-up": false])
+    }
+
     @Test func askAIAsksAndParsesOffTheMainThread() async {
         let model = AskAIModel(
             question: "why?",

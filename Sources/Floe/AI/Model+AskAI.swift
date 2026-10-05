@@ -7,18 +7,24 @@
 
 import AppKit
 
-/// Showing and leaving Ask AI's answer view; the question and its answer are `AskAIModel`'s.
+/// Showing and leaving Ask AI's answer view; the conversation is `AskAIModel`'s.
 extension LauncherModel {
-    /// Replaces the list with the answer to one question. The query stays, for when the view is left.
+    /// Replaces the list with the answer to a question, as a conversation of its own: one that was open is dropped.
+    /// The query stays, for when the view is left.
     func openAskAI(_ question: String) {
         askAI?.leave()
-        let asking = AskAIModel(question: question, source: AskAI.configuredSource(settings), request: askAIRequest)
+        let asking = AskAIModel(
+            question: question,
+            source: AskAI.configuredSource(settings),
+            limit: .limit(for: settings.aiSource),
+            request: askAIRequest
+        )
         asking.host = modeHost { [weak self] in self?.closeAskAI() }
         askAI = asking
         asking.ask()
     }
 
-    /// Back to the root search. The request stops and the answer is gone: there is no history.
+    /// Back to the root search. The request stops and the conversation is gone: nothing of it is saved.
     func closeAskAI() {
         guard let asking = askAI else { return }
         asking.leave()

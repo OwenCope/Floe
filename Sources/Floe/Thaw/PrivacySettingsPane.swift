@@ -10,7 +10,8 @@
 //  Ported to Floe from Thaw 3's Privacy pane: the notice, the permissions and the network list.
 //  The network rows are Floe's own, since what it contacts is not what Thaw does, and Thaw's
 //  capture inspector and connection status sections have nothing to describe here.
-//  The search sources' switches and the switch that keeps AI on this Mac are Floe's too.
+//  The search sources' switches, the switch that keeps AI on this Mac and the row about
+//  follow-up questions are Floe's too.
 
 import SwiftUI
 import ThawUI
@@ -59,6 +60,7 @@ struct PrivacySettingsPane: View {
                 }
                 row("Extension Store", String(localized: "Opening the Extension Store lists extensions from GitHub. Installing or updating one downloads it from GitHub and its packages from the npm registry.", bundle: .floe))
                 row("AI", PrivacyNetwork.aiLine(source: settings.aiSource, baseURL: settings.aiBaseURL, tool: AskAI.configuredTool(settings), onThisMacOnly: settings.aiOnThisMacOnly))
+                row("Follow-up questions", String(localized: "A follow-up in Ask AI sends the earlier questions and answers of that conversation again, to the same place. Floe keeps them in memory until the answer view closes and saves none of it.", bundle: .floe, comment: "Ask AI is the name of the feature that answers a question in the launcher."))
                 Toggle(isOn: $settings.aiOnThisMacOnly) {
                     Text("Only use AI that runs on this Mac")
                     Text("A source that sends questions elsewhere is refused, for Ask AI and for extensions. Nothing else is asked in its place.")

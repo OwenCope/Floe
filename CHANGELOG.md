@@ -60,7 +60,7 @@ Floe is a launcher for macOS that runs Raycast extensions unmodified and hands w
 
 #### AI
 
-- Ask AI: `ask` and a question, or the Ask AI row under any search, shows one answer in the launcher, with a line that says who answered and whether it stayed on the Mac. No history is kept.
+- Ask AI: `ask` and a question, or the Ask AI row under any search, shows the answer in the launcher, with a line that says who answered and whether it stayed on the Mac. A follow-up typed above the answer is asked with the earlier questions and answers as context. The conversation lasts until the view closes: no history is kept.
 - AI sources: a command line tool you are already signed in to (`claude`, `codex`, `opencode` or `pi`), so accounts and keys set up there are not entered again; Apple Intelligence on the Mac; or an OpenAI-compatible API (OpenAI, OpenRouter, Z.ai, Ollama, LM Studio).
 - A switch keeps all AI on the Mac, and one extension can be pinned to a source of its own. No source ever falls back to another.
 

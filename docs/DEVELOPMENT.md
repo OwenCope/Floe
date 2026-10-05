@@ -57,7 +57,14 @@ pair as its sender. The welcome window at first launch is still the launcher's.
   - `BuiltIn`: what Floe does itself: the calculator, system commands and toggles, System Settings panes, emoji,
     clipboard history, snippets and their expander, quicklinks, the calendar, the file search, browser tabs, menu bar
     items, script commands and Thaw's actions, with the AppleScript runner and the selection and pasteboard helpers.
-  - `AI`: Ask AI and the sources that answer a prompt.
+  - `AI`: Ask AI and the sources that answer a prompt. An answer can be followed up: `AskAIModel` keeps the turns of
+    one conversation in memory while the answer view is open and drops them when it closes; none of it is saved or logged.
+    A question travels with its earlier turns as an `AIConversation`, and each source is given them its own way
+    (`AISources.live`): an API as user and assistant messages, Apple Intelligence as the transcript of a session made
+    for that one request, and a command line tool, which starts fresh every time, written out in its prompt
+    (`AIConversation.replayedPrompt`). `AIConversation.Limit` caps what is sent again, oldest turns dropped first:
+    8 turns and 12,000 UTF-8 bytes, or 6,000 for Apple Intelligence's 4,096 tokens. An extension's `AI.ask` is a
+    conversation with no earlier turns.
   - `Extensions`: a running command (`Session.swift` and its extensions), what it asks the app for
     (`HostRequest.swift`), the manifest, the store, menu bar commands, the background scheduler, OAuth, hot reload,
     and the views an extension's forms and errors are drawn with.
@@ -147,6 +154,7 @@ samples instead, including `diagnostics`, which fails on purpose to exercise the
 | ⌘⇧F | root | add or remove a favorite |
 | `files `, `clipboard `, `menu ` then text | root | search only files, the clipboard history or menu bar items |
 | ↵ | menu bar search | open the item's menu (needs Accessibility) |
+| ↵ / ⌘↵ / ⌘R | Ask AI | ask what is typed, or copy the answer when the field is empty / paste the answer / ask again |
 | Esc, ⌘[ | commands | back |
 | ⌘, | anywhere | settings |
 | ↵, ⌘⇧C | error screen | try again, copy details |
@@ -308,7 +316,7 @@ ignore that key, and without it a Debug build refuses to check.
     .build/debug/Floe --search cal                      # ranked root results
     .build/debug/Floe --icon-check                      # every extension's icon, rendered off screen
     .build/debug/Floe --menubar [query]                 # menu bar items Floe can open
-    .build/debug/Floe --panel-snapshot /tmp/p           # root and menu bar views, drawn off screen
+    .build/debug/Floe --panel-snapshot /tmp/p           # root, menu bar and answer views, drawn off screen
     FLOE_BENCH_DUMP=/tmp/s .build/debug/Floe --bench-settings  # settings page timings and snapshots
     bun runtime/survey.ts ~/.config/raycast/extensions      # compatibility across many extensions
     FLOE_SETTINGS_CLOSE_AFTER=3 .build/debug/Floe --settings --page about  # the settings process alone; exits 0 when its window closes

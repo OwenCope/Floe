@@ -13,7 +13,8 @@
 //  dropped connection), for one prompt and one answer. The agent around it is left out: tools,
 //  history, approvals, reasoning and token counts. Text is batched in the read loop, not by an
 //  actor, and a reply that already showed text is not restarted, since an extension has no way
-//  to take text back.
+//  to take text back. The request can carry the turns before its prompt, for Ask AI's follow-up
+//  questions; they are the caller's to keep, and nothing is stored here.
 
 import Foundation
 
@@ -72,7 +73,8 @@ nonisolated enum ChatCompletionStream {
         return .text(text)
     }
 
-    static func request(chatURL: URL, apiKey: String, model: String, prompt: String) -> URLRequest {
+    /// `earlier` is the messages of the turns before the prompt, oldest first; a first question has none.
+    static func request(chatURL: URL, apiKey: String, model: String, prompt: String, earlier: [[String: String]] = []) -> URLRequest {
         var request = URLRequest(url: chatURL, timeoutInterval: 300)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -83,7 +85,7 @@ nonisolated enum ChatCompletionStream {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let payload: [String: Any] = [
             "model": model,
-            "messages": [["role": "user", "content": prompt]],
+            "messages": earlier + [["role": "user", "content": prompt]],
             "stream": true,
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: payload)

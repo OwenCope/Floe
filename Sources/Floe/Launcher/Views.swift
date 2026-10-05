@@ -36,7 +36,7 @@ struct LauncherView: View {
             } else if model.isSearchingFiles {
                 FileSearchView(search: model.fileSearch, spotlight: model.fileSearch.spotlight, launcher: model, focusToken: model.focusToken)
             } else if let asking = model.askAI {
-                AskAIView(launcher: model, asking: asking).modifier(PanelOnePiece())
+                AskAIView(launcher: model, asking: asking)
             } else {
                 RootView(model: model, isCollapsed: state.isCollapsed(in: settings.launcherLayout))
             }

@@ -7,11 +7,11 @@
 
 import Foundation
 
-/// One question and its answer, for as long as the answer view is on screen. There is no history:
-/// nothing here is written anywhere, and leaving the view drops the text.
+/// A question, its answer and the turns before them, for as long as the answer view is on screen.
+/// The conversation is kept in memory and never saved: leaving the view drops all of it.
 final class AskAIModel: ObservableObject {
-    /// Answers a prompt, handing over text as it arrives, and returns the whole answer.
-    typealias Request = @concurrent @Sendable (String, @Sendable (String) async -> Void) async throws -> String
+    /// Answers a question that may have earlier turns, handing over text as it arrives, and returns the whole answer.
+    typealias Request = @concurrent @Sendable (AIConversation, @Sendable (String) async -> Void) async throws -> String
     /// Parses the answer so far, away from the main actor. It is handed what is shown, to keep the blocks that did not change.
     typealias Parse = @concurrent @Sendable (String, MarkdownContent) async -> MarkdownContent
     /// Waits out the time between two updates of an answer that is streaming.
@@ -38,14 +38,33 @@ final class AskAIModel: ObservableObject {
         var lines = 0
     }
 
-    let question: String
+    /// A question that was answered before the one on screen. It keeps the answer as it was parsed.
+    struct Turn: Identifiable, Equatable {
+        let id: Int
+        let question: String
+        let answer: String
+        let shown: MarkdownContent
+    }
+
+    /// The question being answered: the first one, then each follow-up in its turn.
+    @Published private(set) var question: String
     let source: AskAI.Source?
+    /// How much of the earlier turns goes with a question.
+    let limit: AIConversation.Limit
     @Published private(set) var state = State.asking
     /// Everything received so far, for copy and paste. Not published: the view draws `shown`.
     private(set) var answer = ""
     /// The answer as it is drawn: parsed, and at most one batch behind `answer` while it streams.
     @Published private(set) var shown = MarkdownContent.empty
     @Published private(set) var scroll = Scroll()
+    /// The turns answered before this question, oldest first.
+    @Published private(set) var turns: [Turn] = []
+    /// What is typed in the field: the next question.
+    @Published var draft = ""
+    /// How many of the oldest turns the last request left out, because the rest filled the limit.
+    @Published private(set) var leftOut = 0
+    /// Bumped when an answer ends, so the field has the keyboard for a follow-up.
+    @Published private(set) var focus = 0
 
     /// How the answer view reaches the panel. The launcher model fills it in when it shows the view.
     var host = ModeHost()
@@ -62,20 +81,23 @@ final class AskAIModel: ObservableObject {
     /// Bumped per request, so text from one that was replaced or left is dropped.
     private var generation = 0
 
-    /// The one way a prompt is answered, shared with an extension's `AI.ask`.
-    static let live: Request = { prompt, emit in
-        try await HostRequest.answer(.askAI(prompt: prompt, model: nil), emit: emit) as? String ?? ""
+    /// How Ask AI is answered: by the source chosen in General, as an extension's `AI.ask` is.
+    static let live: Request = { conversation, emit in
+        let (choice, localOnly) = await MainActor.run { (AIAnswer.configured(), AppSettings.shared.aiOnThisMacOnly) }
+        return try await AIAnswer.answer(conversation, model: nil, choice: choice, localOnly: localOnly, emit: emit)
     }
 
     init(
         question: String,
         source: AskAI.Source?,
+        limit: AIConversation.Limit = .standard,
         request: @escaping Request = AskAIModel.live,
         parse: @escaping Parse = { await MarkdownContent.parsed($0, reusing: $1) },
         pause: @escaping Pause = { try? await Task.sleep(for: AskAIModel.batchInterval) }
     ) {
         self.question = question
         self.source = source
+        self.limit = limit
         self.request = request
         self.parse = parse
         self.pause = pause
@@ -85,7 +107,13 @@ final class AskAIModel: ObservableObject {
         state == .asking || state == .answering
     }
 
-    /// Sends the question, replacing any request still in flight. The task is returned so a test can wait for it.
+    /// Whether there is a follow-up to send: Return asks it, and otherwise acts on the answer.
+    var hasDraft: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Sends the question with the earlier turns that fit, replacing any request still in flight and
+    /// the answer on screen. The task is returned so a test can wait for it.
     @discardableResult
     func ask() -> Task<Void, Never> {
         task?.cancel()
@@ -94,11 +122,16 @@ final class AskAIModel: ObservableObject {
         clear()
         state = .asking
         let request = request
-        let question = question
+        let fitted = AIConversation.fitting(turns.map { AIConversation.Turn(question: $0.question, answer: $0.answer) }, limit: limit)
+        if leftOut != fitted.dropped {
+            leftOut = fitted.dropped
+        }
+        // Only the turns go along: the prompt, the messages or the transcript is made off the main actor, with the request.
+        let conversation = AIConversation(earlier: fitted.kept, question: question)
         let task = Task { @MainActor [weak self] in
             let result: Result<String, Error>
             do {
-                result = try await .success(request(question) { [weak self] text in
+                result = try await .success(request(conversation) { [weak self] text in
                     await MainActor.run { [weak self] in self?.receive(text, generation: started) }
                 })
             } catch {
@@ -110,16 +143,33 @@ final class AskAIModel: ObservableObject {
         return task
     }
 
-    /// Stops the request and forgets the answer. Called when the view is left or the panel hides.
+    /// Asks what is in the field. An answered question joins the earlier turns; one that failed or was
+    /// still being answered has nothing to keep, and is replaced. Nil when the field is empty.
+    @discardableResult
+    func askFollowUp() -> Task<Void, Never>? {
+        let next = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !next.isEmpty else { return nil }
+        if state == .finished, !answer.isEmpty {
+            turns.append(Turn(id: turns.count, question: question, answer: answer, shown: shown))
+        }
+        question = next
+        draft = ""
+        return ask()
+    }
+
+    /// Stops the request and forgets the conversation. Called when the view is left or the panel hides.
     func leave() {
         generation += 1
         task?.cancel()
         task = nil
         clear()
+        turns = []
+        draft = ""
+        leftOut = 0
         state = .cancelled
     }
 
-    /// Forgets the text and stops drawing it. A parse still running is for an older generation, and is dropped.
+    /// Forgets the answer on screen and stops drawing it. A parse still running is for an older generation, and is dropped.
     private func clear() {
         showing?.cancel()
         showing = nil
@@ -194,6 +244,7 @@ final class AskAIModel: ObservableObject {
         case let .failure(error):
             state = .failed(error.localizedDescription)
         }
+        focus += 1
     }
 
     deinit {

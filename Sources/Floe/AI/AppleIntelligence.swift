@@ -28,15 +28,28 @@ nonisolated enum AppleIntelligence {
         }
     }
 
+    /// The earlier turns as a session's transcript: each question a prompt, each answer a response, oldest first.
+    static func transcript(of conversation: AIConversation) -> Transcript {
+        Transcript(entries: conversation.earlier.flatMap { turn -> [Transcript.Entry] in
+            [
+                .prompt(Transcript.Prompt(segments: [.text(Transcript.TextSegment(content: turn.question))])),
+                .response(Transcript.Response(assetIDs: [], segments: [.text(Transcript.TextSegment(content: turn.answer))])),
+            ]
+        })
+    }
+
     /// The system hands back the whole answer so far each time; `emit` is given only what is new.
+    /// The session is made for this one request from the turns before it, so asking again or stopping
+    /// part way leaves nothing behind in a session.
     @concurrent
-    static func answer(_ prompt: String, emit: @Sendable (String) async -> Void) async throws -> String {
+    static func answer(_ conversation: AIConversation, emit: @Sendable (String) async -> Void) async throws -> String {
         if let problem {
             throw ProviderError.failed(problem)
         }
+        let session = conversation.earlier.isEmpty ? LanguageModelSession() : LanguageModelSession(transcript: transcript(of: conversation))
         var answer = ""
         do {
-            for try await snapshot in LanguageModelSession().streamResponse(to: prompt) {
+            for try await snapshot in session.streamResponse(to: conversation.question) {
                 let added = addition(from: answer, to: snapshot.content)
                 answer = snapshot.content
                 if !added.isEmpty {

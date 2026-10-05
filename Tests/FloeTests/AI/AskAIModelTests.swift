@@ -15,7 +15,7 @@ import Testing
 /// Stands in for an AI source: it answers only when the test lets it, and notes what it was asked.
 private final nonisolated class FakeSource: Sendable {
     private struct State {
-        var prompts: [String] = []
+        var asked: [AIConversation] = []
         var cancellations = 0
         var gates: [AsyncStream<Void>.Continuation] = []
     }
@@ -30,8 +30,14 @@ private final nonisolated class FakeSource: Sendable {
         self.result = result
     }
 
+    /// The question of each request. None of these tests follows one up, so it is all a request carries.
     var prompts: [String] {
-        state.withLock { $0.prompts }
+        state.withLock { $0.asked.map(\.question) }
+    }
+
+    /// Every request as the seam received it.
+    var asked: [AIConversation] {
+        state.withLock { $0.asked }
     }
 
     var cancellations: Int {
@@ -39,10 +45,10 @@ private final nonisolated class FakeSource: Sendable {
     }
 
     var request: AskAIModel.Request {
-        { [self] prompt, emit in
+        { [self] conversation, emit in
             let (gate, opener) = AsyncStream.makeStream(of: Void.self)
             state.withLock {
-                $0.prompts.append(prompt)
+                $0.asked.append(conversation)
                 $0.gates.append(opener)
             }
             for text in early {
@@ -241,6 +247,7 @@ struct AskAIModelTests {
         #expect(asking.answer == "Because of Rayleigh scattering.", "the whole answer replaces what was streamed")
         #expect(!asking.isWorking)
         #expect(fake.prompts == ["why is the sky blue"])
+        #expect(fake.asked == [AIConversation(question: "why is the sky blue")], "one question is sent with nothing before it")
     }
 
     @Test func aSourceThatDoesNotStreamShowsItsAnswerWhole() async {
@@ -563,7 +570,7 @@ struct AskAIModelTests {
         model.closeAskAI()
     }
 
-    @Test func theArrowsScrollTheAnswerAndPlainTypingGoesNowhere() throws {
+    @Test func theArrowsScrollTheAnswerAndTypingIsLeftToTheField() throws {
         let model = makeLauncher(FakeSource())
         model.query = "why"
         model.openAskAI("why")
@@ -571,7 +578,7 @@ struct AskAIModelTests {
         #expect(model.askAI?.scroll == AskAIModel.Scroll(id: 1, lines: 1))
         #expect(try model.handleKey(key(126)))
         #expect(model.askAI?.scroll == AskAIModel.Scroll(id: 2, lines: -1))
-        #expect(try model.handleKey(key(0)), "a letter has no field to land in")
+        #expect(try !model.handleKey(key(0)), "a letter is the field's, where a follow-up is typed")
         #expect(try !model.handleKey(key(8, .command)), "Command-C is left to the selected text")
         #expect(model.query == "why")
         model.closeAskAI()

@@ -451,7 +451,7 @@ if let path = options.panelSnapshot {
     }
     settings.searchFieldShape = .rounded
     // The answer view with a canned answer: nothing is asked of any source.
-    model.askAIRequest = { _, _ in AskAI.sampleAnswer }
+    model.askAIRequest = { conversation, _ in conversation.earlier.isEmpty ? AskAI.sampleAnswer : AskAI.sampleFollowUp }
     MarkdownView.isSelectable = false
     model.openAskAI("how do tides work")
     snapshot("ask-ai")
@@ -473,6 +473,21 @@ if let path = options.panelSnapshot {
     snapshot("separate-compact")
     settings.launcherLayout = .extended
     settings.separatesSearchField = false
+    // A follow-up under its first answer, both canned, and last for the same reason. The look
+    // settles first: a change of it draws the whole panel anew, which the answer view takes as leaving.
+    RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+    model.openAskAI("how do tides work")
+    RunLoop.main.run(until: Date().addingTimeInterval(1))
+    model.askAI?.draft = "and why two a day"
+    model.askAI?.askFollowUp()
+    snapshot("ask-ai-follow-up")
+    // Three presses of the up arrow: the end of the first answer over the follow-up.
+    for _ in 0 ..< 3 {
+        model.askAI?.scroll(by: -1)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+    }
+    snapshot("ask-ai-earlier")
+    model.closeAskAI()
     // Saved now: the edit is otherwise written a moment later, after this has exited.
     settings.save()
     resizing.cancel()

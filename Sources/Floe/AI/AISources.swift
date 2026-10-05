@@ -8,30 +8,31 @@
 import Foundation
 
 /// The three things that can answer a prompt, each behind a function so a test can stand in for it.
+/// Each is handed the conversation and gives the earlier turns to its source in that source's own way.
 nonisolated struct AISources: Sendable {
     typealias Emit = @Sendable (String) async -> Void
 
-    var api: @Sendable (AIEndpoint, String, Emit) async throws -> String
-    var appleIntelligence: @Sendable (String, Emit) async throws -> String
-    /// The prompt, and the model an extension asked for, which Automatic weighs when it picks the tool.
-    var tools: @Sendable (String, String?, Emit) async throws -> String
+    var api: @Sendable (AIEndpoint, AIConversation, Emit) async throws -> String
+    var appleIntelligence: @Sendable (AIConversation, Emit) async throws -> String
+    /// The conversation, and the model an extension asked for, which Automatic weighs when it picks the tool.
+    var tools: @Sendable (AIConversation, String?, Emit) async throws -> String
 
     /// The real ones: the network, the system's model and the installed tools.
     static let live = AISources(
-        api: { endpoint, prompt, emit in
-            let request = ChatCompletionStream.request(chatURL: endpoint.chatURL, apiKey: endpoint.apiKey, model: endpoint.model, prompt: prompt)
+        api: { endpoint, conversation, emit in
+            let request = ChatCompletionStream.request(chatURL: endpoint.chatURL, apiKey: endpoint.apiKey, model: endpoint.model, prompt: conversation.question, earlier: conversation.earlierMessages)
             return try await ChatCompletionStream.run(request, onText: emit)
         },
-        appleIntelligence: { prompt, emit in
-            try await AppleIntelligence.answer(prompt, emit: emit)
+        appleIntelligence: { conversation, emit in
+            try await AppleIntelligence.answer(conversation, emit: emit)
         },
-        tools: { prompt, model, emit in
+        tools: { conversation, model, emit in
             // A request right after launch waits for the shell, so a tool under nvm or mise is found.
             await LoginEnvironment.load()
             let setup = await MainActor.run { AIEngine.Setup(AppSettings.shared) }
             return try await answerWithTool(model: model, setup: setup, which: { LoginEnvironment.which($0) }, run: { engine in
                 Log.ai.info("The command line tool is \(engine.toolName)")
-                return try await TextGeneration.run(prompt, engine: engine, onText: emit)
+                return try await TextGeneration.run(conversation.replayedPrompt, engine: engine, onText: emit)
             })
         }
     )
@@ -63,8 +64,7 @@ nonisolated extension AIAnswer {
         localOnly && !AskAI.isOnThisMac(choice) ? localOnlyMessage : nil
     }
 
-    /// Answers a prompt with the chosen source, for Ask AI and for an extension's `AI.ask` alike.
-    /// It answers or the request fails: nothing else is tried, so a question never leaves by a fallback.
+    /// Answers one prompt with nothing before it, as an extension's `AI.ask` sends.
     @concurrent
     static func answer(
         _ prompt: String,
@@ -74,10 +74,24 @@ nonisolated extension AIAnswer {
         sources: AISources = .live,
         emit: AISources.Emit
     ) async throws -> String {
+        try await answer(AIConversation(question: prompt), model: model, choice: choice, localOnly: localOnly, sources: sources, emit: emit)
+    }
+
+    /// Answers a question with the chosen source, for Ask AI and for an extension's `AI.ask` alike.
+    /// It answers or the request fails: nothing else is tried, so a question never leaves by a fallback.
+    @concurrent
+    static func answer(
+        _ conversation: AIConversation,
+        model: String?,
+        choice: Choice,
+        localOnly: Bool,
+        sources: AISources = .live,
+        emit: AISources.Emit
+    ) async throws -> String {
         let started = Date()
         do {
-            let text = try await route(prompt, model: model, choice: choice, localOnly: localOnly, sources: sources, emit: emit)
-            Log.ai.info("\(choice.logName) answered \(prompt.count) characters in \(Log.milliseconds(since: started)) ms")
+            let text = try await route(conversation, model: model, choice: choice, localOnly: localOnly, sources: sources, emit: emit)
+            Log.ai.info("\(choice.logName) answered \(conversation.question.count) characters in \(Log.milliseconds(since: started)) ms")
             return text
         } catch {
             Log.ai.error("\(choice.logName) failed after \(Log.milliseconds(since: started)) ms: \(error.localizedDescription)")
@@ -86,7 +100,7 @@ nonisolated extension AIAnswer {
     }
 
     private static func route(
-        _ prompt: String,
+        _ conversation: AIConversation,
         model: String?,
         choice: Choice,
         localOnly: Bool,
@@ -101,13 +115,13 @@ nonisolated extension AIAnswer {
         }
         switch choice {
         case let .api(endpoint?):
-            return try await sources.api(endpoint, prompt, emit)
+            return try await sources.api(endpoint, conversation, emit)
         case .api:
             throw ProviderError.failed(incompleteMessage)
         case .appleIntelligence:
-            return try await sources.appleIntelligence(prompt, emit)
+            return try await sources.appleIntelligence(conversation, emit)
         case .tools:
-            return try await sources.tools(prompt, model, emit)
+            return try await sources.tools(conversation, model, emit)
         }
     }
 
