@@ -159,6 +159,31 @@ struct AppSettingsTests {
         #expect(reloaded.aiSourceByExtension == ["journal": .appleIntelligence])
     }
 
+    @Test func theToolAndItsModelStartAsAutomaticAndComeBackAfterASave() {
+        let settings = AppSettings(defaults: scratch.defaults)
+        #expect(settings.aiTool == nil, "Automatic, which is what there was before the setting")
+        #expect(settings.aiToolModels.isEmpty)
+        settings.aiTool = .opencode
+        settings.aiToolModels = ["opencode": "anthropic/claude-sonnet-4-5", "pi": "openai/gpt-4o"]
+        settings.save()
+        let reloaded = AppSettings(defaults: scratch.defaults)
+        #expect(reloaded.aiTool == .opencode)
+        #expect(reloaded.aiToolModels == ["opencode": "anthropic/claude-sonnet-4-5", "pi": "openai/gpt-4o"])
+        reloaded.aiTool = nil
+        reloaded.save()
+        #expect(AppSettings(defaults: scratch.defaults).aiTool == nil, "going back to Automatic is saved too")
+    }
+
+    @Test func aToolThisVersionDoesNotKnowIsAutomaticAndTheRestStays() {
+        let stored = #"{"aiSource":"api","aiTool":"gemini","aiToolModels":{"pi":"openai/gpt-4o"},"aiModel":"small"}"#
+        scratch.defaults.set(Data(stored.utf8), forKey: "settings")
+        let settings = AppSettings(defaults: scratch.defaults)
+        #expect(settings.aiTool == nil)
+        #expect(settings.aiSource == .api)
+        #expect(settings.aiModel == "small")
+        #expect(settings.aiToolModels == ["pi": "openai/gpt-4o"])
+    }
+
     @Test func appearanceDefaultsPreserveTheCurrentLauncherLook() {
         let settings = AppSettings(defaults: scratch.defaults)
         #expect(settings.launcherTint(for: .light).kind == .none, "no tint unless it is chosen")
@@ -203,6 +228,9 @@ struct AppSettingsTests {
         #expect(settings.searchSources.isEmpty)
         #expect(settings.aiOnThisMacOnly == false)
         #expect(settings.aiSourceByExtension.isEmpty)
+        #expect(settings.aiSource == .tools)
+        #expect(settings.aiTool == nil, "settings from before the tool could be chosen answer as they did: Automatic")
+        #expect(settings.aiToolModels.isEmpty)
     }
 
     @Test func unreadableSettingsFallBackToDefaults() {

@@ -9,9 +9,10 @@
 //  Floe changes © 2026 René Jiménez, under the same license.
 //
 //  Ported to Floe from Droppy Code's Services/Providers/TextGeneration.swift, and modified: the
-//  thread title and commit message prompts are left out, the prompt is the caller's, both engines
-//  take an optional model, a failure is thrown with the tool's own words, the arguments are
-//  built by a function a test can call, and claude's answer can be streamed (ClaudeTextStream.swift).
+//  thread title and commit message prompts are left out, the prompt is the caller's, every engine
+//  takes an optional model, a failure is thrown with the tool's own words, the arguments are
+//  built by a function a test can call, claude's answer can be streamed (ClaudeTextStream.swift),
+//  and opencode and pi are engines too (OpencodeTextStream.swift, PiTextStream.swift).
 
 import Foundation
 
@@ -21,23 +22,30 @@ enum TextGeneration {
     enum Engine: Sendable, Equatable {
         case claude(executable: URL, model: String?)
         case codex(executable: URL, model: String?)
+        /// The model is "provider/model", as opencode's `--model` takes it; nil is its own default.
+        case opencode(executable: URL, model: String?)
+        /// The model is what pi's `--model` takes, such as "provider/model"; nil is its own default.
+        case pi(executable: URL, model: String?)
 
         var executable: URL {
             switch self {
-            case let .claude(executable, _), let .codex(executable, _): executable
+            case let .claude(executable, _), let .codex(executable, _), let .opencode(executable, _), let .pi(executable, _): executable
             }
         }
 
         var timeout: TimeInterval {
             switch self {
             case .claude: 120
-            case .codex: 180
+            case .codex, .opencode, .pi: 180
             }
         }
     }
 
+    /// What opencode and pi are told in place of their coding prompts, which run to thousands of words.
+    static let instructions = "Answer the question directly. You have no tools."
+
     /// The arguments for one run. Codex writes its last message to `output`, since its standard
-    /// output carries the whole session.
+    /// output carries the whole session. For opencode, `output` is the empty folder it runs in.
     static func arguments(for engine: Engine, output: URL) -> [String] {
         switch engine {
         case let .claude(_, model):
@@ -50,11 +58,15 @@ enum TextGeneration {
             ["exec", "--ephemeral", "--skip-git-repo-check", "-s", "read-only"]
                 + (model.map { ["--model", $0] } ?? [])
                 + ["--config", "model_reasoning_effort=\"low\"", "--output-last-message", output.path, "-"]
+        case let .opencode(_, model):
+            OpencodeTextStream.arguments(model: model, directory: output)
+        case let .pi(_, model):
+            PiTextStream.arguments(model: model)
         }
     }
 
-    /// As `run`, with text handed to `onText` as it arrives. Claude streams; codex's one-shot run
-    /// prints its session, not its answer, so its answer comes whole at the end.
+    /// Answers a prompt, with text handed to `onText` as it arrives. Claude and pi stream. Codex's one-shot run
+    /// prints its session, not its answer, and opencode prints its text once it is complete, so theirs come whole.
     static func run(
         _ prompt: String,
         engine: Engine,
@@ -63,13 +75,48 @@ enum TextGeneration {
     ) async throws -> String {
         switch engine {
         case let .claude(executable, model):
-            try await ClaudeTextStream.run(prompt, executable: executable, model: model, environment: environment, onText: onText)
+            return try await ClaudeTextStream.run(prompt, executable: executable, model: model, environment: environment, onText: onText)
         case .codex:
-            try await run(prompt, engine: engine, environment: environment)
+            return try await run(prompt, engine: engine, environment: environment)
+        case .opencode, .pi:
+            // An empty folder of the run's own: there is no project for the tool to read, and nothing is left behind.
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent("floe-answer-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: folder) }
+            let launch = launch(engine, in: folder, environment: environment)
+            let read = if case .pi = engine {
+                PiTextStream.event(in:)
+            } else {
+                OpencodeTextStream.event(in:)
+            }
+            return try await ToolTextStream.run(prompt, launch: launch, read: read, onText: onText)
         }
     }
 
+    /// How opencode or pi is started in `folder`. Claude and codex have runs of their own.
+    static func launch(_ engine: Engine, in folder: URL, environment: [String: String]) -> ToolTextStream.Launch {
+        let environment: [String: String] = switch engine {
+        case .opencode: OpencodeTextStream.environment(environment)
+        case .pi: PiTextStream.environment(environment)
+        case .claude, .codex: environment
+        }
+        return ToolTextStream.Launch(
+            executable: engine.executable,
+            arguments: arguments(for: engine, output: folder),
+            directory: folder,
+            environment: environment,
+            timeout: engine.timeout
+        )
+    }
+
+    /// The answer whole, with nothing handed on before it. For claude and codex, which print it or write it to a file.
     static func run(_ prompt: String, engine: Engine, environment: [String: String] = LoginEnvironment.current) async throws -> String {
+        switch engine {
+        case .opencode, .pi:
+            return try await run(prompt, engine: engine, environment: environment) { _ in /* only the whole answer is wanted */ }
+        case .claude, .codex:
+            break
+        }
         let directory = FileManager.default.temporaryDirectory
         let output = directory.appendingPathComponent("floe-\(UUID().uuidString).txt")
         defer { try? FileManager.default.removeItem(at: output) }
@@ -84,9 +131,10 @@ enum TextGeneration {
         guard result.succeeded else {
             throw ShellError(result.failureMessage)
         }
-        let text: String = switch engine {
-        case .claude: result.trimmedOutput
-        case .codex: ((try? String(contentsOf: output, encoding: .utf8)) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let text: String = if case .codex = engine {
+            ((try? String(contentsOf: output, encoding: .utf8)) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            result.trimmedOutput
         }
         guard !text.isEmpty else {
             throw ShellError("The model gave no answer.")

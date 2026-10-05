@@ -101,7 +101,7 @@ enum HostRequest: Sendable, Equatable {
 
 /// What the user chose to answer `AI.ask` with.
 enum AISource: String, Codable, CaseIterable {
-    /// The claude or codex command line tool, on the account it is signed in to.
+    /// A command line tool (`AITool`), on the account it is signed in to.
     case tools
     /// An OpenAI-compatible API, with the user's own key.
     case api
@@ -113,6 +113,7 @@ enum AISource: String, Codable, CaseIterable {
 enum AIService: String, CaseIterable, Identifiable {
     case openAI
     case openRouter
+    case zai
     case ollama
     case lmStudio
     case other
@@ -125,6 +126,7 @@ enum AIService: String, CaseIterable, Identifiable {
         switch self {
         case .openAI: "OpenAI"
         case .openRouter: "OpenRouter"
+        case .zai: "Z.ai"
         case .ollama: "Ollama, on this Mac"
         case .lmStudio: "LM Studio, on this Mac"
         case .other: "Another address"
@@ -136,6 +138,8 @@ enum AIService: String, CaseIterable, Identifiable {
         switch self {
         case .openAI: AIEndpoint.defaultBaseURL
         case .openRouter: "https://openrouter.ai/api/v1"
+        // Z.ai's general API. Its Coding Plan has another address, which Z.ai keeps for the coding tools it supports.
+        case .zai: "https://api.z.ai/api/paas/v4"
         case .ollama: "http://localhost:11434/v1"
         case .lmStudio: "http://localhost:1234/v1"
         case .other: nil
@@ -254,37 +258,5 @@ enum AIAnswer {
             toolInstalled: { AIEngine.isAvailable },
             appleIntelligenceReady: { AppleIntelligence.problem == nil }
         )
-    }
-}
-
-/// Which command line tool answers `AI.ask`. Floe has no models of its own: it uses the Claude or
-/// Codex tool the user has installed and signed in to.
-enum AIEngine {
-    static let missingMessage = "AI needs the claude or codex command line tool, installed and signed in."
-
-    /// Whether extensions should be told AI is there. The tools are looked up on the PATH known so far.
-    static var isAvailable: Bool {
-        resolve(model: nil, which: { LoginEnvironment.which($0) }) != nil
-    }
-
-    /// Claude answers unless the extension asked for an OpenAI model and Codex is installed.
-    /// `which` finds a tool by name, so a test can say what is installed.
-    static func resolve(model: String?, which: (String) -> URL?) -> TextGeneration.Engine? {
-        let claude = which("claude").map { TextGeneration.Engine.claude(executable: $0, model: claudeModel(for: model)) }
-        // Codex keeps the model the user configured: Raycast's names for OpenAI models are not Codex's.
-        let codex = which("codex").map { TextGeneration.Engine.codex(executable: $0, model: nil) }
-        return asksForOpenAI(model) ? codex ?? claude : claude ?? codex
-    }
-
-    /// The Claude alias inside one of Raycast's model names ("Anthropic_Claude_Sonnet" gives "sonnet"),
-    /// or nil to leave the choice to the engine.
-    static func claudeModel(for requested: String?) -> String? {
-        guard let name = requested?.lowercased() else { return nil }
-        return ["opus", "sonnet", "haiku"].first { name.contains($0) }
-    }
-
-    private static func asksForOpenAI(_ model: String?) -> Bool {
-        guard let name = model?.lowercased() else { return false }
-        return name.contains("openai") || name.contains("gpt")
     }
 }

@@ -103,9 +103,12 @@ pair as its sender. The welcome window at first launch is still the launcher's.
   and says what Floe changed; `LICENSES` holds its license and third-party notices.
   - `LoginEnvironment.swift` reads the login shell's environment, which extensions start with, and `Shell.swift` runs
     a tool with a timeout.
-  - `AI.ask` is answered by one-shot `claude` or `codex` runs (`TextGeneration.swift`) or by a streamed request to an
-    OpenAI-compatible API (`ChatCompletionStream.swift`). Settings › General › AI picks between them; the choice and
-    the request an extension makes are in `Extensions/HostRequest.swift`.
+  - `AI.ask` is answered by a one-shot run of a command line tool (`TextGeneration.swift`: `claude`, `codex`,
+    `opencode` or `pi`, each with no tools of its own) or by a streamed request to an OpenAI-compatible API
+    (`ChatCompletionStream.swift`). Settings › General › AI picks between them; the choice and the request an
+    extension makes are in `Extensions/HostRequest.swift`, and which tool answers is in `AI/AITool.swift`.
+  - `ToolTextStream.swift` reads a tool's JSON lines as they are printed. What a line means is in
+    `ClaudeTextStream.swift`, `OpencodeTextStream.swift` and `PiTextStream.swift`, beside each tool's arguments.
   - `HangWatchdog.swift` samples the app when its main thread stops answering for four seconds and writes the stacks
     to `~/Library/Logs/Floe`.
   - `DirectoryWatcher.swift` watches a folder tree with FSEvents. `Extensions/HotReload.swift` uses it to restart an open view

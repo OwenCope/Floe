@@ -49,22 +49,13 @@ struct ClaudeTextStreamTests {
         #expect(ClaudeTextStream.event(in: #"{"type":"result","subtype":"error_max_turns"}"#) == .failure("Claude stopped before finishing."))
     }
 
-    @Test func linesAreCutAtNewlinesHoweverTheBytesArrive() {
-        var lines = ClaudeTextStream.Lines()
-        #expect(lines.append(Data("one\ntw".utf8)) == ["one"])
-        #expect(lines.append(Data("o\nthree\nfo".utf8)) == ["two", "three"])
-        #expect(lines.append(Data()).isEmpty)
-        #expect(lines.rest() == ["fo"])
-        #expect(lines.rest().isEmpty)
-    }
-
     @Test func theAnswerIsTheResultLineOrElseWhatWasStreamed() {
-        var answer = ClaudeTextStream.Answer()
-        #expect(answer.take(delta("Hel")) == "Hel")
-        #expect(answer.take(delta("lo ")) == "lo ")
-        #expect(answer.take("noise") == nil)
+        var answer = ToolTextStream.Answer()
+        #expect(answer.take(ClaudeTextStream.event(in: delta("Hel"))) == "Hel")
+        #expect(answer.take(ClaudeTextStream.event(in: delta("lo "))) == "lo ")
+        #expect(answer.take(ClaudeTextStream.event(in: "noise")) == nil)
         #expect(answer.text == "Hello", "without a result line the streamed text stands")
-        #expect(answer.take(#"{"type":"result","subtype":"success","is_error":false,"result":"Hello, whole."}"#) == nil)
+        #expect(answer.take(ClaudeTextStream.event(in: #"{"type":"result","subtype":"success","is_error":false,"result":"Hello, whole."}"#)) == nil)
         #expect(answer.text == "Hello, whole.")
         #expect(answer.failure == nil)
     }

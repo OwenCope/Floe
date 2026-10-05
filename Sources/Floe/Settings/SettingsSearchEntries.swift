@@ -318,19 +318,29 @@ extension SearchIndex {
             "Answer AI requests with",
             description: "Extensions that ask AI a question get their answer from here.",
             section: "AI",
-            keywords: ["ai", "ask", "claude", "codex", "openai", "apple intelligence", "ollama", "lm studio", "local", "model", "llm", "assistant", "provider"]
+            keywords: [
+                "ai", "ask", "claude", "codex", "opencode", "pi", "openai", "openrouter", "z.ai", "apple intelligence", "ollama", "lm studio", "local",
+                "model", "llm", "assistant", "provider",
+            ]
+        ),
+        .general(
+            "aiTool",
+            "Tool",
+            description: "Automatic uses the first one installed: claude, codex, opencode, then pi. Accounts and keys stay in the tool.",
+            section: "AI",
+            keywords: ["ai", "command line", "cli", "terminal", "agent", "claude", "codex", "opencode", "pi", "automatic"]
         ),
         .general(
             "aiAddress",
             "Address",
             section: "AI",
-            keywords: ["ai", "api", "base url", "endpoint", "openai", "server", "host"]
+            keywords: ["ai", "api", "base url", "endpoint", "openai", "openrouter", "z.ai", "server", "host", "service"]
         ),
         .general(
             "aiModel",
             "Model",
             section: "AI",
-            keywords: ["ai", "api", "model", "gpt", "openai"]
+            keywords: ["ai", "api", "model", "gpt", "openai", "opencode", "pi"]
         ),
         .general(
             "aiKey",

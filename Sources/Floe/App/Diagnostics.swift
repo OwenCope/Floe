@@ -34,7 +34,7 @@ extension AIAnswer.Choice {
     /// The source's name in a log line. An API is named by its host alone, never its key.
     var logName: String {
         switch self {
-        case .tools: "The claude or codex tool"
+        case .tools: "The command line tool"
         case .appleIntelligence: "Apple Intelligence"
         case let .api(endpoint): "The API at \(endpoint?.chatURL.host ?? "an address not set")"
         }

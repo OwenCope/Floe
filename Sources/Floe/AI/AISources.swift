@@ -13,7 +13,7 @@ struct AISources: Sendable {
 
     var api: @Sendable (AIEndpoint, String, Emit) async throws -> String
     var appleIntelligence: @Sendable (String, Emit) async throws -> String
-    /// The prompt, and the model an extension asked for, which decides between claude and codex.
+    /// The prompt, and the model an extension asked for, which Automatic weighs when it picks the tool.
     var tools: @Sendable (String, String?, Emit) async throws -> String
 
     /// The real ones: the network, the system's model and the installed tools.
@@ -28,12 +28,27 @@ struct AISources: Sendable {
         tools: { prompt, model, emit in
             // A request right after launch waits for the shell, so a tool under nvm or mise is found.
             await LoginEnvironment.load()
-            guard let engine = AIEngine.resolve(model: model, which: { LoginEnvironment.which($0) }) else {
-                throw ShellError(AIEngine.missingMessage)
-            }
-            return try await TextGeneration.run(prompt, engine: engine, onText: emit)
+            let setup = await MainActor.run { AIEngine.Setup(AppSettings.shared) }
+            return try await answerWithTool(model: model, setup: setup, which: { LoginEnvironment.which($0) }, run: { engine in
+                Log.ai.info("The command line tool is \(engine.toolName)")
+                return try await TextGeneration.run(prompt, engine: engine, onText: emit)
+            })
         }
     )
+
+    /// Answers with the tool the settings choose. A chosen tool that is missing fails the request with
+    /// where to change it: no other tool is tried. `which` and `run` are parameters so a test can stand in.
+    static func answerWithTool(
+        model: String?,
+        setup: AIEngine.Setup,
+        which: (String) -> URL?,
+        run: (TextGeneration.Engine) async throws -> String
+    ) async throws -> String {
+        guard let engine = AIEngine.resolve(model: model, setup: setup, which: which) else {
+            throw ShellError(AIEngine.missingMessage(for: setup))
+        }
+        return try await run(engine)
+    }
 }
 
 extension AIAnswer {

@@ -48,7 +48,9 @@ struct HostRequestTests {
 
     @Test func nothingAnswersWithoutATool() {
         #expect(AIEngine.resolve(model: nil, which: installed()) == nil)
-        #expect(AIEngine.missingMessage.contains("claude"))
+        for tool in AITool.allCases {
+            #expect(AIEngine.missingMessage.contains(tool.command))
+        }
     }
 
     @Test(arguments: [
@@ -124,7 +126,8 @@ struct HostRequestTests {
         #expect(AIService.matching("http://localhost:11434/v1") == .ollama)
         #expect(AIService.matching("http://localhost:1234/v1/chat/completions") == .lmStudio)
         #expect(AIService.matching("https://openrouter.ai/api/v1") == .openRouter)
-        #expect(AIService.matching("https://api.z.ai/api/paas/v4") == .other)
+        #expect(AIService.matching("https://api.z.ai/api/paas/v4") == .zai)
+        #expect(AIService.matching("https://api.z.ai/api/coding/paas/v4") == .other, "the Coding Plan's address is not the preset")
         #expect(AIService.matching("nonsense") == .other)
         #expect(AIService.allCases.filter { $0.baseURL == nil } == [.other])
     }

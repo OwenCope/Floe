@@ -29,7 +29,7 @@ struct AISettingsSection: View {
     var body: some View {
         ThawSection("AI") {
             Picker(selection: $settings.aiSource) {
-                Text("The claude or codex tool").tag(AISource.tools)
+                Text("A command line tool you are signed in to").tag(AISource.tools)
                 Text("An OpenAI-compatible API").tag(AISource.api)
                 Text("Apple Intelligence, on this Mac").tag(AISource.appleIntelligence)
             } label: {
@@ -41,13 +41,7 @@ struct AISettingsSection: View {
             }
             switch settings.aiSource {
             case .tools:
-                if let engine = AIEngine.resolve(model: nil, which: { LoginEnvironment.which($0) }) {
-                    LabeledContent("Tool") {
-                        Text(engine.executable.path).foregroundStyle(.secondary).textSelection(.enabled)
-                    }
-                } else {
-                    warning("AI can't answer yet. Install claude or codex and sign in.")
-                }
+                toolRows
             case .appleIntelligence:
                 if let problem = AppleIntelligence.problem {
                     warning(problem)
@@ -86,6 +80,37 @@ struct AISettingsSection: View {
                     warning(problem)
                 }
             }
+        }
+    }
+
+    /// The tool that answers, where it is, and its model when it takes one.
+    @ViewBuilder private var toolRows: some View {
+        let which: (String) -> URL? = { LoginEnvironment.which($0) }
+        Picker(selection: $settings.aiTool) {
+            ForEach(AIToolOption.options(chosen: settings.aiTool, which: which)) { option in
+                Text(option.title).tag(option.tool)
+            }
+        } label: {
+            Text("Tool")
+            Text("Automatic uses the first one installed: claude, codex, opencode, then pi. Accounts and keys stay in the tool.")
+        }
+        if let engine = AIEngine.resolve(model: nil, setup: AIEngine.Setup(settings), which: which) {
+            LabeledContent("Path") {
+                Text(engine.executable.path).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+            if engine.tool.takesModel {
+                TextField("Model", text: toolModel(engine.tool), prompt: Text("provider/model, or empty for the default set in \(engine.toolName)"))
+            }
+        } else {
+            warning(AIToolOption.problem(chosen: settings.aiTool))
+        }
+    }
+
+    private func toolModel(_ tool: AITool) -> Binding<String> {
+        Binding {
+            settings.aiToolModels[tool.rawValue] ?? ""
+        } set: { model in
+            settings.aiToolModels[tool.rawValue] = model.isEmpty ? nil : model
         }
     }
 

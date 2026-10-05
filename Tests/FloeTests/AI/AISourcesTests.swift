@@ -104,6 +104,50 @@ struct AISourcesTests {
         }
     }
 
+    /// The same rule one level down, for every tool: the one chosen by name answers or the request fails,
+    /// whether it is missing or it ran and failed, while every other tool is installed and would answer.
+    @Test(arguments: AITool.allCases)
+    func aChosenToolIsNeverReplacedByAnother(chosen: AITool) async {
+        let others: (String) -> URL? = { $0 == chosen.command ? nil : URL(fileURLWithPath: "/tools/\($0)") }
+        let everything: (String) -> URL? = { URL(fileURLWithPath: "/tools/\($0)") }
+        let ran = Mutex<[AITool]>([])
+        let missing = await message {
+            try await AISources.answerWithTool(model: "OpenAI_GPT4o", setup: AIEngine.Setup(tool: chosen), which: others) { engine in
+                ran.withLock { $0.append(engine.tool) }
+                return "an answer from \(engine.toolName)"
+            }
+        }
+        #expect(missing == AIEngine.missingMessage(for: AIEngine.Setup(tool: chosen)))
+        #expect(missing?.contains("\(chosen.command), which is not installed") == true)
+        #expect(missing?.contains("Settings › General › AI") == true, "the message says where to change it")
+        #expect(ran.withLock { $0 }.isEmpty, "no other tool was run")
+
+        let failing = await message {
+            try await AISources.answerWithTool(model: "OpenAI_GPT4o", setup: AIEngine.Setup(tool: chosen), which: everything) { engine in
+                ran.withLock { $0.append(engine.tool) }
+                throw ShellError("\(engine.toolName) is not signed in")
+            }
+        }
+        #expect(failing == "\(chosen.command) is not signed in", "the request fails with the chosen tool's own message")
+        #expect(ran.withLock { $0 } == [chosen], "nothing else was tried")
+    }
+
+    @Test func automaticRunsOneToolAndItsFailureIsTheRequests() async {
+        let ran = Mutex<[AITool]>([])
+        let failing = await message {
+            try await AISources.answerWithTool(model: nil, setup: AIEngine.Setup(tool: nil), which: { URL(fileURLWithPath: "/tools/\($0)") }) { engine in
+                ran.withLock { $0.append(engine.tool) }
+                throw ShellError("not signed in")
+            }
+        }
+        #expect(failing == "not signed in")
+        #expect(ran.withLock { $0 } == [.claude], "the next tool in line is not tried after the first fails")
+        let none = await message {
+            try await AISources.answerWithTool(model: nil, setup: AIEngine.Setup(tool: nil), which: { _ in nil }) { _ in "unreachable" }
+        }
+        #expect(none == AIEngine.missingMessage)
+    }
+
     @Test func aLocalSourceThatFailsDoesNotReachTheCloud() async {
         let fake = FakeAISources(failing: [.appleIntelligence])
         let failure = await message { try await ask(.appleIntelligence, localOnly: false, fake: fake) }
@@ -129,6 +173,26 @@ struct AISourcesTests {
         let failure = await message { try await ask(choice, localOnly: true, fake: fake) }
         #expect(failure == AIAnswer.localOnlyMessage)
         #expect(fake.askedSources.isEmpty, "the question went nowhere, and no local source took it instead")
+    }
+
+    /// Whichever tool is chosen, and whatever model it is pointed at, the tools are refused: Floe cannot
+    /// see where a tool sends a question, so a model that looks local does not make it local.
+    @MainActor
+    @Test(arguments: AITool.allCases)
+    func withTheSwitchOnEveryToolIsRefused(tool: AITool) async throws {
+        let scratch = try ScratchDefaults()
+        let settings = AppSettings(defaults: scratch.defaults, savesAfterEdits: false)
+        settings.aiSource = .tools
+        settings.aiTool = tool
+        settings.aiToolModels = [tool.rawValue: "ollama/llama3"]
+        let choice = AIAnswer.configured(for: nil, settings)
+        #expect(choice == .tools)
+        #expect(!AskAI.isOnThisMac(choice))
+        let fake = FakeAISources()
+        let failure = await message { try await ask(choice, localOnly: true, fake: fake) }
+        #expect(failure == AIAnswer.localOnlyMessage)
+        #expect(fake.askedSources.isEmpty)
+        #expect(!AIAnswer.isAvailable(choice: choice, localOnly: true, toolInstalled: { true }, appleIntelligenceReady: { true }))
     }
 
     @Test(arguments: [(AIAnswer.Choice.appleIntelligence, FakeAISources.Name.appleIntelligence), (local, .api)])
@@ -208,6 +272,10 @@ struct AISourcesTests {
     @Test func thePrivacyLineSaysASourceIsRefusedWhileTheSwitchIsOn() {
         let tools = PrivacyNetwork.aiLine(source: .tools, baseURL: "", onThisMacOnly: true)
         #expect(tools.contains("refuses to ask it"))
+        for tool in AITool.allCases {
+            let named = PrivacyNetwork.aiLine(source: .tools, baseURL: "", tool: tool.command, onThisMacOnly: true)
+            #expect(named == "The \(tool.command) tool is chosen, which sends questions to the service it is signed in to. While the switch below is on, Floe refuses to ask it, so no question is sent.")
+        }
         let remote = PrivacyNetwork.aiLine(source: .api, baseURL: "https://openrouter.ai/api/v1", onThisMacOnly: true)
         #expect(remote == "openrouter.ai is chosen, which is not on this Mac. While the switch below is on, Floe refuses to ask it, so no question is sent.")
     }

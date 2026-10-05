@@ -44,8 +44,8 @@ enum AskAI {
         context.text(after: keyword)
     }
 
-    /// Whether a source answers without the question leaving this Mac: Apple Intelligence, and an API
-    /// whose address is on this Mac. The command line tools and a remote API send it elsewhere.
+    /// Whether a question stays on this Mac: Apple Intelligence, and an API whose address is on this Mac.
+    /// A command line tool never counts, even pointed at a local model: Floe cannot see where it sends a question.
     static func isOnThisMac(_ choice: AIAnswer.Choice) -> Bool {
         switch choice {
         case .appleIntelligence: true
@@ -54,7 +54,7 @@ enum AskAI {
         }
     }
 
-    /// Who would answer and where. `tool` is the command line tool found, "claude" or "codex".
+    /// Who would answer and where. `tool` is the command line tool that will answer, such as "claude".
     /// Nil when nothing can answer: no tool installed, or an API that is not filled in.
     static func source(for choice: AIAnswer.Choice, tool: String?) -> Source? {
         switch choice {
@@ -72,10 +72,14 @@ enum AskAI {
         }
     }
 
-    /// The source the settings choose, with the tool looked up on the PATH known so far.
+    /// The command line tool the settings choose, looked up on the PATH known so far; nil when it is not installed.
+    static func configuredTool(_ settings: AppSettings) -> String? {
+        AIEngine.resolve(model: nil, setup: AIEngine.Setup(settings), which: { LoginEnvironment.which($0) })?.toolName
+    }
+
+    /// The source the settings choose.
     static func configuredSource(_ settings: AppSettings) -> Source? {
-        let tool = AIEngine.resolve(model: nil, which: { LoginEnvironment.which($0) })?.toolName
-        return source(for: AIAnswer.configured(settings), tool: tool)
+        source(for: AIAnswer.configured(settings), tool: configuredTool(settings))
     }
 
     /// Whether a source can answer, asked at most once per `lifetime`: the search asks on every
@@ -93,16 +97,6 @@ enum AskAI {
             let value = check()
             last = (now(), value)
             return value
-        }
-    }
-}
-
-extension TextGeneration.Engine {
-    /// The tool's name as the user types it in a terminal.
-    var toolName: String {
-        switch self {
-        case .claude: "claude"
-        case .codex: "codex"
         }
     }
 }

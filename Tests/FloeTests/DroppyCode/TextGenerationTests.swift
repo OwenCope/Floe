@@ -75,5 +75,8 @@ struct TextGenerationTests {
         #expect(TextGeneration.Engine.claude(executable: tool, model: nil).timeout == 120)
         #expect(TextGeneration.Engine.codex(executable: tool, model: nil).timeout == 180)
         #expect(TextGeneration.Engine.codex(executable: tool, model: nil).executable == tool)
+        #expect(TextGeneration.Engine.opencode(executable: tool, model: nil).timeout == 180)
+        #expect(TextGeneration.Engine.pi(executable: tool, model: nil).timeout == 180)
+        #expect(TextGeneration.Engine.pi(executable: tool, model: "a/b").executable == tool)
     }
 }

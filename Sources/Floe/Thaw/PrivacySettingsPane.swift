@@ -57,7 +57,7 @@ struct PrivacySettingsPane: View {
                     row("Updates", "Checking asks \(host) whether a newer version exists. Floe asked before it started doing this.")
                 }
                 row("Extension Store", "Opening the Extension Store lists extensions from GitHub. Installing or updating one downloads it from GitHub and its packages from the npm registry.")
-                row("AI", PrivacyNetwork.aiLine(source: settings.aiSource, baseURL: settings.aiBaseURL, onThisMacOnly: settings.aiOnThisMacOnly))
+                row("AI", PrivacyNetwork.aiLine(source: settings.aiSource, baseURL: settings.aiBaseURL, tool: AskAI.configuredTool(settings), onThisMacOnly: settings.aiOnThisMacOnly))
                 Toggle(isOn: $settings.aiOnThisMacOnly) {
                     Text("Only use AI that runs on this Mac")
                     Text("A source that sends questions elsewhere is refused, for Ask AI and for extensions. Nothing else is asked in its place.")
@@ -101,15 +101,17 @@ enum PrivacyNetwork {
         return URL(string: configuration.feedURL)?.host
     }
 
-    /// Where a question from an extension goes, for the answer source chosen in General.
+    /// Where a question goes, for the source chosen in General; `tool` is the command line tool that would answer, if any.
     /// With `onThisMacOnly`, a source that is not on this Mac is said to be refused.
-    static func aiLine(source: AISource, baseURL: String, onThisMacOnly: Bool = false) -> String {
+    static func aiLine(source: AISource, baseURL: String, tool: String? = nil, onThisMacOnly: Bool = false) -> String {
         let refused = "While the switch below is on, Floe refuses to ask it, so no question is sent."
         switch source {
         case .tools where onThisMacOnly:
-            return "The claude or codex tool is chosen, which sends questions to its own service. \(refused)"
+            let chosen = tool.map { "The \($0) tool" } ?? "A command line tool"
+            return "\(chosen) is chosen, which sends questions to the service it is signed in to. \(refused)"
         case .tools:
-            return "Questions go to the claude or codex tool, which sends them to its own service on the account you signed in to."
+            guard let tool else { return "The command line tool set in General is not installed, so no question is sent." }
+            return "Questions go to the \(tool) tool, which sends them to the service it is signed in to, on your account there."
         case .appleIntelligence:
             return "Questions are answered by Apple Intelligence on this Mac. Nothing is sent anywhere."
         case .api:

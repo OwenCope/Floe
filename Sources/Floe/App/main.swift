@@ -360,11 +360,17 @@ if options.benchSettings {
     MainActor.assumeIsolated { runSettingsSearchBench(search: search, window: window) }
     // General's AI section sits below the fold, so each of its states is drawn on its own, on scratch settings.
     if let directory = ProcessInfo.processInfo.environment["FLOE_BENCH_DUMP"], let scratch = UserDefaults(suiteName: "floe.bench.\(UUID().uuidString)") {
-        let states: [(String, AISource, String, String?)] = [("ai-tools", .tools, "", nil), ("ai-api", .api, "small", "key-123"), ("ai-api-incomplete", .api, "", nil)]
-        for (name, source, aiModel, key) in states {
+        // Name, source, the API's model and key, the tool chosen by name, and the API's service.
+        let states: [(String, AISource, String, String?, AITool?, AIService)] = [
+            ("ai-tools", .tools, "", nil, nil, .openAI), ("ai-tool-model", .tools, "", nil, .opencode, .openAI),
+            ("ai-api", .api, "small", "key-123", nil, .openAI), ("ai-api-incomplete", .api, "", nil, nil, .openAI), ("ai-api-zai", .api, "", nil, nil, .zai),
+        ]
+        for (name, source, aiModel, key, tool, service) in states {
             let settings = AppSettings(defaults: scratch)
             settings.aiSource = source
             settings.aiModel = aiModel
+            settings.aiTool = tool
+            settings.aiBaseURL = service.baseURL ?? ""
             let section = Form { AISettingsSection(settings: settings, storedKey: key ?? "") }.formStyle(.grouped).frame(width: 600, height: 320)
             window.contentView = NSHostingView(rootView: section)
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))

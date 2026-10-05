@@ -11,7 +11,7 @@ change the script and run it again instead of editing the lists.
 ## Built from
 
 - [Thaw](https://github.com/thaw-app/Thaw): ThawUI, ThawConcurrency, the hotkey code, the HUD, the glass styles, the Privacy pane, the About and acknowledgements pages, the diagnostic logger, the release notes reader and the search panel design. Copyright © 2026 Toni Förster et al. GPL-3.0.
-- [Droppy Code](https://gitlab.com/droppyformac1/droppy-code): Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer AI.ask and Ask AI, its reading of the claude tool's streamed answer, its hang watchdog and the folder watcher behind hot reload, each modified for Floe and used with his permission. AGPL-3.0.
+- [Droppy Code](https://gitlab.com/droppyformac1/droppy-code): Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell environment, its process runner, the tools and the streamed API request that answer AI.ask and Ask AI, its reading of the claude tool's streamed answer, the way it starts pi and hands opencode its configuration, its hang watchdog and the folder watcher behind hot reload, each modified for Floe and used with his permission. AGPL-3.0.
 - [CompactSlider](https://github.com/buh/CompactSlider) `2.1.0`: Used by ThawUI. MIT.
 - [Sparkle](https://sparkle-project.org) `2.10.0`: Checks for updates and installs them. MIT.
 - [swift-subprocess](https://github.com/swiftlang/swift-subprocess) `1.0.0`: Starts and stops the process an extension runs in. Apache-2.0.

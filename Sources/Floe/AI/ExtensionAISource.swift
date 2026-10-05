@@ -47,7 +47,7 @@ struct ExtensionAISourcePicker: View {
         )) {
             Text("The source chosen in General").tag(AISource?.none)
             Divider()
-            Text("The claude or codex tool").tag(AISource?.some(.tools))
+            Text("The command line tool set up in General").tag(AISource?.some(.tools))
             Text("The API set up in General").tag(AISource?.some(.api))
             Text("Apple Intelligence, on this Mac").tag(AISource?.some(.appleIntelligence))
         } label: {

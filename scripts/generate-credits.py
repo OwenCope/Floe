@@ -58,7 +58,8 @@ DEPENDENCIES = [
     Dependency("Droppy Code", "droppyCode", "AGPL-3.0",
                "Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. Floe uses its login shell "
                "environment, its process runner, the tools and the streamed API request that answer AI.ask "
-               "and Ask AI, its reading of the claude tool's streamed answer, "
+               "and Ask AI, its reading of the claude tool's streamed answer, the way it starts pi "
+               "and hands opencode its configuration, "
                "its hang watchdog and the folder watcher behind hot reload, each modified for Floe and used with "
                "his permission", group="origin"),
     Dependency("CompactSlider", "compactSlider", "MIT", "Used by ThawUI", "swift", "compactslider"),
@@ -220,7 +221,7 @@ struct Contributor: Identifiable {
     var id: String { handle }
 
     var profile: URL? {
-        URL(string: "https://github.com/\(handle)")
+        URL(string: "https://github.com/\\(handle)")
     }
 }
 

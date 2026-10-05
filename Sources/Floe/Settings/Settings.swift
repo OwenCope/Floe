@@ -79,6 +79,10 @@ final class AppSettings: ObservableObject {
     @Published var aiSource = AISource.tools
     @Published var aiBaseURL = AIEndpoint.defaultBaseURL
     @Published var aiModel = ""
+    /// The command line tool that answers when the source is the tools; nil is Automatic (see `AIEngine.resolve`).
+    @Published var aiTool: AITool?
+    /// The model typed for a tool that takes one, by `AITool.rawValue`. A tool without one uses its own default.
+    @Published var aiToolModels: [String: String] = [:]
     /// Only use AI that runs on this Mac: a source that sends questions elsewhere refuses.
     @Published var aiOnThisMacOnly = false
     /// Extensions pinned to a source other than the one above, by extension name.
@@ -122,6 +126,8 @@ final class AppSettings: ObservableObject {
         var aiSource: AISource?
         var aiBaseURL: String?
         var aiModel: String?
+        var aiTool: AITool?
+        var aiToolModels: [String: String]?
         var aiOnThisMacOnly: Bool?
         var aiSourceByExtension: [String: AISource]?
     }
@@ -255,23 +261,10 @@ final class AppSettings: ObservableObject {
         aiSource = stored.aiSource ?? aiSource
         aiBaseURL = stored.aiBaseURL ?? aiBaseURL
         aiModel = stored.aiModel ?? aiModel
+        aiTool = stored.aiTool
+        aiToolModels = stored.aiToolModels ?? [:]
         aiOnThisMacOnly = stored.aiOnThisMacOnly ?? aiOnThisMacOnly
         aiSourceByExtension = stored.aiSourceByExtension ?? aiSourceByExtension
-    }
-
-    /// The settings as they are saved, for an export file.
-    func exportedJSON() throws -> Data {
-        save()
-        return defaults.data(forKey: Self.defaultsKey) ?? Data("{}".utf8)
-    }
-
-    /// Replaces every setting with an exported copy and saves it.
-    func importJSON(_ data: Data) throws {
-        guard let stored = Self.read(data) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        apply(stored)
-        save()
     }
 
     /// Runs on its own shortly after any change; callable directly when the change must be on disk now.
@@ -313,12 +306,32 @@ final class AppSettings: ObservableObject {
             aiSource: aiSource,
             aiBaseURL: aiBaseURL,
             aiModel: aiModel,
+            aiTool: aiTool,
+            aiToolModels: aiToolModels,
             aiOnThisMacOnly: aiOnThisMacOnly,
             aiSourceByExtension: aiSourceByExtension
         )
         if let data = try? JSONEncoder().encode(stored) {
             write(data)
         }
+    }
+}
+
+/// Export and import, in an extension so the class holds only the settings and how they are kept.
+extension AppSettings {
+    /// The settings as they are saved, for an export file.
+    func exportedJSON() throws -> Data {
+        save()
+        return defaults.data(forKey: Self.defaultsKey) ?? Data("{}".utf8)
+    }
+
+    /// Replaces every setting with an exported copy and saves it.
+    func importJSON(_ data: Data) throws {
+        guard let stored = Self.read(data) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        apply(stored)
+        save()
     }
 }
 
