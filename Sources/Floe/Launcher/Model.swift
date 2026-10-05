@@ -496,7 +496,7 @@ final class LauncherModel: ObservableObject {
             reset()
         case .calculator, .emoji, .file, .clipboardEntry, .menuBarItem, .menuBarAccess:
             break
-        case .browserTab, .askAI:
+        case .browserTab, .askAI, .webAddress:
             break
         }
     }

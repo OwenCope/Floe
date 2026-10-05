@@ -332,6 +332,8 @@ struct RootIcon: View {
             SymbolTile(symbol: "hand.raised")
         case .askAI:
             SymbolTile(symbol: AskAI.symbol)
+        case .webAddress:
+            SymbolTile(symbol: "globe")
         }
     }
 }

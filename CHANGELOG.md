@@ -33,6 +33,7 @@ Floe is a launcher for macOS that runs Raycast extensions unmodified and hands w
 - Scopes narrow a search to one place: `files invoice`, `clipboard meeting`, `menu wifi`, `tabs invoice`.
 - Optional search sources, off until turned on in Privacy: files and open browser tabs (Safari, Dia, Helium) add up to three rows to an ordinary search.
 - An Actions menu (⌘K) on applications and files: quit, force quit, show in Finder, open with, copy, move to Trash.
+- A web address or a path typed in full leads the results: `github.com/thaw-app` opens in the browser, and `~/Downloads` or `/Applications` is the folder or file itself, with the file actions.
 - `Floe --pick` lends the search panel to any script: it reads lines on standard input and prints the one chosen.
 
 #### Extensions

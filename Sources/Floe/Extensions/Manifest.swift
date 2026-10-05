@@ -235,6 +235,7 @@ enum RootItem: Identifiable {
     case menuBarAccess
     /// A question for the chosen AI source. Its id leaves the question out, so nothing stores it.
     case askAI(String)
+    case webAddress(WebAddress)
 
     static let menuBarSearchKey = "builtin:menubar-search"
     static let emojiSearchKey = "builtin:emoji-search"
@@ -269,6 +270,7 @@ enum RootItem: Identifiable {
         case let .menuBarItem(extra, _): "menubar-item:\(extra.id)"
         case .menuBarAccess: "menubar-access"
         case .askAI: "ask-ai"
+        case .webAddress: "web-address"
         }
     }
 
@@ -304,6 +306,7 @@ enum RootItem: Identifiable {
         case let .menuBarItem(_, name): name
         case .menuBarAccess: "Floe needs Accessibility to list your menu bar items"
         case let .askAI(question): "Ask AI \u{201C}\(question)\u{201D}"
+        case let .webAddress(address): "Open \(address.text)"
         }
     }
 
@@ -343,9 +346,7 @@ enum RootItem: Identifiable {
         case let .system(command): "system:\(command.rawValue)"
         case .snippet: id
         case .settings, .settingsPane, .note, .thaw, .finderSelection, .calculator, .emoji, .quicklink, .searchFiles, .event: nil
-        case .file, .clipboardEntry, .menuBarItem, .menuBarAccess: nil
-        case .browserTab: nil
-        case .askAI: nil
+        case .file, .clipboardEntry, .menuBarItem, .menuBarAccess, .browserTab, .askAI, .webAddress: nil
         }
     }
 
@@ -372,6 +373,7 @@ enum RootItem: Identifiable {
         case .clipboardEntry: "Clipboard"
         case .menuBarItem, .menuBarAccess: "Menu Bar"
         case .askAI: "AI"
+        case .webAddress: "Web Address"
         }
     }
 

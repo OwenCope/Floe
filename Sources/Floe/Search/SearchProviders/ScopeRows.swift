@@ -12,7 +12,7 @@ extension RootItem {
     /// A scope's row stands for one thing found just now: it has no place among favorites or in the usage record.
     var isScopeResult: Bool {
         switch self {
-        case .file, .clipboardEntry, .menuBarItem, .menuBarAccess, .browserTab: true
+        case .file, .clipboardEntry, .menuBarItem, .menuBarAccess, .browserTab, .webAddress: true
         default: false
         }
     }

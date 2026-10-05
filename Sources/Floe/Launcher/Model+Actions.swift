@@ -46,6 +46,7 @@ extension LauncherModel {
         case .menuBarAccess: openMenuBarSearch()
         case let .browserTab(.tab(tab)): switchToBrowserTab(tab)
         case let .browserTab(.access(browser)): SystemCommand.askForAutomation(toControl: browser.name)
+        case let .webAddress(address): open(address)
         default: break
         }
     }
@@ -100,7 +101,7 @@ extension LauncherModel {
         case .calculator, .emoji, .searchFiles, .event, .quicklink: false
         case .file, .clipboardEntry, .menuBarItem, .menuBarAccess: false
         case .browserTab: false
-        case .askAI: false
+        case .askAI, .webAddress: false
         default: true
         }
     }
