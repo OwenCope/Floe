@@ -110,7 +110,7 @@ final nonisolated class OAuthBroker: NSObject, Sendable {
         "\(extensionName)\0\(state)"
     }
 
-    private func register(extensionName: String, state: String, resume: @escaping @Sendable (Result<String, Error>) -> Void) {
+    func register(extensionName: String, state: String, resume: @escaping @Sendable (Result<String, Error>) -> Void) {
         let key = pendingKey(extensionName: extensionName, state: state)
         let timeout = Task { [weak self] in
             try? await Task.sleep(for: .seconds(Self.timeout))
@@ -131,7 +131,7 @@ final nonisolated class OAuthBroker: NSObject, Sendable {
         }
     }
 
-    private func cancel(extensionName: String, state: String) {
+    func cancel(extensionName: String, state: String) {
         fail(key: pendingKey(extensionName: extensionName, state: state), error: OAuthError.cancelled)
     }
 

@@ -100,7 +100,7 @@ final nonisolated class DiagnosticLogger: Sendable {
     )
 
     /// Serial queue for file I/O.
-    private let writeQueue = DispatchQueue(
+    let writeQueue = DispatchQueue(
         label: "com.thaw.floe.DiagnosticLogger.writeQueue",
         qos: .utility
     )

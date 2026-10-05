@@ -161,4 +161,125 @@ struct HostRequestTests {
         #expect(AIAnswer.choice(source: .api, baseURL: "https://api.test/v1", model: "small") { nil } == .api(nil))
         #expect(AIAnswer.incompleteMessage.contains("Settings"))
     }
+
+    @Test func signingInCarriesThePageTheStateAndTheProvider() {
+        let params = ["url": "https://github.com/login/oauth/authorize", "state": "s-1", "providerName": "GitHub"]
+        #expect(HostRequest(method: "oauth.authorize", params: params) == .oauthAuthorize(url: "https://github.com/login/oauth/authorize", state: "s-1", providerName: "GitHub"))
+        for missing in ["url", "state", "providerName"] {
+            #expect(HostRequest(method: "oauth.authorize", params: params.filter { $0.key != missing }) == nil, "\(missing)")
+        }
+    }
+
+    @Test func readingAndRemovingTokensNameTheirProvider() {
+        #expect(HostRequest(method: "oauth.getTokens", params: ["providerId": "github"]) == .oauthGetTokens(providerId: "github"))
+        #expect(HostRequest(method: "oauth.removeTokens", params: ["providerId": "github"]) == .oauthRemoveTokens(providerId: "github"))
+        #expect(HostRequest(method: "oauth.getTokens", params: [:]) == nil)
+        #expect(HostRequest(method: "oauth.removeTokens", params: ["providerId": 7]) == nil)
+        #expect(HostRequest(method: "oauth.setTokens", params: ["tokens": ["accessToken": "a"]]) == nil)
+        #expect(HostRequest(method: "oauth.setTokens", params: ["providerId": "github", "tokens": "a"]) == nil)
+    }
+
+    @Test(arguments: [("selectedText", HostRequest.selectedText), ("selectedFinderItems", .selectedFinderItems), ("clipboard.read", .clipboardRead)])
+    func aRequestWithoutParametersIsReadFromItsMethodAlone(method: String, request: HostRequest) {
+        #expect(HostRequest(method: method, params: [:]) == request)
+        #expect(HostRequest(method: method, params: ["extra": true]) == request)
+    }
+
+    @Test(arguments: ["", "ai.Ask", "clipboard.write", "oauth"])
+    func aMethodTheAppDoesNotKnowIsNoRequest(method: String) {
+        #expect(HostRequest(method: method, params: ["prompt": "why?", "providerId": "github"]) == nil)
+    }
+
+    @Test(arguments: [
+        (HostRequest.oauthAuthorize(url: "https://example.com", state: "s", providerName: "Example"), true),
+        (.oauthGetTokens(providerId: "github"), true),
+        (.oauthSetTokens(providerId: "github", tokens: "{}"), true),
+        (.oauthRemoveTokens(providerId: "github"), true),
+        (.askAI(prompt: "why?", model: nil), false),
+        (.selectedText, false),
+        (.selectedFinderItems, false),
+        (.clipboardRead, false),
+    ])
+    func onlySignInRequestsGoToTheOAuthBroker(request: HostRequest, isOAuth: Bool) {
+        #expect(request.isOAuth == isOAuth)
+    }
+
+    @Test(arguments: [
+        HostRequest.oauthAuthorize(url: "https://example.com", state: "s", providerName: "Example"),
+        .oauthGetTokens(providerId: "github"),
+        .oauthSetTokens(providerId: "github", tokens: "{}"),
+        .oauthRemoveTokens(providerId: "github"),
+    ])
+    func aSignInRequestIsNotAnsweredOutsideTheBroker(request: HostRequest) async {
+        let failure = await #expect(throws: OAuthError.self) {
+            try await HostRequest.answer(request) { _ in Issue.record("nothing is streamed for a sign-in request") }
+        }
+        guard case .unknownRequest = failure else {
+            Issue.record("\(String(describing: failure))")
+            return
+        }
+    }
+
+    @Test(arguments: [
+        (AIService.openAI, "https://api.openai.com/v1"),
+        (.openRouter, "https://openrouter.ai/api/v1"),
+        (.zai, "https://api.z.ai/api/paas/v4"),
+        (.ollama, "http://localhost:11434/v1"),
+        (.lmStudio, "http://localhost:1234/v1"),
+    ])
+    func everyPresetServiceIsFoundAgainFromItsOwnAddress(service: AIService, address: String) {
+        #expect(service.baseURL == address)
+        #expect(AIService.matching(address) == service)
+        #expect(AIService.matching("  \(address)/chat/completions/ ") == service)
+    }
+
+    @Test func servicesAreNamedAndIdentifiedForThePicker() {
+        #expect(AIService.allCases.map(\.id) == ["openAI", "openRouter", "zai", "ollama", "lmStudio", "other"])
+        #expect(AIService.allCases.map(\.title) == ["OpenAI", "OpenRouter", "Z.ai", "Ollama, on this Mac", "LM Studio, on this Mac", "Another address"])
+        #expect(AIService.other.baseURL == nil)
+    }
+
+    @Test func anAddressOnAnotherPortOrSchemeIsNotThePreset() {
+        #expect(AIService.matching("http://localhost:8080/v1") == .other)
+        #expect(AIService.matching("http://api.openai.com/v1") == .other)
+        #expect(AIService.matching("https://openrouter.ai/api/v2") == .other)
+    }
+
+    @Test(arguments: ["http://localhost:1234/v1", "http://LOCALHOST/v1", "http://127.0.0.1:11434", "http://[::1]:8080/v1"])
+    func anAddressOnThisMacNeedsNoKey(address: String) {
+        #expect(AIEndpoint.isOnThisMac(URL(string: address)))
+        #expect(!AIEndpoint.needsKey(URL(string: address)))
+    }
+
+    @Test(arguments: ["https://api.openai.com/v1", "http://192.168.1.20:11434/v1", "http://localhost.example.com/v1", "file:///tmp/model"])
+    func anAddressElsewhereNeedsAKey(address: String) {
+        #expect(!AIEndpoint.isOnThisMac(URL(string: address)))
+        #expect(AIEndpoint.needsKey(URL(string: address)))
+    }
+
+    @Test func theChatAddressKeepsItsPortPathAndCase() {
+        #expect(AIEndpoint.chatURL(baseURL: "HTTPS://Example.com:8443/proxy/v1///")?.absoluteString == "HTTPS://Example.com:8443/proxy/v1/chat/completions")
+        #expect(AIEndpoint.chatURL(baseURL: "https://api.test/v1/chat/completions/")?.absoluteString == "https://api.test/v1/chat/completions")
+        #expect(AIEndpoint.chatURL(baseURL: " \n")?.absoluteString == "https://api.openai.com/v1/chat/completions")
+        #expect(AIEndpoint.chatURL(baseURL: "https://api.test")?.absoluteString == "https://api.test/chat/completions")
+    }
+
+    @Test(arguments: [
+        ("nonsense", "small", "key", "AI can't answer yet. It needs an address that starts with http:// or https://."),
+        ("https://api.test/v1", "small", " ", "AI can't answer yet. It needs an API key."),
+        ("ftp://api.test/v1", "\n", "key", "AI can't answer yet. It needs an address that starts with http:// or https:// and a model."),
+        ("api.test/v1", "small", "", "AI can't answer yet. It needs an address that starts with http:// or https:// and an API key."),
+    ])
+    func eachMissingPartOfTheSetupHasItsOwnSentence(address: String, model: String, key: String, sentence: String) {
+        #expect(AIEndpoint.problem(baseURL: address, model: model, apiKey: key) == sentence)
+        #expect(AIEndpoint(baseURL: address, model: model, apiKey: key) == nil)
+    }
+
+    @MainActor @Test func theChoiceInSettingsIsReadWithoutTheKeyUnlessTheAPIIsChosen() throws {
+        let scratch = try ScratchDefaults()
+        let settings = AppSettings(defaults: scratch.defaults, savesAfterEdits: false)
+        #expect(AIAnswer.configured(settings) == .tools)
+        settings.aiSource = .appleIntelligence
+        #expect(AIAnswer.configured(settings) == .appleIntelligence)
+    }
 }

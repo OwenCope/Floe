@@ -13,7 +13,7 @@ import Foundation
 @MainActor final class BackgroundScheduler {
     private let model: LauncherModel
     private let menuBarCommands: MenuBarCommands
-    private var timers: [String: Timer] = [:]
+    private(set) var timers: [String: Timer] = [:]
     private var intervals: [String: TimeInterval] = [:]
     private var runs: [String: ExtensionSession] = [:]
 
@@ -62,7 +62,7 @@ import Foundation
         runs.removeAll()
     }
 
-    private func fire(_ command: ExtensionCommand) {
+    func fire(_ command: ExtensionCommand) {
         let command = model.enabledCommands.first(where: { $0.id == command.id }) ?? command
         guard model.canRunUnattended(command) else { return }
         if command.mode == "menu-bar" {

@@ -142,4 +142,90 @@ struct UpdatesLinkTests {
         #expect(UpdatesState(text: UpdatesState().text) == UpdatesState())
         #expect(UpdatesState(text: "not json") == nil)
     }
+
+    @Test(arguments: [
+        (UpdateRequest.check, "check"),
+        (.setChecks(true), "checks:1"),
+        (.setChecks(false), "checks:0"),
+        (.setDownloads(true), "downloads:1"),
+        (.setDownloads(false), "downloads:0"),
+        (.setChannel(.stable), "channel:stable"),
+        (.setChannel(.beta), "channel:beta"),
+        (.consent(.off), "consent:0"),
+        (.consent(.check), "consent:1"),
+        (.consent(.download), "consent:2"),
+    ])
+    func aRequestCrossesTheLinkAsThisText(request: UpdateRequest, text: String) {
+        #expect(request.text == text)
+        #expect(UpdateRequest(text: text) == request)
+    }
+
+    @Test(arguments: ["Check", "checks:", "checks:1:0", "checks:true", "downloads:", "downloads:2", "channel", "channel:", "channel:Beta", "consent", "consent:", "consent:-1", "consent:download", ":1", " check"])
+    func textThatOnlyResemblesARequestIsRefused(text: String) {
+        #expect(UpdateRequest(text: text) == nil)
+    }
+
+    @MainActor @Test(arguments: [
+        UpdateRequest.check, .setChecks(true), .setChecks(false), .setDownloads(true), .setDownloads(false),
+        .setChannel(.stable), .setChannel(.beta), .consent(.off), .consent(.check), .consent(.download),
+    ])
+    func aRequestIsCarriedOutByTheControlItNames(request: UpdateRequest) throws {
+        let scratch = try ScratchDefaults()
+        let manager = UpdatesManager(configuration: UpdateConfiguration(feedURL: nil, publicKey: nil), defaults: scratch.defaults)
+        var carriedOut: [UpdateRequest] = []
+        manager.sendToLauncher = { carriedOut.append($0) }
+        manager.perform(request)
+        #expect(carriedOut == [request])
+    }
+
+    @MainActor @Test func aLauncherThatCannotUpdateStillKeepsTheChannelAndTheConsentAnswer() throws {
+        let scratch = try ScratchDefaults()
+        let manager = UpdatesManager(configuration: UpdateConfiguration(feedURL: nil, publicKey: nil), defaults: scratch.defaults)
+        #expect(manager.state == UpdatesState())
+
+        manager.perform(.setChannel(.beta))
+        manager.perform(.consent(.download))
+        manager.perform(.setChecks(true))
+        manager.perform(.setDownloads(true))
+        manager.perform(.check)
+
+        var expected = UpdatesState()
+        expected.channel = "beta"
+        #expect(manager.state == expected, "without an updater there are no switches to turn")
+        #expect(UpdateChannel.stored(in: scratch.defaults) == .beta)
+        #expect(UpdateConsent(defaults: scratch.defaults).hasAnswered)
+        #expect(!manager.hasStartedUpdater)
+    }
+
+    @MainActor @Test func theStateIsWhatTheControlsShow() throws {
+        let scratch = try ScratchDefaults()
+        let configuration = UpdateConfiguration(feedURL: "https://example.com/appcast.xml", publicKey: Data(count: 32).base64EncodedString())
+        let manager = UpdatesManager(configuration: configuration, defaults: scratch.defaults)
+        manager.sendToLauncher = { _ in /* nothing listens */ }
+        var reported = UpdatesState()
+        reported.canCheckNow = true
+        reported.lastCheck = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        reported.checks = true
+        reported.downloads = true
+        reported.channel = UpdateChannel.beta.rawValue
+        manager.show(reported)
+        #expect(manager.state == reported)
+
+        reported.channel = "nightly"
+        manager.show(reported)
+        #expect(manager.state.channel == "stable", "a channel this build does not know reads as stable")
+    }
+
+    @MainActor @Test func everyChangeOfStateIsAnnouncedNotOnlyTheFirst() async throws {
+        let scratch = try ScratchDefaults()
+        let manager = UpdatesManager(configuration: UpdateConfiguration(feedURL: nil, publicKey: nil), defaults: scratch.defaults)
+        let (announced, continuation) = AsyncStream.makeStream(of: String.self)
+        manager.observeState { continuation.yield(manager.state.channel) }
+        var changes = announced.makeAsyncIterator()
+
+        manager.updateChannel = .beta
+        #expect(await changes.next() == "beta")
+        manager.updateChannel = .stable
+        #expect(await changes.next() == "stable")
+    }
 }
