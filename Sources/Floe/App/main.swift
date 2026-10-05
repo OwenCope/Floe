@@ -433,6 +433,11 @@ if let path = options.panelSnapshot {
     model.query = ""
     snapshot("compact")
     settings.launcherLayout = .extended
+    for shape in [SearchFieldShape.capsule, .square] {
+        settings.searchFieldShape = shape
+        snapshot("field-\(shape.rawValue)")
+    }
+    settings.searchFieldShape = .rounded
     // The answer view with a canned answer: nothing is asked of any source.
     model.askAIRequest = { _, _ in AskAI.sampleAnswer }
     MarkdownView.isSelectable = false
@@ -441,6 +446,23 @@ if let path = options.panelSnapshot {
     model.closeAskAI()
     model.openMenuBarSearch()
     snapshot("menubar", wait: 5)
+    // The field as its own piece, last so the pictures above are drawn as they always were.
+    settings.separatesSearchField = true
+    snapshot("separate-menubar")
+    model.closeMenuBarSearch()
+    model.query = "co"
+    for shape in SearchFieldShape.allCases {
+        settings.searchFieldShape = shape
+        snapshot("separate-\(shape.rawValue)")
+    }
+    settings.searchFieldShape = .rounded
+    settings.launcherLayout = .compact
+    model.query = ""
+    snapshot("separate-compact")
+    settings.launcherLayout = .extended
+    settings.separatesSearchField = false
+    // Saved now: the edit is otherwise written a moment later, after this has exited.
+    settings.save()
     resizing.cancel()
     exit(0)
 }

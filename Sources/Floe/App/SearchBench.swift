@@ -60,6 +60,16 @@ private func timedCatalog() -> CatalogSnapshot {
     return CatalogSnapshot(apps: apps, commands: commands, scripts: scripts.commands, scriptFailures: scripts.failures, settingsPanes: panes)
 }
 
+/// The saved settings, or scratch ones when FLOE_BENCH_SEPARATE is set: 1 draws the search field as its own piece, 0 does not.
+private func benchSettings() -> AppSettings {
+    guard let separate = ProcessInfo.processInfo.environment["FLOE_BENCH_SEPARATE"], let scratch = UserDefaults(suiteName: "floe.bench.separate") else {
+        return .shared
+    }
+    let settings = AppSettings(defaults: scratch, savesAfterEdits: false)
+    settings.separatesSearchField = separate == "1"
+    return settings
+}
+
 /// `Floe --bench-search [query ...]` times the catalog scan and each keystroke of a query, drawn off screen.
 func runSearchBench(queries: [String]) -> Never {
     _ = NSApplication.shared
@@ -75,7 +85,7 @@ func runSearchBench(queries: [String]) -> Never {
     func settle() {
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
     }
-    print("FIRST RENDER \(milliseconds { window.contentView = NSHostingView(rootView: LauncherView(model: model)); window.orderFrontRegardless(); render() }) ms")
+    print("FIRST RENDER \(milliseconds { window.contentView = NSHostingView(rootView: LauncherView(model: model, settings: benchSettings())); window.orderFrontRegardless(); render() }) ms")
     settle()
     for query in queries.isEmpty ? ["safari", "settings", "ask why is the sky blue"] : queries {
         var typed = ""

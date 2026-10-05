@@ -94,8 +94,12 @@ struct LauncherGlassBackdrop: View {
     let style: LauncherGlassStyle
     let tint: NSColor?
     let cornerRadius: CGFloat
+    var cornerStyle = RoundedCornerStyle.continuous
+    /// The share of the launcher's height this glass covers: two pieces carry one fade between them.
+    var span: ClosedRange<CGFloat> = 0 ... 1
 
     var body: some View {
+        let length = span.upperBound - span.lowerBound
         LauncherGlassSurface(style: style, tint: tint, cornerRadius: cornerRadius)
             .overlay {
                 if style.usesDarkFade {
@@ -107,12 +111,12 @@ struct LauncherGlassBackdrop: View {
                             .init(color: .black.opacity(0.42), location: 0.62),
                             .init(color: .clear, location: 1),
                         ],
-                        startPoint: .top,
-                        endPoint: .bottom
+                        startPoint: UnitPoint(x: 0.5, y: (0 - span.lowerBound) / length),
+                        endPoint: UnitPoint(x: 0.5, y: (1 - span.lowerBound) / length)
                     )
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: cornerStyle))
             .allowsHitTesting(false)
     }
 }

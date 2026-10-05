@@ -22,8 +22,9 @@ struct ClipboardHistoryView: View {
     @ObservedObject var settings = AppSettings.shared
 
     var body: some View {
-        VStack(spacing: 0) {
+        PanelSections {
             SearchBar(placeholder: "Search clipboard history…", text: $clipboard.query, focusToken: focusToken) { EmptyView() }
+        } content: {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             bottomBar()

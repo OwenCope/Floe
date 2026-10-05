@@ -21,8 +21,9 @@ struct FileSearchView: View {
     let focusToken: Int
 
     var body: some View {
-        VStack(spacing: 0) {
+        PanelSections {
             SearchBar(placeholder: "Search files…", text: $search.query, focusToken: focusToken, isLoading: spotlight.isSearching) { EmptyView() }
+        } content: {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             bottomBar

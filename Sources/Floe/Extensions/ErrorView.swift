@@ -16,7 +16,7 @@ struct SessionContainer: View {
 
     var body: some View {
         if let failure = session.failure {
-            ErrorView(model: model, session: session, failure: failure)
+            ErrorView(model: model, session: session, failure: failure).modifier(PanelOnePiece())
         } else {
             ExtensionView(model: model, session: session)
         }

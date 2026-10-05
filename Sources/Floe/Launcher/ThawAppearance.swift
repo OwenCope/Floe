@@ -232,6 +232,12 @@ enum ThawAppearanceResponse {
 }
 
 extension AppSettings {
+    /// The tint a view should draw for the given system appearance.
+    func launcherTint(for colorScheme: ColorScheme) -> LauncherTint {
+        guard launcherTintIsDynamic else { return launcherTintLight }
+        return colorScheme == .dark ? launcherTintDark : launcherTintLight
+    }
+
     /// The look the user set, whatever Thaw's is.
     func ownLauncherLook(for colorScheme: ColorScheme) -> LauncherLook {
         LauncherLook(

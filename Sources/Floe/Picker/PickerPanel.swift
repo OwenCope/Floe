@@ -167,9 +167,13 @@ struct PickView: View {
 
     var body: some View {
         let size = LauncherPanelState().contentSize(in: .extended)
+        let look = settings.launcherLook(for: colorScheme)
+        // The picker's field is always the rounded one, so its piece is too.
+        let pieces = settings.separatesSearchField ? PanelPieces(look: look, fieldShape: .rounded, heights: LauncherPanelState().pieceHeights(in: .extended)) : nil
         GlassEffectContainer {
-            VStack(spacing: 0) {
+            PanelSections {
                 SearchBar(placeholder: session.prompt, text: $session.query, focusToken: 0) { EmptyView() }
+            } content: {
                 if session.results.isEmpty {
                     ThawEmptyState(systemImage: "magnifyingglass", title: "Nothing matches", caption: "Try fewer letters.")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -180,7 +184,7 @@ struct PickView: View {
             }
         }
         .frame(width: size.width, height: size.height, alignment: .top)
-        .modifier(LauncherPanelAppearance(settings.launcherLook(for: colorScheme)))
+        .modifier(PanelLook(look: look, pieces: pieces))
         .padding(LauncherView.margin)
     }
 

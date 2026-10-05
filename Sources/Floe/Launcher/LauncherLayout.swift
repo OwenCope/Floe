@@ -7,6 +7,7 @@
 
 import AppKit
 import Combine
+import ThawUI
 
 /// How much of the launcher shows before anything is typed.
 enum LauncherLayout: String, Codable, CaseIterable, Identifiable {
@@ -27,6 +28,34 @@ enum LauncherLayout: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// The heights of a panel drawn in two pieces: the search field's, the gap and the rest.
+/// They add up to the panel's own height, so separating the pieces never resizes the window.
+struct PanelPieceHeights: Equatable {
+    var field: CGFloat
+    var gap: CGFloat
+    /// The piece under the gap, as tall as it is once the panel is open.
+    var results: CGFloat
+    /// Collapsed, only the field's piece is drawn.
+    var isCollapsed = false
+
+    private var open: CGFloat {
+        field + gap + results
+    }
+
+    var total: CGFloat {
+        isCollapsed ? field : open
+    }
+
+    /// The share of the open panel's height each piece covers, for a fade that runs down both.
+    var fieldSpan: ClosedRange<CGFloat> {
+        0 ... field / open
+    }
+
+    var resultsSpan: ClosedRange<CGFloat> {
+        (field + gap) / open ... 1
+    }
+}
+
 /// What the panel is showing, reduced to the facts its size depends on.
 struct LauncherPanelState: Equatable {
     var menuBarSearch = false
@@ -39,6 +68,8 @@ struct LauncherPanelState: Equatable {
     static let menuBarSearchSize = NSSize(width: 600, height: 400)
     /// The search bar is 65 tall with less space under it than above; 2 more evens them out.
     static let collapsedHeight: CGFloat = 67
+    /// Between the two pieces: the step between siblings, so they read as one launcher.
+    static let pieceGap = ThawSpacing.base
 
     /// Collapsed, the panel is the search bar alone.
     func isCollapsed(in layout: LauncherLayout) -> Bool {
@@ -51,6 +82,18 @@ struct LauncherPanelState: Equatable {
             return Self.menuBarSearchSize
         }
         return isCollapsed(in: layout) ? NSSize(width: Self.fullSize.width, height: Self.collapsedHeight) : Self.fullSize
+    }
+
+    /// The same height in two pieces. The field's piece is as tall as the collapsed panel,
+    /// so the field is where it was whether or not the pieces are separate.
+    func pieceHeights(in layout: LauncherLayout) -> PanelPieceHeights {
+        let height = contentSize(in: .extended).height
+        return PanelPieceHeights(
+            field: Self.collapsedHeight,
+            gap: Self.pieceGap,
+            results: height - Self.collapsedHeight - Self.pieceGap,
+            isCollapsed: isCollapsed(in: layout)
+        )
     }
 
     /// The window is the content plus `LauncherView.margin` on every side.

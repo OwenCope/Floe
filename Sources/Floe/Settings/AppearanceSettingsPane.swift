@@ -93,8 +93,14 @@ struct AppearanceSettingsPane: View {
         let look = settings.launcherLook(for: colorScheme)
         return Form {
             ThawSection("Preview") {
-                LauncherAppearancePreview(glass: look.glass, tint: look.tint, border: look.border, hasShadow: look.hasShadow)
-                    .frame(maxWidth: .infinity)
+                LauncherAppearancePreview(
+                    glass: look.glass,
+                    tint: look.tint,
+                    border: look.border,
+                    hasShadow: look.hasShadow,
+                    separateFieldShape: settings.separatesSearchField ? settings.searchFieldShape : nil
+                )
+                .frame(maxWidth: .infinity)
             }
             // Shown without Thaw too while it is on, so it can always be turned off.
             if thawIsInstalled || settings.followsThawAppearance {
@@ -113,6 +119,14 @@ struct AppearanceSettingsPane: View {
                 }
                 .pickerStyle(.segmented)
                 footnote("Extended always shows the list. Compact shows only the search bar until you type.")
+                Picker("Search field shape", selection: $settings.searchFieldShape) {
+                    ForEach(SearchFieldShape.allCases) { shape in
+                        Text(shape.title).tag(shape)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Toggle("Separate the search field from the results", isOn: $settings.separatesSearchField)
+                footnote("The search field is its own piece of glass, and the results are a second piece below it.")
             }
             ThawSection("Glass") {
                 if follows(.glass) {
@@ -248,27 +262,64 @@ struct LauncherAppearancePreview: View {
     let tint: LauncherTint
     let border: LauncherBorder?
     let hasShadow: Bool
+    /// The field's shape while the field is its own piece; nil draws the one panel.
+    var separateFieldShape: SearchFieldShape?
+
+    /// The miniature's pieces, at half the launcher's field and gap, over the two rows.
+    private static let heights = PanelPieceHeights(field: 34, gap: ThawSpacing.tight, results: 60)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                Text("Search")
-                    .foregroundStyle(.secondary)
+        if let separateFieldShape {
+            VStack(spacing: Self.heights.gap) {
+                field
+                    .padding(.horizontal, 12)
+                    .frame(height: Self.heights.field)
+                    // At this scale a control's corner stands for the panel's.
+                    .modifier(piece(radius: separateFieldShape.cornerRadius(height: Self.heights.field), style: separateFieldShape.pieceCornerStyle, facing: .bottom, span: Self.heights.fieldSpan))
+                rows
+                    .padding(12)
+                    .frame(height: Self.heights.results)
+                    .modifier(piece(radius: separateFieldShape.panelPieceRadius, style: .continuous, facing: .top, span: Self.heights.resultsSpan))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.quinary, in: Capsule(style: .continuous))
-            VStack(alignment: .leading, spacing: 8) {
-                previewRow(width: 150)
-                previewRow(width: 110)
+            .padding(6)
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                field
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.quinary, in: Capsule(style: .continuous))
+                rows
             }
+            .padding(12)
+            .modifier(LauncherPanelAppearance(glass: glass, tint: tint, border: border, hasShadow: hasShadow))
+            .padding(6)
         }
-        .padding(12)
-        .modifier(LauncherPanelAppearance(glass: glass, tint: tint, border: border, hasShadow: hasShadow))
-        .padding(6)
+    }
+
+    private var field: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            Text("Search")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var rows: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            previewRow(width: 150)
+            previewRow(width: 110)
+        }
+    }
+
+    private func piece(radius: CGFloat, style: RoundedCornerStyle, facing: VerticalEdge, span: ClosedRange<CGFloat>) -> LauncherPanelAppearance {
+        var appearance = LauncherPanelAppearance(glass: glass, tint: tint, border: border, hasShadow: hasShadow)
+        appearance.cornerRadius = radius
+        appearance.cornerStyle = style
+        appearance.shadow = .piece(facing: facing)
+        appearance.span = span
+        return appearance
     }
 
     private func previewRow(width: CGFloat) -> some View {

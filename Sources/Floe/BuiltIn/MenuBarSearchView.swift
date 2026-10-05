@@ -17,12 +17,27 @@ struct MenuBarSearchView: View {
     let focusToken: Int
     @ObservedObject var settings: AppSettings = .shared
 
+    @Environment(\.panelPieces) private var pieces
+
     var body: some View {
-        GlassEffectContainer {
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .safeAreaBar(edge: .top, spacing: 0) { queryField }
-                .safeAreaBar(edge: .bottom, spacing: 0) { bottomBar }
+        Group {
+            if pieces == nil {
+                GlassEffectContainer {
+                    content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .safeAreaBar(edge: .top, spacing: 0) { queryField }
+                        .safeAreaBar(edge: .bottom, spacing: 0) { bottomBar }
+                }
+            } else {
+                // The field is its own piece, so only the bottom bar is left to sit over the list.
+                PanelSections {
+                    queryField
+                } content: {
+                    content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .safeAreaBar(edge: .bottom, spacing: 0) { bottomBar }
+                }
+            }
         }
         .scrollEdgeEffectStyle(.automatic, for: .vertical)
     }

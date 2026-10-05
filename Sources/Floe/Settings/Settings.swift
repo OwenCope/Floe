@@ -65,6 +65,9 @@ final class AppSettings: ObservableObject {
     @Published var thawAppearances: [ThawAppearance.Scheme: ThawAppearance] = [:]
     /// Extended always shows the list; compact is the search bar alone until something is typed.
     @Published var launcherLayout = LauncherLayout.extended
+    @Published var searchFieldShape = SearchFieldShape.rounded
+    /// The search field and the results as two pieces of glass, in either layout.
+    @Published var separatesSearchField = false
     @Published var launcherTintIsDynamic = false
     @Published var launcherTintLight = LauncherTint()
     @Published var launcherTintDark = LauncherTint()
@@ -80,12 +83,6 @@ final class AppSettings: ObservableObject {
     @Published var aiOnThisMacOnly = false
     /// Extensions pinned to a source other than the one above, by extension name.
     @Published var aiSourceByExtension: [String: AISource] = [:]
-
-    /// The tint a view should draw for the given system appearance.
-    func launcherTint(for colorScheme: ColorScheme) -> LauncherTint {
-        guard launcherTintIsDynamic else { return launcherTintLight }
-        return colorScheme == .dark ? launcherTintDark : launcherTintLight
-    }
 
     private struct Stored: Codable {
         var toggleHotkey: KeyCombination?
@@ -120,6 +117,8 @@ final class AppSettings: ObservableObject {
         var launcherGlass: LauncherGlass?
         var followsThawAppearance: Bool?
         var launcherLayout: LauncherLayout?
+        var searchFieldShape: SearchFieldShape?
+        var separatesSearchField: Bool?
         var aiSource: AISource?
         var aiBaseURL: String?
         var aiModel: String?
@@ -251,6 +250,8 @@ final class AppSettings: ObservableObject {
         launcherGlass = stored.launcherGlass ?? launcherGlass
         followsThawAppearance = stored.followsThawAppearance ?? followsThawAppearance
         launcherLayout = stored.launcherLayout ?? launcherLayout
+        searchFieldShape = stored.searchFieldShape ?? .rounded
+        separatesSearchField = stored.separatesSearchField ?? false
         aiSource = stored.aiSource ?? aiSource
         aiBaseURL = stored.aiBaseURL ?? aiBaseURL
         aiModel = stored.aiModel ?? aiModel
@@ -307,6 +308,8 @@ final class AppSettings: ObservableObject {
             launcherGlass: launcherGlass,
             followsThawAppearance: followsThawAppearance,
             launcherLayout: launcherLayout,
+            searchFieldShape: searchFieldShape,
+            separatesSearchField: separatesSearchField,
             aiSource: aiSource,
             aiBaseURL: aiBaseURL,
             aiModel: aiModel,

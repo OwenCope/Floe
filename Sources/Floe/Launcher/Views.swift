@@ -20,10 +20,13 @@ struct LauncherView: View {
     static let margin: CGFloat = 40
 
     var body: some View {
-        let size = model.panelState.contentSize(in: settings.launcherLayout)
+        let state = model.panelState
+        let size = state.contentSize(in: settings.launcherLayout)
+        let look = settings.launcherLook(for: colorScheme)
+        let heights = state.pieceHeights(in: settings.launcherLayout)
         GlassEffectContainer {
             if let setup = model.setup {
-                SetupView(form: model.setupForm, request: setup)
+                SetupView(form: model.setupForm, request: setup).modifier(PanelOnePiece())
             } else if let session = model.session, session.command.mode == "view" {
                 SessionContainer(model: model, session: session)
             } else if model.isSearchingMenuBar {
@@ -33,13 +36,14 @@ struct LauncherView: View {
             } else if model.isSearchingFiles {
                 FileSearchView(search: model.fileSearch, spotlight: model.fileSearch.spotlight, launcher: model, focusToken: model.focusToken)
             } else if let asking = model.askAI {
-                AskAIView(launcher: model, asking: asking)
+                AskAIView(launcher: model, asking: asking).modifier(PanelOnePiece())
             } else {
-                RootView(model: model, isCollapsed: model.panelState.isCollapsed(in: settings.launcherLayout))
+                RootView(model: model, isCollapsed: state.isCollapsed(in: settings.launcherLayout))
             }
         }
         .frame(width: size.width, height: size.height, alignment: .top)
-        .modifier(LauncherPanelAppearance(settings.launcherLook(for: colorScheme)))
+        .environment(\.searchFieldShape, settings.searchFieldShape)
+        .modifier(PanelLook(look: look, pieces: settings.separatesSearchField ? PanelPieces(look: look, fieldShape: settings.searchFieldShape, heights: heights) : nil))
         .padding(Self.margin)
         // The window is resized a moment before or after the content: the search bar stays at the top meanwhile.
         .frame(maxHeight: .infinity, alignment: .top)
@@ -119,11 +123,10 @@ struct RootView: View {
 
     var body: some View {
         let results = model.results
-        VStack(spacing: 0) {
+        PanelSections(showsContent: !isCollapsed) {
             SearchBar(placeholder: "Search apps and commands…", text: $model.query, focusToken: model.focusToken, isLoading: model.isLoadingCatalog || model.isAwaitingResults) { EmptyView() }
-            if isCollapsed {
-                EmptyView()
-            } else if results.isEmpty, !model.isLoadingCatalog, !model.isAwaitingResults {
+        } content: {
+            if results.isEmpty, !model.isLoadingCatalog, !model.isAwaitingResults {
                 ThawEmptyState(
                     systemImage: "magnifyingglass",
                     title: LocalizedStringKey(model.activeScope?.scope.emptyTitle ?? "Nothing matches"),
@@ -156,9 +159,7 @@ struct RootView: View {
                     }
                 }
             }
-            if !isCollapsed {
-                bottomBar(results: results)
-            }
+            bottomBar(results: results)
         }
     }
 

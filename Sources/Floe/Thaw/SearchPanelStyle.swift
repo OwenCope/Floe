@@ -24,8 +24,41 @@ struct SearchQueryField<Accessory: View>: View {
     var isLoading = false
     @ViewBuilder var accessory: Accessory
     @FocusState private var isFocused: Bool
+    @Environment(\.searchFieldShape) private var fieldShape
+    @Environment(\.fieldPieceOutline) private var pieceOutline
 
     var body: some View {
+        Group {
+            if let pieceOutline {
+                // The piece of glass around it is the field: no second outline inside, and focus is marked on the piece.
+                row
+                    .padding(.horizontal, ThawSpacing.inset + 14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay {
+                        if isFocused {
+                            pieceOutline.strokeBorder(.tint, lineWidth: 1)
+                        }
+                    }
+            } else {
+                row
+                    .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
+                    .thawGlass(.field(isFocused: isFocused), in: fieldShape.outline)
+                    .padding(.horizontal, ThawSpacing.inset)
+                    .padding(.top, ThawSpacing.inset)
+                    .padding(.bottom, ThawSpacing.row)
+            }
+        }
+        .onAppear {
+            // A non-activating panel does not hand first responder to a SwiftUI field synchronously.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(50))
+                isFocused = true
+            }
+        }
+        .onChange(of: focusToken) { isFocused = true }
+    }
+
+    private var row: some View {
         HStack(spacing: ThawSpacing.row) {
             // Sized by the field's own text style, so it scales with the query.
             Image(systemName: "magnifyingglass")
@@ -44,19 +77,6 @@ struct SearchQueryField<Accessory: View>: View {
             }
             accessory
         }
-        .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
-        .thawGlass(.field(isFocused: isFocused), in: RoundedRectangle(cornerRadius: ThawRadius.control, style: .continuous))
-        .padding(.horizontal, ThawSpacing.inset)
-        .padding(.top, ThawSpacing.inset)
-        .padding(.bottom, ThawSpacing.row)
-        .onAppear {
-            // A non-activating panel does not hand first responder to a SwiftUI field synchronously.
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(50))
-                isFocused = true
-            }
-        }
-        .onChange(of: focusToken) { isFocused = true }
     }
 }
 

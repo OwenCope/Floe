@@ -19,15 +19,20 @@ struct ExtensionView: View {
         let view = session.view
         let actions = session.actions
         ZStack {
-            VStack(spacing: 0) {
-                if view?.type == "Form" {
+            if view?.type == "Form" {
+                // A form has a title where the others have a search field, so it stays one piece.
+                VStack(spacing: 0) {
                     PanelHeader(
                         title: view?.string("navigationTitle") ?? session.command.title,
                         icon: session.command.icon,
                         assetsPath: session.command.assetsPath,
                         isLoading: view?.bool("isLoading") ?? false
                     )
-                } else {
+                    content(view: view, actions: actions)
+                }
+                .modifier(PanelOnePiece())
+            } else {
+                PanelSections {
                     SearchBar(
                         placeholder: view?.string("searchBarPlaceholder") ?? (session.isList ? "Search…" : session.command.title),
                         text: $session.searchText,
@@ -38,37 +43,44 @@ struct ExtensionView: View {
                             DropdownView(node: dropdown, session: session)
                         }
                     }
-                }
-                Group {
-                    if let view {
-                        switch view.type {
-                        case "List", "Grid": ListBody(session: session, view: view)
-                        case "Detail": DetailBody(node: view, assetsPath: session.command.assetsPath)
-                        case "Form": FormBody(session: session, focusToken: model.focusToken)
-                        default: Placeholder(title: "\(view.type) isn't supported yet", detail: "Floe renders List, Grid, Detail and Form.", systemImage: "hammer")
-                        }
-                    } else {
-                        Color.clear
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(alignment: .bottomTrailing) {
-                    if session.actionMenuOpen {
-                        ActionMenu(session: session)
-                    }
-                }
-                .thawAnimation(ThawMotion.quick, value: session.actionMenuOpen)
-                Footer(primary: actions.first?.string("title"), primaryKey: view?.type == "Form" ? "⌘↵" : "↵", hasActions: actions.count > 1) {
-                    if let toast = session.toast {
-                        ToastView(session: session, toast: toast)
-                    } else {
-                        IconView(value: session.command.icon ?? "icon:Terminal", assetsPath: session.command.assetsPath, size: 16)
-                        Text(view?.string("navigationTitle") ?? session.command.title).foregroundStyle(.secondary).lineLimit(1)
-                    }
+                } content: {
+                    content(view: view, actions: actions)
                 }
             }
             if let alert = session.alert {
                 ConfirmAlertOverlay(session: session, alert: alert)
+            }
+        }
+    }
+
+    /// What is under the header: the view's body, then the footer.
+    @ViewBuilder
+    private func content(view: Node?, actions: [Node]) -> some View {
+        Group {
+            if let view {
+                switch view.type {
+                case "List", "Grid": ListBody(session: session, view: view)
+                case "Detail": DetailBody(node: view, assetsPath: session.command.assetsPath)
+                case "Form": FormBody(session: session, focusToken: model.focusToken)
+                default: Placeholder(title: "\(view.type) isn't supported yet", detail: "Floe renders List, Grid, Detail and Form.", systemImage: "hammer")
+                }
+            } else {
+                Color.clear
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .bottomTrailing) {
+            if session.actionMenuOpen {
+                ActionMenu(session: session)
+            }
+        }
+        .thawAnimation(ThawMotion.quick, value: session.actionMenuOpen)
+        Footer(primary: actions.first?.string("title"), primaryKey: view?.type == "Form" ? "⌘↵" : "↵", hasActions: actions.count > 1) {
+            if let toast = session.toast {
+                ToastView(session: session, toast: toast)
+            } else {
+                IconView(value: session.command.icon ?? "icon:Terminal", assetsPath: session.command.assetsPath, size: 16)
+                Text(view?.string("navigationTitle") ?? session.command.title).foregroundStyle(.secondary).lineLimit(1)
             }
         }
     }

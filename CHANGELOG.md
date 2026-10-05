@@ -69,6 +69,7 @@ Floe is a launcher for macOS that runs Raycast extensions unmodified and hands w
 #### Appearance and settings
 
 - Thaw 3's glass styles, a tint, a border and a shadow for the launcher, and a compact layout that is only the search bar until you type.
+- The search field can float as its own piece of glass, with the results in a second piece below it.
 - A Privacy page with the permissions and their reasons, the search sources, and everything Floe contacts over the network.
 - What’s New, in the About page’s menu, shows these release notes in the app.
 - Detailed logging, off by default, writes a log to `~/Library/Logs/Floe` for troubleshooting. What is typed or asked is never logged.
