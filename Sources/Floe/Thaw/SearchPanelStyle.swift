@@ -29,16 +29,11 @@ struct SearchQueryField<Accessory: View>: View {
 
     var body: some View {
         Group {
-            if let pieceOutline {
-                // The piece of glass around it is the field: no second outline inside, and focus is marked on the piece.
+            if pieceOutline != nil {
+                // The piece of glass around it is the field: no outline inside it, and none for focus, which it always has.
                 row
                     .padding(.horizontal, ThawSpacing.inset + 14)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay {
-                        if isFocused {
-                            pieceOutline.strokeBorder(.tint, lineWidth: 1)
-                        }
-                    }
             } else {
                 row
                     .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
