@@ -6,6 +6,9 @@
 #   ./scripts/devrun.sh              # Release
 #   ./scripts/devrun.sh --debug      # Debug, for the debugger
 #   ./scripts/devrun.sh --no-launch  # build and install only
+#
+# Signs with the first valid "Apple Development" certificate in the keychain, or the one named by
+# FLOE_SIGN_IDENTITY, and ad hoc when there is none.
 set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_PATH="$SCRIPT_DIR/$(basename "$0")"
@@ -86,6 +89,17 @@ APP="$DERIVED/Build/Products/$CONFIG/$APP_NAME.app"
     echo "Build product not found: $APP" >&2
     exit 1
 }
+
+# macOS ties a permission such as Accessibility to the signature. The build's ad hoc one changes every
+# time, so each build would lose its grants; a development certificate keeps them.
+IDENTITY="${FLOE_SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | grep "Apple Development" | grep -v CSSMERR | head -1 | awk '{print $2}')}"
+if [[ -n "$IDENTITY" ]]; then
+    say "Signing with a development certificate, so permissions survive the build…"
+    codesign --force --deep --preserve-metadata=entitlements --sign "$IDENTITY" "$APP" 2>/dev/null
+    codesign --verify --deep --strict "$APP"
+else
+    say "No development certificate found: the build stays ad hoc, and macOS will ask for permissions again."
+fi
 
 quit_running_app
 

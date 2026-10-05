@@ -12,7 +12,10 @@ Requires macOS 26 or later, Bun, and Xcode 27 for the vendored ThawUI Swift 6.4 
     cd runtime && bun install && cd ..
     open Floe.xcodeproj        # ⌘R in Xcode
 
-or install it as `/Applications/Floe.app` with `./scripts/devrun.sh` (`--debug`, `--no-launch`).
+or install it as `/Applications/Floe.app` with `./scripts/devrun.sh` (`--debug`, `--no-launch`). The script signs
+the app with the first valid Apple Development certificate in the keychain (`FLOE_SIGN_IDENTITY` names another), so
+Accessibility and the Keychain stay granted from one build to the next. With no certificate the build is ad hoc and
+macOS asks again each time, while System Settings goes on showing the old grant as switched on.
 
 ⌃⌥Space toggles the panel. ↑↓ select, ↵ runs the primary action, ⌘K opens the action menu, Esc goes back.
 
@@ -26,8 +29,8 @@ The Run scheme has two disabled environment variables: `FLOE_AUTORUN` opens a co
 
 ⌘, in the panel, "Floe Settings" in search, or the menu bar icon. General has the launcher hotkey, launch at login
 and whether to include Raycast's installed extensions. Each extension has an on/off switch, its preferences, and
-per-command aliases and hotkeys. Password preferences are kept in the Keychain; with the default ad hoc signing,
-macOS asks again after each rebuild, so set a signing identity in `project.yml` if that gets old.
+per-command aliases and hotkeys. Password preferences are kept in the Keychain; a build run from Xcode is
+signed ad hoc, so macOS asks again after each rebuild, which `devrun.sh` avoids.
 
 Commands with required preferences or arguments ask for them in the panel before they run.
 
