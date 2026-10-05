@@ -731,6 +731,8 @@ final class LauncherModel: ObservableObject {
         reloadScripts()
         reloadSSHHosts()
         reloadShortcuts()
+        // A grant made in System Settings with no request from Floe is noticed here.
+        menuBarSearch.warm()
     }
 
     /// Runs the command that failed again, with the same arguments.

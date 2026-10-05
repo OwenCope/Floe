@@ -135,6 +135,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Everything the panel needs is wired up: the catalog can fill in behind it now.
         model.startCatalogLoading()
         model.menuBarSearch.warm()
+        // Thaw's permission object keeps checking after a request; the menu bar is read the moment the grant lands.
+        AppPermissions.shared.onPermissionTransition = { [weak self] permission, granted in
+            guard granted, permission === AppPermissions.shared.accessibility else { return }
+            self?.model.menuBarSearch.accessWasGranted()
+            // A "menu" search in the main panel was showing the row that asks for access.
+            self?.model.refresh()
+        }
         Log.app.notice("Launched in \(Log.milliseconds(since: processStart)) ms")
 
         UpdatesManager.shared.performSetup()

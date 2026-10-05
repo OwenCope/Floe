@@ -32,10 +32,17 @@ final class MenuBarSearchModel: ObservableObject {
     let recents: MenuBarSearchRecents
     var host = ModeHost()
     private let settings: AppSettings
+    /// Asks for Accessibility and keeps checking until the answer is in. Tests pass their own.
+    private let askForAccess: () -> Void
 
-    init(settings: AppSettings, recents: MenuBarSearchRecents = MenuBarSearchRecents()) {
+    init(
+        settings: AppSettings,
+        recents: MenuBarSearchRecents = MenuBarSearchRecents(),
+        askForAccess: @escaping () -> Void = { AppPermissions.shared.accessibility.performRequest() }
+    ) {
         self.settings = settings
         self.recents = recents
+        self.askForAccess = askForAccess
     }
 
     /// Reads the menu bar once at launch, so the first search opens on a full list and not on a spinner.
@@ -63,10 +70,14 @@ final class MenuBarSearchModel: ObservableObject {
         }
     }
 
+    /// The grant happens in System Settings, however long that takes: `accessWasGranted` reads the menu bar then.
     func requestAccess() {
-        MenuBarExtras.requestAccess()
-        // The grant happens in System Settings; check again when the user comes back.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.scan() }
+        askForAccess()
+    }
+
+    /// Accessibility was just granted, in the welcome window or in System Settings.
+    func accessWasGranted() {
+        scan()
     }
 
     /// No query: recently opened items, then every item in menu bar order. With a query: items whose

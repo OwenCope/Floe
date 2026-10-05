@@ -149,4 +149,16 @@ struct MenuBarSearchModelTests {
         #expect(try launcher.handleKey(key(53)))
         #expect(!launcher.isSearchingMenuBar)
     }
+
+    @Test func askingForAccessGoesToWhatKeepsCheckingForTheAnswer() {
+        let suite = "floe.tests.menubar.access.\(UUID().uuidString)"
+        let scratch = UserDefaults(suiteName: suite) ?? .standard
+        defer { scratch.removePersistentDomain(forName: suite) }
+        var asked = 0
+        let model = MenuBarSearchModel(settings: AppSettings(defaults: scratch), askForAccess: { asked += 1 })
+
+        model.requestAccess()
+
+        #expect(asked == 1, "one request, and no single timed check after it")
+    }
 }
