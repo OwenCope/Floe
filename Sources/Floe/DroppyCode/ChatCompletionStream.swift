@@ -17,7 +17,7 @@
 
 import Foundation
 
-enum ProviderError: LocalizedError, Equatable {
+nonisolated enum ProviderError: LocalizedError, Equatable {
     case failed(String)
 
     var errorDescription: String? {
@@ -28,7 +28,7 @@ enum ProviderError: LocalizedError, Equatable {
 }
 
 /// One prompt, streamed back from an OpenAI-compatible chat completions endpoint.
-enum ChatCompletionStream {
+nonisolated enum ChatCompletionStream {
     /// A lost connection is retried twice: once after a second, once after two more.
     /// Nothing else (a rejected key, a validation error, a stop) is retried.
     static let transportRetryDelays: [Duration] = [.seconds(1), .seconds(2)]
@@ -115,6 +115,7 @@ enum ChatCompletionStream {
 
     /// Sends the request and returns the whole answer, handing each batch of text to `onText` as
     /// it arrives. `session` and `retryDelays` are parameters so a test can stand in for the network.
+    @concurrent
     static func run(
         _ request: URLRequest,
         session: URLSession = .shared,

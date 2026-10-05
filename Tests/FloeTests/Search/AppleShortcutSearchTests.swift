@@ -275,7 +275,7 @@ struct AppleShortcutSearchTests {
         #expect(hides == 1)
         #expect(model.query.isEmpty, "the launcher is back at its root")
         #expect(model.usage.frecency(of: resize.id) > 0)
-        let run = await fake.started.first { $0.first == "run" }
+        let run = await fake.started.first { @Sendable call in call.first == "run" }
         #expect(run == ["run", ShortcutSample.resizeID], "the identifier, and no text from the search")
         #expect(lines.isEmpty)
     }
@@ -287,7 +287,7 @@ struct AppleShortcutSearchTests {
         let (lines, continuation) = AsyncStream.makeStream(of: String.self)
         model.showHUD = { continuation.yield($0) }
         model.activate(.shortcut(mail))
-        #expect(await lines.first { _ in true } == "Mail Me the Notes failed: Error: The action could not run.")
+        #expect(await lines.first { @Sendable _ in true } == "Mail Me the Notes failed: Error: The action could not run.")
     }
 
     @Test func openInShortcutsHandsTheNameToTheToolAndHidesThePanel() async throws {
@@ -298,7 +298,7 @@ struct AppleShortcutSearchTests {
         let action = try #require(model.rootActions(for: .shortcut(resize)).compactMap(\.self).first { $0.title == "Open in Shortcuts" })
         action.run()
         #expect(hides == 1)
-        #expect(await fake.started.first { $0.first == "view" } == ["view", "--", "Resize Image (Half)"])
+        #expect(await fake.started.first { @Sendable call in call.first == "view" } == ["view", "--", "Resize Image (Half)"])
         #expect(!fake.calls.contains { $0.first == "run" }, "looking at a shortcut does not run it")
     }
 

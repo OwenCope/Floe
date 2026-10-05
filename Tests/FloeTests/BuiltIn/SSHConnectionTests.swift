@@ -10,7 +10,7 @@ import Foundation
 import Testing
 
 /// Terminals that are on no Mac, so no test opens the one it runs on.
-private enum Fake {
+private nonisolated enum Fake {
     static let terminal = URL(fileURLWithPath: "/Fake/System/Terminal.app")
     static let ghostty = URL(fileURLWithPath: "/Fake/Applications/Ghostty.app")
     static let other = URL(fileURLWithPath: "/Fake/Applications/Hyper.app")
@@ -18,7 +18,7 @@ private enum Fake {
 }
 
 /// What a connection opened and ran, from any thread. Nothing here reaches an app.
-private final class Handed: @unchecked Sendable {
+private final nonisolated class Handed: @unchecked Sendable {
     private let lock = NSLock()
     private var handoffs: [Handoff] = []
     private var sources: [String] = []

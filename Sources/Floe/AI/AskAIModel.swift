@@ -11,9 +11,9 @@ import Foundation
 /// nothing here is written anywhere, and leaving the view drops the text.
 final class AskAIModel: ObservableObject {
     /// Answers a prompt, handing over text as it arrives, and returns the whole answer.
-    typealias Request = @Sendable (String, @Sendable (String) async -> Void) async throws -> String
+    typealias Request = @concurrent @Sendable (String, @Sendable (String) async -> Void) async throws -> String
     /// Parses the answer so far, away from the main actor. It is handed what is shown, to keep the blocks that did not change.
-    typealias Parse = @Sendable (String, MarkdownContent) async -> MarkdownContent
+    typealias Parse = @concurrent @Sendable (String, MarkdownContent) async -> MarkdownContent
     /// Waits out the time between two updates of an answer that is streaming.
     typealias Pause = @Sendable () async -> Void
 

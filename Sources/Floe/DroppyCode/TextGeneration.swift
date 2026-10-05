@@ -18,7 +18,7 @@ import Foundation
 
 /// One-shot text generation through a provider's command line tool with no tools of its own,
 /// on the account the user is already signed in to.
-enum TextGeneration {
+nonisolated enum TextGeneration {
     enum Engine: Sendable, Equatable {
         case claude(executable: URL, model: String?)
         case codex(executable: URL, model: String?)
@@ -67,6 +67,7 @@ enum TextGeneration {
 
     /// Answers a prompt, with text handed to `onText` as it arrives. Claude and pi stream. Codex's one-shot run
     /// prints its session, not its answer, and opencode prints its text once it is complete, so theirs come whole.
+    @concurrent
     static func run(
         _ prompt: String,
         engine: Engine,
@@ -110,6 +111,7 @@ enum TextGeneration {
     }
 
     /// The answer whole, with nothing handed on before it. For claude and codex, which print it or write it to a file.
+    @concurrent
     static func run(_ prompt: String, engine: Engine, environment: [String: String] = LoginEnvironment.current) async throws -> String {
         switch engine {
         case .opencode, .pi:

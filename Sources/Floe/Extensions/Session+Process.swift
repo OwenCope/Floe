@@ -41,7 +41,7 @@ extension ExtensionSession {
         let hostArguments = Arguments(["--smol", Paths.host.path, command.extensionDir.path, command.name, argumentsJSON])
         // One decoder per host: it owns the partial bytes between chunks and keeps decoding off the main actor.
         let decoder = HostMessageDecoder()
-        hostTask = Task { [weak self] in
+        hostTask = Task { @concurrent [weak self] in
             do {
                 let result = try await Subprocess.run(
                     .path(FilePath(bun)),
@@ -57,7 +57,7 @@ extension ExtensionSession {
                         execution,
                         outgoing: outgoing,
                         output: { [weak self] data in
-                            await decoder.deliver(data) { message in
+                            await decoder.deliver(data) { [weak self] message in
                                 await MainActor.run { [weak self] in self?.apply(message) }
                             }
                         },
@@ -76,7 +76,8 @@ extension ExtensionSession {
 
     /// Feeds the host's stdin and hands on what it prints, until it closes its output.
     /// It holds no session, so a session nobody keeps can go away while its host still runs.
-    private static func relay(
+    @concurrent
+    private static nonisolated func relay(
         _ execution: Execution<CustomWriteInput, SequenceOutput, SequenceOutput>,
         outgoing: AsyncStream<[UInt8]>,
         output: @escaping @Sendable (Data) async -> Void,
@@ -105,7 +106,7 @@ extension ExtensionSession {
 
     private func hostStarted(_ identifier: pid_t) {
         processID = identifier
-        watchdog = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+        watchdog = Timer.scheduledOnMain(withTimeInterval: 3, repeats: true) { [weak self] in
             guard let self, processID != nil else { return }
             heartbeat()
         }

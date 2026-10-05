@@ -12,13 +12,13 @@ import Testing
 /// The named lines are what `opencode run --format json` printed on a Mac with opencode 1.18.34.
 /// The reasoning and tool lines are written by hand, from the part types in opencode's own source.
 struct OpencodeTextStreamTests {
-    private static let stepStart = #"{"type":"step_start","timestamp":1791159870759,"sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","part":{"id":"prt_10972a50c001ttJev75CFQvkdF","messageID":"msg_109729f33001Zdl7HmG0BmMIG4","sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","type":"step-start"}}"#
-    private static let text = #"{"type":"text","timestamp":1791159870759,"sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","part":{"id":"prt_10972a511001cYh0lV2SKkRsPl","messageID":"msg_109729f33001Zdl7HmG0BmMIG4","sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","type":"text","text":"ok","time":{"start":1791159870738,"end":1791159870745}}}"#
-    private static let stepFinish = #"{"type":"step_finish","timestamp":1791159870759,"sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","part":{"id":"prt_10972a51e001megXYX3UwTfrL6","reason":"stop","messageID":"msg_109729f33001Zdl7HmG0BmMIG4","sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","type":"step-finish","tokens":{"total":174,"input":172,"output":2,"reasoning":0,"cache":{"write":0,"read":0}},"cost":0.000027}}"#
+    private static nonisolated let stepStart = #"{"type":"step_start","timestamp":1791159870759,"sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","part":{"id":"prt_10972a50c001ttJev75CFQvkdF","messageID":"msg_109729f33001Zdl7HmG0BmMIG4","sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","type":"step-start"}}"#
+    private static nonisolated let text = #"{"type":"text","timestamp":1791159870759,"sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","part":{"id":"prt_10972a511001cYh0lV2SKkRsPl","messageID":"msg_109729f33001Zdl7HmG0BmMIG4","sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","type":"text","text":"ok","time":{"start":1791159870738,"end":1791159870745}}}"#
+    private static nonisolated let stepFinish = #"{"type":"step_finish","timestamp":1791159870759,"sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","part":{"id":"prt_10972a51e001megXYX3UwTfrL6","reason":"stop","messageID":"msg_109729f33001Zdl7HmG0BmMIG4","sessionID":"ses_ef68d63a2ffe07CTQ1Eyelrlap","type":"step-finish","tokens":{"total":174,"input":172,"output":2,"reasoning":0,"cache":{"write":0,"read":0}},"cost":0.000027}}"#
     /// What it printed, with exit code 1, for a model it does not have.
-    private static let error = #"{"type":"error","timestamp":1791159887409,"sessionID":"ses_ef68d1c82ffe2ls43mWIJd4eMU","error":{"name":"UnknownError","data":{"message":"Unexpected server error. Check server logs for details.","ref":"err_74e3399e"}}}"#
+    private static nonisolated let error = #"{"type":"error","timestamp":1791159887409,"sessionID":"ses_ef68d1c82ffe2ls43mWIJd4eMU","error":{"name":"UnknownError","data":{"message":"Unexpected server error. Check server logs for details.","ref":"err_74e3399e"}}}"#
     /// On standard error, when the agent named is not in its configuration.
-    private static let fallbackWarning = "\u{1B}[93m\u{1B}[1m! \u{1B}[0m agent \"floe-answer\" not found. Falling back to default agent"
+    private static nonisolated let fallbackWarning = "\u{1B}[93m\u{1B}[1m! \u{1B}[0m agent \"floe-answer\" not found. Falling back to default agent"
 
     private let tool = URL(fileURLWithPath: "/opt/homebrew/bin/opencode")
     private let folder = URL(fileURLWithPath: "/tmp/floe-answer-1")

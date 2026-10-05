@@ -8,7 +8,7 @@
 import Foundation
 
 /// One pane of System Settings, opened from the root search.
-struct SystemSettingsPane: Identifiable, Hashable, Sendable {
+nonisolated struct SystemSettingsPane: Identifiable, Hashable, Sendable {
     /// The pane's extension identifier, which is also what its link names.
     let identifier: String
     let title: String
@@ -26,7 +26,7 @@ struct SystemSettingsPane: Identifiable, Hashable, Sendable {
     }
 }
 
-extension SystemSettingsPane {
+nonisolated extension SystemSettingsPane {
     /// What Floe knows about a pane beyond what the pane says of itself.
     struct Known {
         /// Used when the pane carries no localized name of its own.
@@ -109,7 +109,7 @@ extension SystemSettingsPane {
     }
 }
 
-extension SystemSettingsPane {
+nonisolated extension SystemSettingsPane {
     private static let extensionsFolder = URL(fileURLWithPath: "/System/Library/ExtensionKit/Extensions")
     private static let settingsExtensionPoint = "com.apple.Settings.extension.ui"
 

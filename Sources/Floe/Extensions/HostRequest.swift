@@ -9,7 +9,7 @@ import Foundation
 
 /// Something an extension asks the app for and waits on: the host sends `request` with an id, a
 /// method and its parameters, and the app sends back `reply` with the same id and a result or an error.
-enum HostRequest: Sendable, Equatable {
+nonisolated enum HostRequest: Sendable, Equatable {
     /// `AI.ask`: one prompt, one answer.
     case askAI(prompt: String, model: String?)
     /// `OAuth.PKCEClient.authorize`: the provider's page, opened in the browser.
@@ -78,7 +78,7 @@ enum HostRequest: Sendable, Equatable {
 
     /// Answers a request with the real system: the user's settings, the login shell's environment
     /// and the installed tools. Text that arrives before the whole answer goes to `emit`.
-    @Sendable
+    @concurrent @Sendable
     static func answer(_ request: HostRequest, emit: @Sendable (String) async -> Void) async throws -> Any {
         switch request {
         case let .askAI(prompt, model):
@@ -156,7 +156,7 @@ enum AIService: String, CaseIterable, Identifiable {
 }
 
 /// Where an OpenAI-compatible API is, what to ask it for, and the key it takes.
-struct AIEndpoint: Equatable, Sendable {
+nonisolated struct AIEndpoint: Equatable, Sendable {
     static let defaultBaseURL = "https://api.openai.com/v1"
     /// The key's Keychain account. Extension secrets are "<extension>/<field>", and no extension is named "floe.ai".
     static let keychainAccount = "floe.ai/apiKey"
@@ -223,7 +223,7 @@ struct AIEndpoint: Equatable, Sendable {
 }
 
 /// The choice in Settings › General › AI, read where a request is answered.
-enum AIAnswer {
+nonisolated enum AIAnswer {
     static let incompleteMessage = "AI is set to use an API, but its address, model or key is missing. Fill them in under Settings › General › AI."
 
     enum Choice: Equatable {
@@ -243,6 +243,7 @@ enum AIAnswer {
         }
     }
 
+    @MainActor
     static func configured(_ settings: AppSettings = .shared) -> Choice {
         choice(source: settings.aiSource, baseURL: settings.aiBaseURL, model: settings.aiModel) {
             Keychain.read(account: AIEndpoint.keychainAccount)
@@ -251,6 +252,7 @@ enum AIAnswer {
 
     /// Whether extensions should be told AI is there: a tool is installed, the API is filled in, or the Mac's own
     /// model is ready, and the source is not one the "only on this Mac" switch refuses.
+    @MainActor
     static var isAvailable: Bool {
         isAvailable(
             choice: configured(),

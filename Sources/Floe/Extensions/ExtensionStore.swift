@@ -378,7 +378,7 @@ final class ExtensionStore: ObservableObject {
     private static let outputLimit = 4 * 1024 * 1024
 
     /// Runs a tool off the main thread. Failures carry the last stderr line.
-    @discardableResult
+    @concurrent @discardableResult
     static nonisolated func runTool(
         executable: String,
         arguments: [String],

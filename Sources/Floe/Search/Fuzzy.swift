@@ -6,13 +6,13 @@
 //  Licensed under the GNU AGPLv3
 
 /// What the matcher needs from one unit of text, so ASCII can run on bytes and the rest on characters.
-protocol FuzzyUnit: Equatable {
+nonisolated protocol FuzzyUnit: Equatable {
     var isWordUnit: Bool { get }
     var isUppercaseUnit: Bool { get }
     var isLowercaseUnit: Bool { get }
 }
 
-extension UInt8: FuzzyUnit {
+nonisolated extension UInt8: FuzzyUnit {
     var isWordUnit: Bool {
         isLowercaseUnit || isUppercaseUnit || (0x30 ... 0x39).contains(self)
     }
@@ -30,7 +30,7 @@ extension UInt8: FuzzyUnit {
     }
 }
 
-extension Character: FuzzyUnit {
+nonisolated extension Character: FuzzyUnit {
     var isWordUnit: Bool {
         isLetter || isNumber
     }
@@ -44,7 +44,7 @@ extension Character: FuzzyUnit {
     }
 }
 
-extension Fuzzy {
+nonisolated extension Fuzzy {
     typealias Match = (score: Int, matched: [Int])
 
     /// Scattered matches are graded from `scatteredFloor` up to 54, always under a substring's 55.

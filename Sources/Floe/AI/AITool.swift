@@ -9,7 +9,7 @@ import Foundation
 
 /// A command line tool that can answer, named as it is typed in a terminal. The order is the one
 /// Automatic looks in.
-enum AITool: String, Codable, CaseIterable, Identifiable, Sendable {
+nonisolated enum AITool: String, Codable, CaseIterable, Identifiable, Sendable {
     case claude
     case codex
     case opencode
@@ -62,7 +62,7 @@ struct AIToolOption: Identifiable, Equatable {
 
 /// Which command line tool answers `AI.ask`. Floe has no models of its own: it uses a tool the
 /// user has installed and signed in to, so the accounts and keys set up there are not asked for again.
-enum AIEngine {
+nonisolated enum AIEngine {
     /// What Settings says about the tool: Automatic or one by name, and the model typed for each tool that takes one.
     struct Setup: Equatable, Sendable {
         /// Nil is Automatic.
@@ -70,6 +70,7 @@ enum AIEngine {
         /// By `AITool.rawValue`.
         var models: [String: String] = [:]
 
+        @MainActor
         init(_ settings: AppSettings) {
             tool = settings.aiTool
             models = settings.aiToolModels
@@ -96,6 +97,7 @@ enum AIEngine {
     }
 
     /// Whether extensions should be told AI is there. The tools are looked up on the PATH known so far.
+    @MainActor
     static var isAvailable: Bool {
         resolve(model: nil, setup: Setup(AppSettings.shared), which: { LoginEnvironment.which($0) }) != nil
     }
@@ -139,7 +141,7 @@ enum AIEngine {
     }
 }
 
-extension TextGeneration.Engine {
+nonisolated extension TextGeneration.Engine {
     var tool: AITool {
         switch self {
         case .claude: .claude

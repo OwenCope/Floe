@@ -35,7 +35,7 @@ private actor HostScanner: CatalogScanning {
 }
 
 /// A terminal that is on no Mac.
-private enum Fake {
+private nonisolated enum Fake {
     static let terminal = URL(fileURLWithPath: "/Fake/Applications/Hyper.app")
 }
 
@@ -260,7 +260,7 @@ struct SSHSearchTests {
         if let row {
             model.activate(row)
         }
-        let handoff = await opened.first { _ in true }
+        let handoff = await opened.first { @Sendable _ in true }
         #expect(handoff?.urls.map(\.absoluteString) == ["ssh://web"])
         #expect(handoff?.application == Fake.terminal)
         #expect(hides == 1)

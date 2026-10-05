@@ -16,7 +16,7 @@
 import Foundation
 
 /// One prompt, streamed back from the `pi` command line tool with no tools and no project.
-enum PiTextStream {
+nonisolated enum PiTextStream {
     typealias Event = ToolTextStream.Event
 
     /// One prompt from standard input, answered as JSON lines. `--no-approve` ignores a project's own files.

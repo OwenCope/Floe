@@ -13,7 +13,7 @@ import Synchronization
 import Testing
 
 /// Stands in for an AI source: it answers only when the test lets it, and notes what it was asked.
-private final class FakeSource: Sendable {
+private final nonisolated class FakeSource: Sendable {
     private struct State {
         var prompts: [String] = []
         var cancellations = 0
@@ -66,7 +66,7 @@ private final class FakeSource: Sendable {
 }
 
 /// A source that streams what the test sends, when the test sends it.
-private final class StreamedSource: Sendable {
+private final nonisolated class StreamedSource: Sendable {
     private let pipe = AsyncStream.makeStream(of: String.self)
     private let whole = Mutex<String?>(nil)
 
@@ -95,7 +95,7 @@ private final class StreamedSource: Sendable {
 
 /// Stands in for the clock and the parser: the wait between two batches ends when the test says,
 /// every parse is noted, and the first parse of one text can be held back to land late.
-private final class FakeBatching: Sendable {
+private final nonisolated class FakeBatching: Sendable {
     private struct State {
         var started: [String] = []
         var waiting: [AsyncStream<Void>.Continuation] = []

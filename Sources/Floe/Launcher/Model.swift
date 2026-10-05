@@ -184,7 +184,7 @@ final class LauncherModel: ObservableObject {
         reloadApps()
         reloadCommands()
         reloadScripts()
-        Task { [weak self, scanner] in
+        Task { @concurrent [weak self, scanner] in
             let panes = await scanner.scanSettingsPanes()
             await self?.finishSettingsPanes(panes)
         }
@@ -201,7 +201,7 @@ final class LauncherModel: ObservableObject {
 
     @discardableResult
     func reloadSSHHosts() -> Task<Void, Never> {
-        Task { [weak self, scanner] in
+        Task { @concurrent [weak self, scanner] in
             let hosts = await scanner.scanSSHHosts()
             await self?.finishSSHHosts(hosts)
         }
@@ -223,7 +223,7 @@ final class LauncherModel: ObservableObject {
         // Read once, here: the worker never sees the mutable settings object.
         let includeRaycast = settings.includeRaycastExtensions
         isLoadingCatalog = true
-        commandsTask = Task { [weak self, scanner] in
+        commandsTask = Task { @concurrent [weak self, scanner] in
             let commands = await scanner.scanCommands(includeRaycast: includeRaycast)
             await self?.finishCommands(generation: generation, commands: commands)
         }
@@ -233,7 +233,7 @@ final class LauncherModel: ObservableObject {
         scriptsGeneration += 1
         let generation = scriptsGeneration
         isLoadingCatalog = true
-        scriptsTask = Task { [weak self, scanner] in
+        scriptsTask = Task { @concurrent [weak self, scanner] in
             let scan = await scanner.scanScripts()
             await self?.finishScripts(generation: generation, scan: scan)
         }
@@ -409,7 +409,7 @@ final class LauncherModel: ObservableObject {
         appsGeneration += 1
         let generation = appsGeneration
         isLoadingCatalog = true
-        appsTask = Task { [weak self, scanner] in
+        appsTask = Task { @concurrent [weak self, scanner] in
             let apps = await scanner.scanApps()
             await self?.finishApps(generation: generation, apps: apps)
         }

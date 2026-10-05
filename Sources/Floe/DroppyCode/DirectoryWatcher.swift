@@ -19,7 +19,7 @@ import Foundation
 
 /// Reports what changed under a directory tree, from an FSEvents stream over it.
 /// Changes wait until none has arrived for `debounce`: an editor makes one save of several writes.
-final class DirectoryWatcher: Sendable {
+final nonisolated class DirectoryWatcher: Sendable {
     /// Stands for the whole tree in a report, when the stream may have lost events.
     static let everything = "."
 

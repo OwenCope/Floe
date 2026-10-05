@@ -8,7 +8,7 @@
 import Foundation
 
 /// Where a model gets its catalog: the real scanners in a worker, or a controlled fake in tests.
-protocol CatalogScanning: Sendable {
+nonisolated protocol CatalogScanning: Sendable {
     func scanApps() async -> [AppEntry]
     func scanCommands(includeRaycast: Bool) async -> [ExtensionCommand]
     func scanScripts() async -> ScriptScan
@@ -16,7 +16,7 @@ protocol CatalogScanning: Sendable {
     func scanSSHHosts() async -> [SSHHost]
 }
 
-extension CatalogScanning {
+nonisolated extension CatalogScanning {
     func scanScripts() async -> ScriptScan {
         ScriptScan()
     }
@@ -31,7 +31,7 @@ extension CatalogScanning {
 }
 
 /// An immutable catalog handed to a model that must be usable without waiting for a scan.
-struct CatalogSnapshot: Sendable {
+nonisolated struct CatalogSnapshot: Sendable {
     let apps: [AppEntry]
     let commands: [ExtensionCommand]
     var scripts: [ScriptCommand] = []

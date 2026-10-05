@@ -68,7 +68,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 }
 
-enum SettingsPage: Hashable {
+nonisolated enum SettingsPage: Hashable {
     case general
     case applications
     case quicklinks

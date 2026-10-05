@@ -17,7 +17,7 @@ import Synchronization
 
 /// The user's login shell environment. Apps launched from Finder inherit a minimal PATH that
 /// cannot find what extensions run (brew, git, gh, node), so this is captured once at launch.
-enum LoginEnvironment {
+nonisolated enum LoginEnvironment {
     private static let cached = Mutex<[String: String]?>(nil)
     /// The one read of the login shell. Launch starts it; anything that waits for the
     /// environment waits on the same task.

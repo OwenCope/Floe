@@ -47,7 +47,7 @@ struct AppOption: Identifiable, Equatable {
 }
 
 /// What to open and the app to open it with.
-struct Handoff: Equatable {
+nonisolated struct Handoff: Equatable {
     let urls: [URL]
     let application: URL
 }

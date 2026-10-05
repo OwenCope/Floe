@@ -9,7 +9,7 @@ import AppKit
 import EventKit
 
 /// One event from today or tomorrow, copied out of EventKit so it can be held and compared.
-struct CalendarEvent: Equatable, Sendable {
+nonisolated struct CalendarEvent: Equatable, Sendable {
     let identifier: String
     let title: String
     let startDate: Date
@@ -43,7 +43,7 @@ final class CalendarAgenda {
     var onChange: () -> Void = {}
 
     private static let triggers = ["calendar", "today", "meetings", "events", "agenda", "next meeting"]
-    private static let meetingHosts = ["zoom.us", "meet.google.com", "teams.microsoft.com", "teams.live.com", "webex.com"]
+    private static nonisolated let meetingHosts = ["zoom.us", "meet.google.com", "teams.microsoft.com", "teams.live.com", "webex.com"]
     private static let cacheLifetime: TimeInterval = 60
 
     private let store = EKEventStore()
@@ -61,7 +61,7 @@ final class CalendarAgenda {
     }
 
     /// The first video call link in the event's URL, location or notes.
-    static func meetingURL(url: URL?, location: String?, notes: String?) -> URL? {
+    static nonisolated func meetingURL(url: URL?, location: String?, notes: String?) -> URL? {
         var candidates = url.map { [$0] } ?? []
         let text = [location, notes].compactMap(\.self).joined(separator: "\n")
         if !text.isEmpty, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
@@ -94,15 +94,16 @@ final class CalendarAgenda {
     private func requestAccess() {
         guard !askedForAccess else { return }
         askedForAccess = true
-        store.requestFullAccessToEvents { [weak self] granted, _ in
+        // Sendable: EventKit answers on a queue of its own.
+        store.requestFullAccessToEvents { @Sendable [weak self] granted, _ in
             guard granted else { return }
-            DispatchQueue.main.async { self?.loadIfStale() }
+            DispatchQueue.main.async { [weak self] in self?.loadIfStale() }
         }
     }
 
     private func observeChanges() {
         guard observer == nil else { return }
-        observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
+        observer = NotificationCenter.default.addMainObserver(forName: .EKEventStoreChanged, object: store) { [weak self] in
             self?.loadedAt = nil
             self?.loadIfStale()
         }
@@ -114,7 +115,8 @@ final class CalendarAgenda {
             return
         }
         isLoading = true
-        let store = store
+        // Safe: EventKit allows a store to be read off the main thread, as fetching events should be, and does not mark it Sendable.
+        nonisolated(unsafe) let store = store
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let calendar = Calendar.current
             let start = calendar.startOfDay(for: Date())
@@ -132,7 +134,7 @@ final class CalendarAgenda {
                     )
                 }
                 .sorted { $0.startDate < $1.startDate }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.events = loaded
                 self.loadedAt = Date()

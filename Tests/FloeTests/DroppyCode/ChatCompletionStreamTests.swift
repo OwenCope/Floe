@@ -12,7 +12,7 @@ import Testing
 
 /// Answers requests in place of the network. Each test registers its own replies under a path of
 /// its own, because tests run in parallel and a URLProtocol class is shared.
-private final class StubProtocol: URLProtocol {
+private final nonisolated class StubProtocol: URLProtocol {
     enum Reply {
         case response(status: Int, body: String)
         case failure(URLError.Code)
@@ -164,6 +164,14 @@ struct ChatCompletionStreamTests {
         let body = chunk("be") + ": keep-alive\n\n" + chunk("cause") + "data: [DONE]\n\n" + chunk("ignored")
         #expect(try await run([.response(status: 200, body: body)], pieces: pieces) == "because")
         #expect(await pieces.all.joined() == "because")
+    }
+
+    @Test func theStreamIsReadOffTheMainThread() async throws {
+        let threads = ThreadLog()
+        StubProtocol.queue([.response(status: 200, body: chunk("be") + "data: [DONE]\n\n")], for: path)
+        let answer = try await ChatCompletionStream.run(request, session: session, retryDelays: []) { _ in threads.note("text") }
+        #expect(answer == "be")
+        #expect(threads.onMain == ["text": false])
     }
 
     @Test func aStreamWithoutAnEndMarkerStillAnswers() async throws {

@@ -10,7 +10,7 @@ import Foundation
 import Testing
 
 /// Counts the files read, from any thread.
-private final class ReadCount: @unchecked Sendable {
+private final nonisolated class ReadCount: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
 

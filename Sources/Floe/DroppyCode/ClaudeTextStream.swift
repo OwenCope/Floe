@@ -17,7 +17,7 @@
 import Foundation
 
 /// One prompt, streamed back from the `claude` command line tool as it writes its answer.
-enum ClaudeTextStream {
+nonisolated enum ClaudeTextStream {
     typealias Event = ToolTextStream.Event
 
     /// TextGeneration's arguments for claude, with the answer as stream-json lines and partial messages.

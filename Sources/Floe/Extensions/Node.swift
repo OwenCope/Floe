@@ -8,7 +8,7 @@
 import Foundation
 
 /// One element of the tree the Bun host serializes after each React commit.
-struct Node: Identifiable {
+nonisolated struct Node: Identifiable {
     let id: Int
     let type: String
     let props: [String: Any]
@@ -50,7 +50,7 @@ struct Node: Identifiable {
     }
 }
 
-struct Row: Identifiable {
+nonisolated struct Row: Identifiable {
     let node: Node
     let sectionTitle: String?
     var id: Int {

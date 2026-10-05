@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-extension AIAnswer {
+nonisolated extension AIAnswer {
     /// The extension whose `AI.ask` is being answered; nil for Ask AI, which uses the choice in General.
     @TaskLocal static var askingExtension: String?
 
@@ -17,6 +17,7 @@ extension AIAnswer {
     }
 
     /// The choice for one extension. A pinned API is the one set up in General: there is one address and one key.
+    @MainActor
     static func configured(for extensionName: String?, _ settings: AppSettings = .shared) -> Choice {
         let source = source(for: extensionName, pinned: settings.aiSourceByExtension, general: settings.aiSource)
         return choice(source: source, baseURL: settings.aiBaseURL, model: settings.aiModel) {
@@ -25,6 +26,7 @@ extension AIAnswer {
     }
 
     /// Whether one extension should be told AI is there, with the source it is pinned to.
+    @MainActor
     static func isAvailable(for extensionName: String?) -> Bool {
         isAvailable(
             choice: configured(for: extensionName),

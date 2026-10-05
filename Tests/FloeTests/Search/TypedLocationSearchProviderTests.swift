@@ -246,7 +246,7 @@ struct TypedLocationSearchProviderTests {
 }
 
 /// The paths a provider looked up, collected from its sendable closure.
-private final class Asked: @unchecked Sendable {
+private final nonisolated class Asked: @unchecked Sendable {
     private let lock = NSLock()
     private var stored: [String] = []
 

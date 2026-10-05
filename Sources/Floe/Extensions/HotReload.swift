@@ -8,7 +8,7 @@
 import Foundation
 
 /// Which open commands restart when a file of their extension is saved, and for which files.
-enum HotReload {
+nonisolated enum HotReload {
     /// The folder to watch while a command is open; nil for a prebuilt extension with no `src/`.
     /// Nil for a command without a view too: running it again on a save would do its work twice.
     static func watchedFolder(for command: ExtensionCommand, fileManager: FileManager = .default) -> URL? {
@@ -27,9 +27,7 @@ enum HotReload {
                 directory: folder,
                 isRelevant: { restarts($0) },
                 onChange: { paths in
-                    DispatchQueue.main.async {
-                        MainActor.assumeIsolated { onSave(paths) }
-                    }
+                    DispatchQueue.main.async { onSave(paths) }
                 }
             )
         }

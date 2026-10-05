@@ -38,7 +38,12 @@ packages:
 
 settings:
   base:
-    SWIFT_VERSION: "5.0"
+    # Keep these four in step with the settings in Package.swift. Approachable concurrency is
+    # InferIsolatedConformances and NonisolatedNonsendingByDefault; the language mode has the rest.
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     MACOSX_DEPLOYMENT_TARGET: "26.0"
 
 targets:

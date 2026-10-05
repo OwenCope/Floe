@@ -50,10 +50,8 @@ final class ReadingWindow {
         created.title = title
         created.contentView = NSHostingView(rootView: content().openingLinksInTheChosenBrowser())
         created.center()
-        closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: created, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.closed()
-            }
+        closeObserver = NotificationCenter.default.addMainObserver(forName: NSWindow.willCloseNotification, object: created) { [weak self] in
+            self?.closed()
         }
         window = created
         NSApp.activate()

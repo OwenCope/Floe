@@ -101,7 +101,7 @@ final class ExtensionSession: ObservableObject {
     var isStopping = false
     var watchdog: Timer?
     /// Answers what the extension asks the app for; tests replace it.
-    var answer: @Sendable (HostRequest, @Sendable (String) async -> Void) async throws -> Any = HostRequest.answer
+    var answer: @concurrent @Sendable (HostRequest, @Sendable (String) async -> Void) async throws -> Any = HostRequest.answer
     /// Requests still being answered, by the id the host gave them (see Session+Requests.swift).
     var pendingRequests: [Int: Task<Void, Never>] = [:]
     private(set) var pingSentAt: Date?

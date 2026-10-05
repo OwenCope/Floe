@@ -20,7 +20,7 @@ struct ToolTextStreamTests {
     }
 
     /// "text:x" is text, "result:x" the whole answer, "failure:x" an error, "stop:x" a stop; anything else is noise.
-    private static func read(_ line: String) -> ToolTextStream.Event? {
+    private static nonisolated func read(_ line: String) -> ToolTextStream.Event? {
         let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
         guard parts.count == 2 else { return nil }
         switch parts[0] {
@@ -75,11 +75,18 @@ struct ToolTextStreamTests {
         let launch = try launch("echo 'text:Hel'; echo 'not a line Floe knows'; echo; echo 'text:lo'")
         defer { try? FileManager.default.removeItem(at: launch.executable) }
         let pieces = Mutex<[String]>([])
-        let answer = try await ToolTextStream.run("hi", launch: launch, read: Self.read) { text in
+        let threads = ThreadLog()
+        let read: @Sendable (String) -> ToolTextStream.Event? = { line in
+            threads.note("read")
+            return Self.read(line)
+        }
+        let answer = try await ToolTextStream.run("hi", launch: launch, read: read) { text in
+            threads.note("text")
             pieces.withLock { $0.append(text) }
         }
         #expect(answer == "Hello")
         #expect(pieces.withLock { $0 } == ["Hel", "lo"])
+        #expect(threads.onMain == ["read": false, "text": false], "the tool's lines are read off the main thread")
     }
 
     @Test func anEmptyAnswerIsAnErrorInTheToolsOwnWordsWhenItHasAny() async throws {

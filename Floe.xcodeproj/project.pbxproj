@@ -128,6 +128,7 @@
 		8C3FC9BB1B1CFAC8425C478E /* ThawUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0539F14C5ECF7F15A371B8BA /* ThawUI */; };
 		8D838DA6514638A4A159387C /* UpdateConsentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92EFACED3FB57AE107F4B30B /* UpdateConsentSheet.swift */; };
 		8DD9E6B111F242F86378F0A8 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2BEB2F9AA1BBC21A580C5B /* Catalog.swift */; };
+		91C071541FA07E255D2EA080 /* MainThreadCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = A351EFA50EC3D806BFCF8F78 /* MainThreadCallbacks.swift */; };
 		91F1AB81D0B571ED89DE6970 /* Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DB0B59E18CDED97CC2F777E /* Shell.swift */; };
 		922FAD71CBC0B27CA0F5291E /* ExtensionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615C6D1FFFC788BD983EA13C /* ExtensionViews.swift */; };
 		933BC6B468E7DF6190BB068B /* Calculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4574A846E9C8BB4F4E79B76B /* Calculator.swift */; };
@@ -362,6 +363,7 @@
 		A0347FEC0F0A642505C519EC /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
 		A2443DAEFA2A54768C09AA21 /* DirectoryWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryWatcher.swift; sourceTree = "<group>"; };
 		A2EB088D66A4B7D987B2E29F /* AppleIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligence.swift; sourceTree = "<group>"; };
+		A351EFA50EC3D806BFCF8F78 /* MainThreadCallbacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainThreadCallbacks.swift; sourceTree = "<group>"; };
 		A3F1F04CB5B238D464961288 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A48EE7BCE3DB6DB75403FC86 /* GlassSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSupport.swift; sourceTree = "<group>"; };
 		A4A4E7591F69E972182C8543 /* LauncherGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherGlass.swift; sourceTree = "<group>"; };
@@ -784,6 +786,7 @@
 				06C21CDFCE7404F918FB0818 /* LauncherSettingsLink.swift */,
 				D967FA03573F90C35F2D5E9B /* main.swift */,
 				4350774BAFE25F278DF643A7 /* MainMenu.swift */,
+				A351EFA50EC3D806BFCF8F78 /* MainThreadCallbacks.swift */,
 				BE0AE17795FC335EFF92ADDD /* ProcessLink.swift */,
 				066BDD252E1518F183DFBD42 /* SearchBench.swift */,
 				CAE1FD745114DE428E9E078B /* SettingsProcess.swift */,
@@ -1046,6 +1049,7 @@
 				7B7FABA4592B5310EB2C87C5 /* LauncherSettingsLink.swift in Sources */,
 				3AD35881F6B724143FF6B7E6 /* LoginEnvironment.swift in Sources */,
 				C3A46A5027658323A674E782 /* MainMenu.swift in Sources */,
+				91C071541FA07E255D2EA080 /* MainThreadCallbacks.swift in Sources */,
 				B380258D2291ED8D81B562B1 /* Manifest.swift in Sources */,
 				9A4AACE1DDD805AB1A0D71ED /* MarkdownContent.swift in Sources */,
 				D7323411C9CDBC63B4EE8D9A /* MarkdownParser.swift in Sources */,
@@ -1254,8 +1258,11 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -1309,9 +1316,12 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.0;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};

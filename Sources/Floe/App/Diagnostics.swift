@@ -10,7 +10,7 @@ import Foundation
 
 /// The loggers, one per area. They write to the system log, and to a file while detailed logging is on.
 /// What the user typed or asked is never logged, only its length.
-enum Log {
+nonisolated enum Log {
     static let app = DiagLog(category: "App")
     static let catalog = DiagLog(category: "Catalog")
     static let search = DiagLog(category: "Search")
@@ -21,6 +21,7 @@ enum Log {
     static let slowSearch: TimeInterval = 0.05
 
     /// Opens and closes the log file as the setting changes, starting with its stored value.
+    @MainActor
     static func follow(_ settings: AppSettings) -> AnyCancellable {
         settings.$diagnosticLogging.removeDuplicates().sink { DiagnosticLogger.shared.isEnabled = $0 }
     }
@@ -30,7 +31,7 @@ enum Log {
     }
 }
 
-extension AIAnswer.Choice {
+nonisolated extension AIAnswer.Choice {
     /// The source's name in a log line. An API is named by its host alone, never its key.
     var logName: String {
         switch self {

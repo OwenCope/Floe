@@ -8,7 +8,7 @@
 import AppKit
 
 /// What one copy put on the pasteboard, read on the main thread and still unprocessed.
-struct ClipboardCapture: Sendable {
+nonisolated struct ClipboardCapture: Sendable {
     enum Content: Sendable {
         case files([String])
         /// The image as copied; the text is what the copy becomes when the image cannot be decoded.
@@ -83,7 +83,7 @@ struct ClipboardCapture: Sendable {
     }
 }
 
-extension ClipboardEntry {
+nonisolated extension ClipboardEntry {
     /// The entry for copied files.
     static func files(_ paths: [String], date: Date, sourceApp: String?) -> ClipboardEntry {
         ClipboardEntry(id: UUID(), kind: .file, filePaths: paths, date: date, pinned: false, sourceApp: sourceApp)

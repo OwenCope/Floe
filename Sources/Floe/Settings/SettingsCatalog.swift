@@ -46,7 +46,7 @@ final class SettingsCatalog: ObservableObject {
         commandsGeneration += 1
         let generation = commandsGeneration
         let includeRaycast = settings.includeRaycastExtensions
-        Task { [weak self, scanner] in
+        Task { @concurrent [weak self, scanner] in
             let commands = await scanner.scanCommands(includeRaycast: includeRaycast)
             await self?.finish(generation: generation, commands: commands)
         }
@@ -55,7 +55,7 @@ final class SettingsCatalog: ObservableObject {
     func reloadScripts() {
         scriptsGeneration += 1
         let generation = scriptsGeneration
-        Task { [weak self, scanner] in
+        Task { @concurrent [weak self, scanner] in
             let scan = await scanner.scanScripts()
             await self?.finish(generation: generation, scripts: scan)
         }
@@ -64,7 +64,7 @@ final class SettingsCatalog: ObservableObject {
     func reloadApps() {
         appsGeneration += 1
         let generation = appsGeneration
-        Task { [weak self, scanner] in
+        Task { @concurrent [weak self, scanner] in
             let apps = await scanner.scanApps()
             await self?.finish(generation: generation, apps: apps)
         }

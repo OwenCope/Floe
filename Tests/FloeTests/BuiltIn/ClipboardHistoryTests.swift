@@ -12,7 +12,7 @@ import Synchronization
 import Testing
 
 /// Holds the worker inside one file operation or conversion until the test lets it go.
-private final class Gate: Sendable {
+private final nonisolated class Gate: Sendable {
     private let armed = Mutex(false)
     private let entered = Mutex(false)
     private let semaphore = DispatchSemaphore(value: 0)
@@ -38,7 +38,7 @@ private final class Gate: Sendable {
 }
 
 /// Counts the directory reads or the conversions the worker makes.
-private final class Counter: Sendable {
+private final nonisolated class Counter: Sendable {
     private let count = Mutex(0)
 
     var value: Int {
@@ -55,7 +55,7 @@ private final class Counter: Sendable {
 }
 
 /// Counts the bytes of copied data still alive anywhere, whoever holds them.
-private final class LiveBytes: Sendable {
+private final nonisolated class LiveBytes: Sendable {
     private let bytes = Mutex(0)
 
     var value: Int {
@@ -75,8 +75,9 @@ private final class LiveBytes: Sendable {
     }
 }
 
+/// One at a time: a test that holds its worker at a gate keeps a thread of the pool, and the pool is small.
 @MainActor
-@Suite("Clipboard history")
+@Suite("Clipboard history", .serialized)
 final class ClipboardHistoryTests {
     private let directory = FileManager.default.temporaryDirectory
         .appendingPathComponent("floe-clipboard-tests-\(UUID().uuidString)", isDirectory: true)
@@ -86,6 +87,7 @@ final class ClipboardHistoryTests {
     private let live = LiveBytes()
     private let imageGate = Gate()
     private let loadGate = Gate()
+    private let threads = ThreadLog()
 
     deinit {
         try? FileManager.default.removeItem(at: directory)
@@ -104,8 +106,9 @@ final class ClipboardHistoryTests {
             loadGate.pass()
             return sizes()
         }
-        files.write = { [imageGate] data, name, atomically in
+        files.write = { [imageGate, threads] data, name, atomically in
             if name.hasSuffix(".png") {
+                threads.note("write")
                 imageGate.pass()
                 if failingImageWrites {
                     throw CocoaError(.fileWriteNoPermission)
@@ -117,7 +120,8 @@ final class ClipboardHistoryTests {
             files: files,
             limits: .init(maxEntries: maxEntries, maxBytes: maxBytes, maxQueuedBytes: maxQueuedBytes),
             monitorsPasteboard: false,
-            storedPNG: { [conversions, conversionGate] data in
+            storedPNG: { [conversions, conversionGate, threads] data in
+                threads.note("conversion")
                 conversions.increment()
                 conversionGate.pass()
                 return ClipboardHistoryStore.storedPNG(data)
@@ -199,6 +203,13 @@ final class ClipboardHistoryTests {
         #expect(store.entries.map(\.text).prefix(2) == ["third", "second"])
         store.flush()
         try expectConsistent(store)
+    }
+
+    @Test func anImageIsConvertedAndWrittenOffTheMainThread() async throws {
+        let store = makeStore()
+        try store.record(image(png(height: 40), at: 1))
+        await waitFor("the image arrives") { store.entries.count == 1 }
+        #expect(threads.onMain == ["conversion": false, "write": false])
     }
 
     @Test func aRepeatedCopyMergesToTheTopAndKeepsItsPin() async {

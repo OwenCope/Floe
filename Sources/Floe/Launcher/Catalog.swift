@@ -9,7 +9,7 @@ import Algorithms
 import AppKit
 import AsyncAlgorithms
 
-enum Paths {
+nonisolated enum Paths {
     /// The checkout this binary was built from, or `FLOE_ROOT`. Only used when running unbundled (`swift run`)
     /// or when the override is set, so an installed app never depends on it.
     private static let checkout: URL = {
@@ -82,7 +82,7 @@ enum Paths {
     }
 }
 
-extension AppEntry {
+nonisolated extension AppEntry {
     /// The system, local and user Applications folders, each with its Utilities subfolder.
     static let folders: [String] = FileManager.default
         .urls(for: .applicationDirectory, in: [.localDomainMask, .systemDomainMask, .userDomainMask])
@@ -101,7 +101,7 @@ extension AppEntry {
     }
 }
 
-extension ExtensionCommand {
+nonisolated extension ExtensionCommand {
     /// Local extensions first, then Raycast's; an extension found in both is taken from the local copy.
     static func scan(includeRaycast: Bool = true) -> [ExtensionCommand] {
         Paths.prepareSupportFolders()
@@ -121,7 +121,7 @@ extension ExtensionCommand {
     }
 }
 
-extension CatalogSnapshot {
+nonisolated extension CatalogSnapshot {
     /// A catalog scanned on the spot, for the diagnostic modes that print or render one state and
     /// exit. The GUI never uses this: its model starts empty and fills from the worker.
     static func scanningNow(includeRaycast: Bool) -> CatalogSnapshot {

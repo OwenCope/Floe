@@ -9,7 +9,7 @@ import SwiftUI
 import ThawUI
 
 /// The outline of the launcher's search field.
-enum SearchFieldShape: String, Codable, CaseIterable, Identifiable {
+nonisolated enum SearchFieldShape: String, Codable, CaseIterable, Identifiable {
     /// The corners the rest of the panel's controls have.
     case rounded
     /// Ends rounded off into half circles.
@@ -63,7 +63,7 @@ enum SearchFieldShape: String, Codable, CaseIterable, Identifiable {
 }
 
 /// One shape type for all three outlines, so the glass that draws the field takes any of them.
-struct SearchFieldOutline: InsettableShape {
+nonisolated struct SearchFieldOutline: InsettableShape {
     let shape: SearchFieldShape
     var inset: CGFloat = 0
 

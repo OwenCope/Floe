@@ -13,7 +13,7 @@ import OSLog
 /// can capture detailed logs for troubleshooting without a debug build.
 ///
 /// Log files are written to ~/Library/Logs/Floe/.
-final class DiagnosticLogger: Sendable {
+final nonisolated class DiagnosticLogger: Sendable {
     static let shared = DiagnosticLogger()
 
     /// Whether diagnostic logging to file is currently enabled.
@@ -290,7 +290,7 @@ final class DiagnosticLogger: Sendable {
 /// os_log will actually persist that level. Debug and info are not persisted
 /// in a normal session, so debug call sites inside per-item loops cost one
 /// flag check and build no string.
-struct DiagLog: Sendable {
+nonisolated struct DiagLog: Sendable {
     private let osLogger: Logger
     private let category: String
 

@@ -18,8 +18,8 @@ struct PropFormatTests {
         #expect(PropFormat.text(["value": 7]) == "7")
     }
 
-    @Test(arguments: [nil, ["color": "color:Red"], ["a", "b"]] as [Any?])
-    func textIsNilForAnythingElse(value: Any?) {
+    @Test(arguments: [nil, ["color": "color:Red"], ["a", "b"]] as [(any Sendable)?])
+    func textIsNilForAnythingElse(value: (any Sendable)?) {
         #expect(PropFormat.text(value) == nil)
     }
 
@@ -36,8 +36,8 @@ struct PropFormatTests {
         #expect(PropFormat.date(["value": "2026-10-09T12:30:00.000Z"]) == expected)
     }
 
-    @Test(arguments: [nil, "yesterday", 1_700_000_000, ["value": 3]] as [Any?])
-    func invalidDatesAreNil(value: Any?) {
+    @Test(arguments: [nil, "yesterday", 1_700_000_000, ["value": 3]] as [(any Sendable)?])
+    func invalidDatesAreNil(value: (any Sendable)?) {
         #expect(PropFormat.date(value) == nil)
     }
 }

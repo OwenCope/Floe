@@ -106,9 +106,12 @@ final class PickPanelController: NSObject, NSWindowDelegate {
         panel.contentView = NSHostingView(rootView: PickView(session: session))
         // A focused field selects its text, and typing would then replace the starting query instead of adding to it.
         focusObservation = panel.observe(\.firstResponder) { [weak self] panel, _ in
-            guard let editor = panel.firstResponder as? NSTextView else { return }
-            self?.focusObservation = nil
-            DispatchQueue.main.async { editor.moveToEndOfDocument(nil) }
+            // Safe: KVO calls back on the thread that made the change, and a window's first responder changes on the main one.
+            MainActor.assumeIsolated {
+                guard let editor = panel.firstResponder as? NSTextView else { return }
+                self?.focusObservation = nil
+                DispatchQueue.main.async { editor.moveToEndOfDocument(nil) }
+            }
         }
     }
 

@@ -24,8 +24,8 @@ struct NodeTests {
         #expect(node.children.map(\.id) == [8])
     }
 
-    @Test(arguments: [nil, "text", 3, ["id": 1]] as [Any?])
-    func rejectsAnythingWithoutAType(json: Any?) {
+    @Test(arguments: [nil, "text", 3, ["id": 1]] as [(any Sendable)?])
+    func rejectsAnythingWithoutAType(json: (any Sendable)?) {
         #expect(Node(json: json) == nil)
     }
 

@@ -9,7 +9,7 @@ import Foundation
 
 /// Markdown ready to draw: its blocks, each with the inline styling already worked out.
 /// Made when the text changes, so a view that is evaluated again has nothing to parse.
-struct MarkdownContent: Equatable, Sendable {
+nonisolated struct MarkdownContent: Equatable, Sendable {
     /// A block as it is drawn. The same cases as `MarkdownBlock`, with styled text in place of source.
     enum Piece: Equatable, Sendable {
         case heading(Int, AttributedString)
@@ -52,7 +52,7 @@ struct MarkdownContent: Equatable, Sendable {
     }
 }
 
-extension MarkdownContent.Piece {
+nonisolated extension MarkdownContent.Piece {
     init(_ block: MarkdownBlock) {
         switch block {
         case let .heading(level, text): self = .heading(level, Self.inline(text))

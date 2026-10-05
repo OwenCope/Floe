@@ -16,7 +16,7 @@
 import Foundation
 
 /// One prompt, answered by the `opencode` command line tool with no tools and no project.
-enum OpencodeTextStream {
+nonisolated enum OpencodeTextStream {
     typealias Event = ToolTextStream.Event
 
     /// The agent Floe defines for the run. opencode's own default agent may edit files and run commands.

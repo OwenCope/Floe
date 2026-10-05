@@ -65,7 +65,7 @@ enum AppRole: String, CaseIterable, Identifiable {
     }
 
     /// The terminal every Mac has, which the terminal role uses until another is chosen.
-    static let systemTerminal = "com.apple.Terminal"
+    static nonisolated let systemTerminal = "com.apple.Terminal"
 
     /// Bundle identifiers of the apps offered by name when they are installed. Each one was read from
     /// the Info.plist of an installed copy; an app that is not here is picked with Choose.
@@ -123,7 +123,7 @@ struct AppChoice: Codable, Hashable {
 }
 
 /// An application on this Mac, named as its bundle is.
-struct ResolvedApp: Hashable {
+nonisolated struct ResolvedApp: Hashable {
     let url: URL
 
     var name: String {

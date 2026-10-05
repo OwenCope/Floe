@@ -10,7 +10,7 @@ import Foundation
 import Testing
 
 /// Counts started scans from any thread, so tests can wait for the worker tasks to reach the scanner.
-private final class ScanCounter: @unchecked Sendable {
+private final nonisolated class ScanCounter: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
 
@@ -24,7 +24,7 @@ private final class ScanCounter: @unchecked Sendable {
 }
 
 /// Records the includeRaycast flags of command requests from any thread.
-private final class RaycastRecorder: @unchecked Sendable {
+private final nonisolated class RaycastRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var values: [Bool] = []
 

@@ -14,7 +14,7 @@
 import Testing
 
 struct OnboardingSequencerTests {
-    private static let bools = [false, true]
+    private static nonisolated let bools = [false, true]
 
     @Test(arguments: bools, bools)
     func aReplayRequestAlwaysYieldsOnboarding(hasSeenOnboarding: Bool, allPermissionsGranted: Bool) {

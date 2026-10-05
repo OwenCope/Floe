@@ -8,8 +8,7 @@
 import AppKit
 import SwiftUI
 
-/// The launcher's side of the user's shortcuts. The model lives on the main thread, and each
-/// entry here says so before it touches the library.
+/// The launcher's side of the user's shortcuts: the switch, the list for the search, and running one.
 extension LauncherModel {
     /// The switch in Settings, Privacy. Off, the Shortcuts tool is never started.
     var findsShortcuts: Bool {
@@ -19,19 +18,16 @@ extension LauncherModel {
     /// What the search may show: nothing the moment the switch goes off.
     var shortcutsForSearch: [AppleShortcut] {
         guard findsShortcuts else { return [] }
-        let library = shortcutLibrary
-        return MainActor.assumeIsolated { library.shortcuts }
+        return shortcutLibrary.shortcuts
     }
 
     /// Asks for the list again. The task is nil when the switch is off, and is for tests to wait on.
     @discardableResult
     func reloadShortcuts() -> Task<Void, Never>? {
-        MainActor.assumeIsolated {
-            shortcutLibrary.refresh(isOn: findsShortcuts) { [weak self] in
-                // Nothing to redraw without a query: the shortcuts are only searched for.
-                guard let self, !query.isEmpty else { return }
-                refresh()
-            }
+        shortcutLibrary.refresh(isOn: findsShortcuts) { [weak self] in
+            // Nothing to redraw without a query: the shortcuts are only searched for.
+            guard let self, !query.isEmpty else { return }
+            refresh()
         }
     }
 
@@ -39,17 +35,13 @@ extension LauncherModel {
     func run(_ shortcut: AppleShortcut) {
         hidePanel()
         reset()
-        MainActor.assumeIsolated {
-            _ = shortcutLibrary.run(shortcut) { [weak self] in self?.showHUD($0) }
-        }
+        _ = shortcutLibrary.run(shortcut) { [weak self] in self?.showHUD($0) }
     }
 
     func openInShortcuts(_ shortcut: AppleShortcut) {
         hidePanel()
         reset()
-        MainActor.assumeIsolated {
-            _ = shortcutLibrary.openInShortcuts(shortcut) { [weak self] in self?.showHUD($0) }
-        }
+        _ = shortcutLibrary.openInShortcuts(shortcut) { [weak self] in self?.showHUD($0) }
     }
 
     /// The Actions menu of a shortcut, after Run.

@@ -15,7 +15,7 @@ enum AskAI {
     /// A question in a speech bubble; the row, the view and the menu all use it.
     static let symbol = "questionmark.bubble"
     /// Stands in for an answer where the view is drawn without asking anything (`--panel-snapshot`).
-    static let sampleAnswer = """
+    static nonisolated let sampleAnswer = """
     Tides are the sea rising and falling, **twice a day** in most places.
 
     1. The Moon pulls the water nearest to it into a bulge.
@@ -46,7 +46,7 @@ enum AskAI {
 
     /// Whether a question stays on this Mac: Apple Intelligence, and an API whose address is on this Mac.
     /// A command line tool never counts, even pointed at a local model: Floe cannot see where it sends a question.
-    static func isOnThisMac(_ choice: AIAnswer.Choice) -> Bool {
+    static nonisolated func isOnThisMac(_ choice: AIAnswer.Choice) -> Bool {
         switch choice {
         case .appleIntelligence: true
         case let .api(endpoint): AIEndpoint.isOnThisMac(endpoint?.chatURL)

@@ -84,26 +84,24 @@ final class SettingsAppDelegate: NSObject, NSApplicationDelegate {
             .sink { link.send(LinkMessage(.pageChanged, $0.id)) }
             .store(in: &cancellables)
 
-        MainActor.assumeIsolated {
-            // No updater here: Sparkle runs in the launcher, which is asked instead.
-            UpdatesManager.shared.sendToLauncher = { [launcherPid] request in
-                if request == .check, let launcher = NSRunningApplication(processIdentifier: launcherPid) {
-                    // Sparkle's window belongs to the launcher, which may only come forward if this app lets it.
-                    NSApp.yieldActivation(to: launcher)
-                }
-                link.send(LinkMessage(.updates, request.text))
+        // No updater here: Sparkle runs in the launcher, which is asked instead.
+        UpdatesManager.shared.sendToLauncher = { [launcherPid] request in
+            if request == .check, let launcher = NSRunningApplication(processIdentifier: launcherPid) {
+                // Sparkle's window belongs to the launcher, which may only come forward if this app lets it.
+                NSApp.yieldActivation(to: launcher)
             }
-            ExtensionStore.shared.onInstalled = { [weak self] in
-                self?.catalog.reloadCommands()
-                link.send(.rescan(.commands))
-            }
-            ExtensionStore.shared.$busy
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in self?.endIfDue() }
-                .store(in: &cancellables)
-            OnboardingWindowController.shared.onClose = { [weak self] in self?.endIfDue() }
-            ReadingWindow.onClose = { [weak self] in self?.endIfDue() }
+            link.send(LinkMessage(.updates, request.text))
         }
+        ExtensionStore.shared.onInstalled = { [weak self] in
+            self?.catalog.reloadCommands()
+            link.send(.rescan(.commands))
+        }
+        ExtensionStore.shared.$busy
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.endIfDue() }
+            .store(in: &cancellables)
+        OnboardingWindowController.shared.onClose = { [weak self] in self?.endIfDue() }
+        ReadingWindow.onClose = { [weak self] in self?.endIfDue() }
         NSAppleEventManager.shared().setEventHandler(
             self,
             andSelector: #selector(handleGetURLEvent(_:_:)),
@@ -122,7 +120,7 @@ final class SettingsAppDelegate: NSObject, NSApplicationDelegate {
             window.show(page: SettingsPage(id: message.payload))
         case .updatesState:
             if let state = UpdatesState(text: message.payload) {
-                MainActor.assumeIsolated { UpdatesManager.shared.show(state) }
+                UpdatesManager.shared.show(state)
             }
         case .thawStatus:
             if let status = ThawAppearanceFollower.Status(rawValue: message.payload) {
@@ -159,9 +157,8 @@ final class SettingsAppDelegate: NSObject, NSApplicationDelegate {
     /// Ends the process once the window is closed, unless a window opened from it (the welcome,
     /// the release notes, the acknowledgements) is still up or an install it started is still going.
     private func endIfDue() {
-        let (otherWindowOpen, installing) = MainActor.assumeIsolated {
-            (OnboardingWindowController.shared.isOpen || ReadingWindow.isAnyOpen, !ExtensionStore.shared.busy.isEmpty)
-        }
+        let otherWindowOpen = OnboardingWindowController.shared.isOpen || ReadingWindow.isAnyOpen
+        let installing = !ExtensionStore.shared.busy.isEmpty
         if SettingsExit.isDue(windowOpen: window.isOpen, otherWindowOpen: otherWindowOpen, installing: installing) {
             end()
         }

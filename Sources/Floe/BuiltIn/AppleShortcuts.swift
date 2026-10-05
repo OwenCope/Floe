@@ -60,12 +60,14 @@ nonisolated struct ShortcutsTool: Sendable {
     static let system = ShortcutsTool { await launch($0) }
 
     /// The user's shortcuts in the tool's order; nil when the tool could not be asked.
+    @concurrent
     func list() async -> [AppleShortcut]? {
         let result = await run(["list", "--show-identifiers"])
         return result.succeeded ? AppleShortcutList.parse(result.output) : nil
     }
 
     /// Runs a shortcut by its identifier, with no input. Returns the line for the HUD when it failed.
+    @concurrent
     func run(_ shortcut: AppleShortcut) async -> String? {
         let result = await run(["run", shortcut.identifier])
         guard !result.succeeded else { return nil }
@@ -77,6 +79,7 @@ nonisolated struct ShortcutsTool: Sendable {
 
     /// Shows a shortcut in the Shortcuts app. The tool's "view" takes a name, so "--" keeps a
     /// name that starts with a hyphen from being read as an option.
+    @concurrent
     func view(_ shortcut: AppleShortcut) async -> String? {
         let result = await run(["view", "--", shortcut.name])
         guard !result.succeeded else { return nil }

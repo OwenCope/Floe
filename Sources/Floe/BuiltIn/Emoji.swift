@@ -10,7 +10,7 @@ import Foundation
 import Synchronization
 
 /// One emoji or symbol: the character to paste and its display name.
-struct EmojiResult: Sendable {
+nonisolated struct EmojiResult: Sendable {
     let character: String
     let name: String
 
@@ -26,7 +26,7 @@ struct EmojiResult: Sendable {
 /// The emoji and symbol catalog. Entries come from Unicode scalar properties, not bundled data:
 /// every named symbol scalar (which covers the pictographic emoji) becomes a searchable entry.
 /// The table is built once, in the background; searches before it finishes find nothing yet.
-enum EmojiCatalog {
+nonisolated enum EmojiCatalog {
     struct Entry: Sendable {
         let character: String
         let name: String

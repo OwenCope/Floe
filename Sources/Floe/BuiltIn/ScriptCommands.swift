@@ -9,7 +9,7 @@ import AppKit
 import Foundation
 
 /// How a script command shows its output, as `@raycast.mode` declares it.
-enum ScriptMode: String, Sendable {
+nonisolated enum ScriptMode: String, Sendable {
     case fullOutput
     case compact
     case silent
@@ -17,14 +17,14 @@ enum ScriptMode: String, Sendable {
 }
 
 /// One declared argument (`@raycast.argument1` … `@raycast.argument3`), as JSON.
-struct ScriptArgument: Sendable, Hashable {
+nonisolated struct ScriptArgument: Sendable, Hashable {
     let placeholder: String
     let optional: Bool
 }
 
 /// Why a file in the Scripts folder is not a runnable command. A dedicated error type so the
 /// settings pane can list failures without passing message strings around.
-enum ScriptParseError: Error, LocalizedError, Sendable, Hashable {
+nonisolated enum ScriptParseError: Error, LocalizedError, Sendable, Hashable {
     case unreadable
     case missingSchemaVersion
     case unsupportedSchemaVersion(String)
@@ -52,7 +52,7 @@ enum ScriptParseError: Error, LocalizedError, Sendable, Hashable {
 
 /// A Raycast-compatible script command: an executable file in the Scripts folder with
 /// `@raycast.*` metadata in its leading comments.
-struct ScriptCommand: Identifiable, Sendable, Hashable {
+nonisolated struct ScriptCommand: Identifiable, Sendable, Hashable {
     let file: URL
     let title: String
     let packageName: String?
@@ -169,7 +169,7 @@ struct ScriptCommand: Identifiable, Sendable, Hashable {
 }
 
 /// A file that failed to parse, with its typed failure.
-struct ScriptFailure: Identifiable, Sendable {
+nonisolated struct ScriptFailure: Identifiable, Sendable {
     let file: String
     let error: ScriptParseError
     var id: String {
@@ -178,13 +178,13 @@ struct ScriptFailure: Identifiable, Sendable {
 }
 
 /// What a scan of the Scripts folder found.
-struct ScriptScan: Sendable {
+nonisolated struct ScriptScan: Sendable {
     var commands: [ScriptCommand] = []
     var failures: [ScriptFailure] = []
 }
 
 /// Runs script commands: a 60 second timeout, argv from the text typed after the title.
-enum ScriptRunner {
+nonisolated enum ScriptRunner {
     static let timeout: TimeInterval = 60
 
     static func run(_ script: ScriptCommand, arguments: [String]) async throws -> ShellResult {

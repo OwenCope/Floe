@@ -8,7 +8,7 @@
 import Foundation
 
 /// Names and identifies menu bar items from what Accessibility reports about them.
-enum MenuBarNaming {
+nonisolated enum MenuBarNaming {
     /// The first non-empty line of the title, description or help; some items put a whole status readout there.
     static func label(title: String?, description: String?, help: String?) -> String? {
         [title, description, help]

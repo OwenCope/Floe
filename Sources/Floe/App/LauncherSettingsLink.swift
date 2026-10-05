@@ -41,8 +41,7 @@ final class LauncherSettingsLink {
             .receive(on: DispatchQueue.main)
             .sink { link.send(LinkMessage(.thawStatus, $0.rawValue)) }
             .store(in: &cancellables)
-        MainActor.assumeIsolated {
-            guard UpdatesManager.shared.isAvailable else { return }
+        if UpdatesManager.shared.isAvailable {
             UpdatesManager.shared.observeState { link.send(LinkMessage(.updatesState, UpdatesManager.shared.state.text)) }
         }
         settings.$isRecordingHotkey
@@ -83,7 +82,7 @@ final class LauncherSettingsLink {
             reload(message.store)
         case .ready:
             link.send(LinkMessage(.thawStatus, ThawAppearanceFollower.shared.status.rawValue))
-            link.send(LinkMessage(.updatesState, MainActor.assumeIsolated { UpdatesManager.shared.state.text }))
+            link.send(LinkMessage(.updatesState, UpdatesManager.shared.state.text))
         case .pageChanged:
             process.lastPage = message.payload
         case .recording:
@@ -115,7 +114,7 @@ final class LauncherSettingsLink {
         switch message.kind {
         case .updates:
             if let request = UpdateRequest(text: message.payload) {
-                MainActor.assumeIsolated { UpdatesManager.shared.perform(request) }
+                UpdatesManager.shared.perform(request)
             }
         case .rescan:
             rescan(message.scan)

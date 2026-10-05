@@ -38,7 +38,7 @@ struct PanelSectionsTests {
         return NSRect(x: origin.x + LauncherView.margin, y: top - height, width: window.width - LauncherView.margin * 2, height: height)
     }
 
-    @Test(arguments: cases)
+    @Test(arguments: await cases)
     func thePiecesAddUpToThePanelSoTheSwitchNeverResizesTheWindow(state: LauncherPanelState, layout: LauncherLayout) {
         let heights = state.pieceHeights(in: layout)
         #expect(heights.total == state.contentSize(in: layout).height)
@@ -71,7 +71,7 @@ struct PanelSectionsTests {
         #expect(heights.resultsSpan == 0.3 ... 1)
     }
 
-    @Test(arguments: cases)
+    @Test(arguments: await cases)
     func theSearchFieldIsAtTheSameSpotCollapsedOrOpenAndSeparateOrNot(state: LauncherPanelState, layout: LauncherLayout) {
         let screen = NSRect(x: 100, y: 50, width: 1600, height: 1000)
         var typed = state

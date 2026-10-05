@@ -8,7 +8,7 @@
 import Algorithms
 import Foundation
 
-enum Fuzzy {
+nonisolated enum Fuzzy {
     /// Higher is better; nil means no match.
     static func score(_ query: String, _ candidate: String) -> Int? {
         evaluate(query, candidate, wantPositions: false)?.score

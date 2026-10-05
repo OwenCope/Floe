@@ -90,7 +90,7 @@ struct MenuBarIconResolver {
     }
 
     /// Holds a row's image column open while its icon is made, so the titles do not shift when it arrives.
-    static let placeholder = NSImage(size: NSSize(width: MenuBarIcon.points, height: MenuBarIcon.points), flipped: false) { _ in true }
+    static let placeholder = NSImage(size: NSSize(width: MenuBarIcon.points, height: MenuBarIcon.points), flipped: false) { @Sendable _ in true }
 
     private static let renderedLimit = 64
 

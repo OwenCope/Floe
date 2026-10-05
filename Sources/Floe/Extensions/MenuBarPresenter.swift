@@ -20,6 +20,15 @@ extension NSStatusBarButton: MenuBarStatusButton {}
 final class MenuBarMenu: NSMenu {
     var pending: [MenuBarMenuItem]?
     var isOpen = false
+
+    /// AppKit's initializers are nonisolated, and so must be the ones that override them.
+    override nonisolated init(title: String) {
+        super.init(title: title)
+    }
+
+    required nonisolated init(coder: NSCoder) {
+        super.init(coder: coder)
+    }
 }
 
 /// Draws one menu-bar command: the status button on every render, the menu only when someone looks at it.

@@ -9,7 +9,7 @@ import AppKit
 import Synchronization
 
 /// The clipboard folder's file operations, so a test can count them, hold one back or make one fail.
-struct ClipboardFiles: Sendable {
+nonisolated struct ClipboardFiles: Sendable {
     static let historyName = "history.json"
 
     var directory: URL
@@ -50,7 +50,7 @@ struct ClipboardFiles: Sendable {
 }
 
 /// The bytes the clipboard folder holds, kept as files come and go instead of measured again.
-struct ClipboardByteLedger {
+nonisolated struct ClipboardByteLedger {
     private(set) var total = 0
     private var sizes: [String: Int] = [:]
 
@@ -70,7 +70,7 @@ struct ClipboardByteLedger {
 
 /// Does the clipboard history's slow work off the main thread, one job at a time in the order asked.
 /// The store decides; what this produces waits in `takeEvents()` for it, in the same order.
-final class ClipboardHistoryWorker: Sendable {
+final nonisolated class ClipboardHistoryWorker: Sendable {
     enum Event: Sendable {
         case loaded([ClipboardEntry], sizes: [String: Int])
         case prepared(ClipboardEntry, bytes: Int, epoch: Int)

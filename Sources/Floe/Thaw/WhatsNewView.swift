@@ -16,7 +16,7 @@ struct WhatsNewView: View {
     @Environment(\.openURL) private var openURL
 
     /// Where the notes come from; a snapshot or a test passes its own.
-    var load: @Sendable () async -> (document: ChangelogDocument?, source: ChangelogDocument.Source) = {
+    var load: @concurrent @Sendable () async -> (document: ChangelogDocument?, source: ChangelogDocument.Source) = {
         await ChangelogDocument.load(allowFetch: true)
     }
 
@@ -261,7 +261,7 @@ private struct ChangelogCalloutView: View {
     }
 }
 
-private extension ChangelogDocument.Callout.Kind {
+private nonisolated extension ChangelogDocument.Callout.Kind {
     var label: LocalizedStringKey {
         switch self {
         case .note: "Note"

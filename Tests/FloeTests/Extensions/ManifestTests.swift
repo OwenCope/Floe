@@ -43,8 +43,8 @@ struct FieldSpecTests {
         ["name": "x", "default": "eu"],
         ["name": "x", "default": 5],
         ["name": "x", "default": 1.5],
-    ])
-    func scalarDefaultsSurviveTheRoundTrip(json: [String: Any]) throws {
+    ] as [[String: any Sendable]])
+    func scalarDefaultsSurviveTheRoundTrip(json: [String: any Sendable]) throws {
         let decoded = try #require(Fixture.field(json))
         #expect(decoded.defaultValue != nil)
         #expect(decoded.defaultValue as? Bool == json["default"] as? Bool)
@@ -141,8 +141,8 @@ struct ExtensionCommandTests {
         #expect(command.extensionTitle == "bare")
     }
 
-    @Test(arguments: [[:], ["name": "no-commands"], ["commands": [["name": "run"]]]] as [[String: Any]])
-    func manifestsWithoutANameOrCommandsYieldNothing(manifest: [String: Any]) {
+    @Test(arguments: [[:], ["name": "no-commands"], ["commands": [["name": "run"]]]] as [[String: any Sendable]])
+    func manifestsWithoutANameOrCommandsYieldNothing(manifest: [String: any Sendable]) {
         #expect(ExtensionCommand.commands(inManifest: Fixture.manifest(manifest), folder: folder, source: .local).isEmpty)
     }
 

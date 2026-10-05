@@ -10,7 +10,7 @@ import Foundation
 
 /// `files invoice`: the files Spotlight finds, listed as they come in.
 /// Only the main thread touches it; the end of a stream hops back there before it does.
-final class FileSearchScope: SearchScope, @unchecked Sendable {
+final class FileSearchScope: SearchScope {
     let keyword = "files"
     let title = "Files"
     let emptyTitle = "No files match"

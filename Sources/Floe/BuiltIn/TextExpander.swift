@@ -93,6 +93,8 @@ import Carbon
     }
 
     nonisolated func handleTap(type: CGEventType, event: CGEvent) {
+        // Safe: the tap's source is on the main run loop, so this is the main thread and the event never leaves it.
+        nonisolated(unsafe) let event = event
         MainActor.assumeIsolated {
             handle(type: type, event: event)
         }
@@ -152,7 +154,7 @@ import Carbon
     }
 }
 
-private func tapCallback(
+private nonisolated func tapCallback(
     proxy _: CGEventTapProxy,
     type: CGEventType,
     event: CGEvent,
@@ -161,6 +163,7 @@ private func tapCallback(
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let refcon {
             let expander = Unmanaged<TextExpander>.fromOpaque(refcon).takeUnretainedValue()
+            // Safe: the tap's source is on the main run loop.
             MainActor.assumeIsolated { expander.reenable() }
         }
     }

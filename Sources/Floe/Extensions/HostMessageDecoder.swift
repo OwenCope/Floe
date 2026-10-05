@@ -14,7 +14,7 @@ import Foundation
 /// stored value from bytes run through `JSONSerialization` with the default options, so they are
 /// fresh, immutable, JSON-only objects owned solely by this value and never mutated afterwards.
 /// It must never be extended to carry caller-supplied objects.
-enum DecodedHostMessage: @unchecked Sendable {
+nonisolated enum DecodedHostMessage: @unchecked Sendable {
     case render(tree: Node?)
     case fields([String: Any])
 
@@ -66,7 +66,7 @@ actor HostMessageDecoder {
 extension HostMessageDecoder {
     /// Feeds one stdout chunk and applies whatever it completes, in order, before returning. Awaiting
     /// each application keeps the next chunk from overtaking the one being applied.
-    func deliver(_ data: Data, applying: (DecodedHostMessage) async -> Void) async {
+    func deliver(_ data: Data, applying: @Sendable (DecodedHostMessage) async -> Void) async {
         for message in append(data) {
             await applying(message)
         }

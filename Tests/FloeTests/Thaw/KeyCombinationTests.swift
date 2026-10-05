@@ -11,7 +11,7 @@ import Carbon.HIToolbox
 import Testing
 
 struct ModifiersTests {
-    private static let single: [(Modifiers, NSEvent.ModifierFlags, CGEventFlags, Int, String)] = [
+    private static nonisolated let single: [(Modifiers, NSEvent.ModifierFlags, CGEventFlags, Int, String)] = [
         (.control, .control, .maskControl, controlKey, "⌃"),
         (.option, .option, .maskAlternate, optionKey, "⌥"),
         (.shift, .shift, .maskShift, shiftKey, "⇧"),

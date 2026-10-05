@@ -9,9 +9,11 @@ import AppKit
 import ApplicationServices
 import Synchronization
 
+// Unchecked: every field is a value but the AXUIElement, an immutable reference to another app's
+// element that Accessibility lets any thread use and CoreFoundation does not mark Sendable.
 /// One item in the menu bar's status area. Thaw finds items through its own runtime; Floe reads them
 /// through the public Accessibility API and opens one by pressing it.
-struct MenuBarExtra: Identifiable {
+nonisolated struct MenuBarExtra: Identifiable, @unchecked Sendable {
     let id: String
     let name: String
     let ownerName: String
@@ -30,13 +32,16 @@ struct MenuBarExtra: Identifiable {
     }
 }
 
-enum MenuBarExtras {
+nonisolated enum MenuBarExtras {
     static var isTrusted: Bool {
         AXIsProcessTrusted()
     }
 
+    /// The value of `kAXTrustedCheckOptionPrompt`, which Swift imports as a mutable global.
+    private static let trustedCheckOptionPrompt = "AXTrustedCheckOptionPrompt"
+
     static func requestAccess() {
-        AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        AXIsProcessTrustedWithOptions([trustedCheckOptionPrompt: true] as CFDictionary)
     }
 
     /// Asks every running app for its extras menu bar, all at once: each answer is a round trip to that app,

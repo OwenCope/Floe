@@ -11,7 +11,7 @@ import Testing
 
 struct MarkdownContentTests {
     /// One of everything the view draws, as an answer would use them.
-    static let document = """
+    static nonisolated let document = """
     # Tides
 
     The sea rises and falls **twice a day**, as `high` and *low* water. See [the table](https://example.com/t).

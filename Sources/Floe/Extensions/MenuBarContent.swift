@@ -143,7 +143,7 @@ struct MenuBarMenuItem: Equatable {
     }
 }
 
-extension Node {
+nonisolated extension Node {
     /// The first `MenuBarExtra` in the tree, found without collecting every descendant.
     var menuBarExtra: Node? {
         if type == "MenuBarExtra" {

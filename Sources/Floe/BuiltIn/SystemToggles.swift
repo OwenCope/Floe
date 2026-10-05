@@ -62,7 +62,7 @@ enum SystemToggle {
     // MARK: Keep awake
 
     /// The assertion that holds the display awake; 0 while there is none. Only touched on the main thread.
-    private static nonisolated(unsafe) var awakeAssertion: IOPMAssertionID = 0
+    private static var awakeAssertion: IOPMAssertionID = 0
 
     static var isKeepingAwake: Bool {
         awakeAssertion != 0

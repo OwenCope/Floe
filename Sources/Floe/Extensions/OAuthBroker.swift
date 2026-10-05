@@ -16,7 +16,7 @@ import Foundation
 import Synchronization
 
 /// Why an `oauth.*` request failed, answered to the host as the request's error.
-enum OAuthError: LocalizedError {
+nonisolated enum OAuthError: LocalizedError {
     case timedOut
     case cancelled
     case replaced
@@ -42,7 +42,7 @@ enum OAuthError: LocalizedError {
 /// Answers the host's `oauth.*` requests: interactive sign-in through the `floe://oauth` redirect
 /// plus per-extension token storage in the Keychain. Lock-guarded rather than main-actor bound so a
 /// session stopping on any thread can cancel its sign-ins.
-final class OAuthBroker: NSObject {
+final nonisolated class OAuthBroker: NSObject, Sendable {
     static let shared = OAuthBroker()
 
     /// Sign-in through the browser is parked, and extensions fall back to a token preference.
@@ -52,16 +52,17 @@ final class OAuthBroker: NSObject {
     /// How long the browser has to come back before the sign-in fails.
     static let timeout: TimeInterval = 600
 
-    private struct Pending {
+    private struct Pending: Sendable {
         let extensionName: String
-        let resume: (Result<String, Error>) -> Void
-        let timeout: DispatchWorkItem
+        let resume: @Sendable (Result<String, Error>) -> Void
+        let timeout: Task<Void, Never>
     }
 
     /// Sign-ins waiting for the browser, keyed by extension name and state together.
     private let pending = Mutex<[String: Pending]>([:])
 
     /// Answers one parsed OAuth request for the session's extension.
+    @concurrent
     func perform(_ request: HostRequest, extensionName: String) async throws -> Any {
         switch request {
         case let .oauthAuthorize(urlString, state, _):
@@ -109,9 +110,11 @@ final class OAuthBroker: NSObject {
         "\(extensionName)\0\(state)"
     }
 
-    private func register(extensionName: String, state: String, resume: @escaping (Result<String, Error>) -> Void) {
+    private func register(extensionName: String, state: String, resume: @escaping @Sendable (Result<String, Error>) -> Void) {
         let key = pendingKey(extensionName: extensionName, state: state)
-        let timeout = DispatchWorkItem { [weak self] in
+        let timeout = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.timeout))
+            guard !Task.isCancelled else { return }
             self?.fail(key: key, error: OAuthError.timedOut)
         }
         // One sign-in per extension: failing what is still waiting and recording the new one happen
@@ -126,7 +129,6 @@ final class OAuthBroker: NSObject {
             entry.timeout.cancel()
             entry.resume(.failure(OAuthError.replaced))
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.timeout, execute: timeout)
     }
 
     private func cancel(extensionName: String, state: String) {

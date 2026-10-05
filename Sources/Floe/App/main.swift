@@ -341,7 +341,7 @@ if options.benchSettings {
     let catalog = SettingsCatalog(snapshot: .scanningNow(includeRaycast: AppSettings.shared.includeRaycastExtensions))
     let selection = SettingsSelection()
     let window = NSWindow(contentRect: NSRect(x: -4000, y: -4000, width: 820, height: 560), styleMask: [.titled], backing: .buffered, defer: false)
-    let search = MainActor.assumeIsolated { SearchModel() }
+    let search = SearchModel()
     window.contentView = NSHostingView(rootView: SettingsView(catalog: catalog, settings: .shared, selection: selection, search: search))
     window.orderFrontRegardless()
     let pages: [(String, SettingsPage)] = [("general", .general), ("applications", .applications), ("privacy", .privacy), ("about", .about), ("extension", .extensionPage("kill-process"))]
@@ -357,7 +357,7 @@ if options.benchSettings {
             window.contentView?.writePNG(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
         }
     }
-    MainActor.assumeIsolated { runSettingsSearchBench(search: search, window: window) }
+    runSettingsSearchBench(search: search, window: window)
     // General's AI section sits below the fold, so each of its states is drawn on its own, on scratch settings.
     if let directory = ProcessInfo.processInfo.environment["FLOE_BENCH_DUMP"], let scratch = UserDefaults(suiteName: "floe.bench.\(UUID().uuidString)") {
         // Name, source, the API's model and key, the tool chosen by name, and the API's service.
@@ -388,20 +388,18 @@ if options.iconCheck {
     let samples: [(String, Any, String)] = ExtensionCommand.scan().uniqued(on: \.extensionName).map { command in
         (command.extensionName, command.icon ?? "", command.assetsPath)
     } + [("kill-process accessory", ["source": "cpu.svg", "tintColor": "color:PrimaryText"], ExtensionCommand.scan().first { $0.extensionName == "kill-process" }?.assetsPath ?? "")]
-    MainActor.assumeIsolated {
-        for (name, value, assets) in samples {
-            let renderer = ImageRenderer(content: IconView(value: value, assetsPath: assets, size: 32, waitsForImage: true).environment(\.colorScheme, .dark))
-            renderer.scale = 1
-            guard let image = renderer.cgImage, let data = image.dataProvider?.data as Data? else { print("\(name): no image"); continue }
-            // A pixel counts as drawn when any of its four bytes is set, whatever the channel order.
-            let pixels = stride(from: 0, to: data.count - 3, by: 4).filter { data[$0] | data[$0 + 1] | data[$0 + 2] | data[$0 + 3] > 8 }.count
-            let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined().prefix(8)
-            if let directory = ProcessInfo.processInfo.environment["FLOE_ICON_DUMP"] {
-                let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
-                try? png?.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
-            }
-            print("\(name.padding(toLength: 24, withPad: " ", startingAt: 0)) sha=\(digest) drawn=\(pixels * 100 / max(1, data.count / 4))%")
+    for (name, value, assets) in samples {
+        let renderer = ImageRenderer(content: IconView(value: value, assetsPath: assets, size: 32, waitsForImage: true).environment(\.colorScheme, .dark))
+        renderer.scale = 1
+        guard let image = renderer.cgImage, let data = image.dataProvider?.data as Data? else { print("\(name): no image"); continue }
+        // A pixel counts as drawn when any of its four bytes is set, whatever the channel order.
+        let pixels = stride(from: 0, to: data.count - 3, by: 4).filter { data[$0] | data[$0 + 1] | data[$0 + 2] | data[$0 + 3] > 8 }.count
+        let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined().prefix(8)
+        if let directory = ProcessInfo.processInfo.environment["FLOE_ICON_DUMP"] {
+            let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+            try? png?.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
         }
+        print("\(name.padding(toLength: 24, withPad: " ", startingAt: 0)) sha=\(digest) drawn=\(pixels * 100 / max(1, data.count / 4))%")
     }
     exit(0)
 }

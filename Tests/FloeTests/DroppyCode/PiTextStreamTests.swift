@@ -13,7 +13,7 @@ import Testing
 /// The `observed` lines are what `pi -p --mode json` printed on a Mac with pi 1.0.2 (the folder shortened), where every run was
 /// refused by its provider. The `documented` lines are the examples in pi's own docs/json.md for an answer.
 struct PiTextStreamTests {
-    private enum Observed {
+    private nonisolated enum Observed {
         static let session = #"{"type":"session","version":3,"id":"01a10979-a7ec-72ee-a575-2e265a17290d","timestamp":"2026-10-05T00:32:10.220Z","cwd":"/private/var/folders/1r/T/floe-pi-empty"}"#
         static let agentStart = #"{"type":"agent_start"}"#
         static let turnStart = #"{"type":"turn_start"}"#
@@ -30,7 +30,7 @@ struct PiTextStreamTests {
         static let expired = "OAuth refresh failed for anthropic: Anthropic token refresh request failed."
     }
 
-    private enum Documented {
+    private nonisolated enum Documented {
         static let delta = #"{"type":"message_update","usage":{"input":100,"output":1,"cacheRead":0,"cacheWrite":0,"totalTokens":101,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"Hello "}}"#
         static let second = #"{"type":"message_update","usage":{},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"there"}}"#
         static let thinking = #"{"type":"message_update","usage":{},"assistantMessageEvent":{"type":"thinking_delta","contentIndex":0,"delta":"hm"}}"#
@@ -146,11 +146,14 @@ struct PiTextStreamTests {
         let tool = try script([Observed.session, Observed.agentStart, Observed.system, Observed.user, Documented.delta, Documented.second, Documented.finished, Observed.settled])
         defer { try? FileManager.default.removeItem(at: tool.deletingLastPathComponent()) }
         let pieces = Mutex<[String]>([])
+        let threads = ThreadLog()
         let answer = try await TextGeneration.run("hi", engine: .pi(executable: tool, model: nil), environment: ["PATH": "/usr/bin:/bin"]) { text in
+            threads.note("text")
             pieces.withLock { $0.append(text) }
         }
         #expect(answer == "Hello there")
         #expect(pieces.withLock { $0 } == ["Hello ", "there"])
+        #expect(threads.onMain == ["text": false], "the tool's lines are read off the main thread")
     }
 
     @Test func aRunTheProviderRefusedFailsWithItsWordsThoughPiExitsWithZero() async throws {

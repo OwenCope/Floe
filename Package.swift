@@ -1,6 +1,15 @@
 // swift-tools-version: 6.4
 import PackageDescription
 
+// The Swift 6 language mode with the main actor as the default isolation, and the two features that
+// SWIFT_APPROACHABLE_CONCURRENCY adds to it in project.yml. Keep the two files in step.
+let concurrency: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .defaultIsolation(MainActor.self),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+]
+
 let package = Package(
     name: "Floe",
     platforms: [.macOS(.v26)],
@@ -30,14 +39,14 @@ let package = Package(
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
             ],
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            swiftSettings: concurrency
         ),
         // The test bundle links the app's code, so it loads Sparkle.framework too. SwiftPM puts the
         // framework beside the bundle, three levels above the bundle's binary, and adds no rpath for it.
         .testTarget(
             name: "FloeTests",
             dependencies: ["Floe"],
-            swiftSettings: [.swiftLanguageMode(.v5)],
+            swiftSettings: concurrency,
             linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@loader_path/../../.."])]
         ),
     ]

@@ -11,7 +11,7 @@ import Synchronization
 import Testing
 
 /// Stands in for the three sources and notes which were asked, so a test can say none but the chosen one was.
-final class FakeAISources: Sendable {
+final nonisolated class FakeAISources: Sendable {
     enum Name: String, Sendable {
         case api, appleIntelligence, tools
     }
@@ -47,8 +47,8 @@ final class FakeAISources: Sendable {
 }
 
 struct AISourcesTests {
-    private static let remote = AIAnswer.Choice.api(AIEndpoint(baseURL: "https://openrouter.ai/api/v1", model: "small", apiKey: "key"))
-    private static let local = AIAnswer.Choice.api(AIEndpoint(baseURL: "http://localhost:11434/v1", model: "small", apiKey: nil))
+    private static nonisolated let remote = AIAnswer.Choice.api(AIEndpoint(baseURL: "https://openrouter.ai/api/v1", model: "small", apiKey: "key"))
+    private static nonisolated let local = AIAnswer.Choice.api(AIEndpoint(baseURL: "http://localhost:11434/v1", model: "small", apiKey: nil))
 
     private func ask(_ choice: AIAnswer.Choice, localOnly: Bool, fake: FakeAISources) async throws -> String {
         try await AIAnswer.answer("why?", model: nil, choice: choice, localOnly: localOnly, sources: fake.sources) { _ in }

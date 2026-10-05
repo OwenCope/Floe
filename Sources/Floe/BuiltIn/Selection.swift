@@ -38,11 +38,12 @@ enum SelectionError: LocalizedError {
 }
 
 /// The selected text of the frontmost app: what Accessibility reports, else a borrowed Command-C.
-enum SelectedText {
+nonisolated enum SelectedText {
     static var isTrusted: Bool {
         AXIsProcessTrusted()
     }
 
+    @concurrent
     static func current() async throws -> String {
         guard isTrusted else { throw SelectionError.accessibilityOff(action: "Getting the selected text") }
         if let text = accessibilitySelectedText(), !text.isEmpty {
@@ -75,6 +76,7 @@ enum SelectedText {
     }
 
     /// Borrows the pasteboard with Command-C, then restores it only when nothing else changed it.
+    @concurrent
     static func copiedSelectedText() async throws -> String {
         let pasteboard = NSPasteboard.general
         let saved = SavedPasteboard.capture(pasteboard)
@@ -148,7 +150,7 @@ enum FinderSelection {
 }
 
 /// One snapshot of the general pasteboard, restored only when asked.
-enum SavedPasteboard {
+nonisolated enum SavedPasteboard {
     struct Snapshot {
         let items: [(types: [NSPasteboard.PasteboardType], dataByType: [NSPasteboard.PasteboardType: Data])]
     }
@@ -168,7 +170,7 @@ enum SavedPasteboard {
     }
 }
 
-extension SavedPasteboard.Snapshot {
+nonisolated extension SavedPasteboard.Snapshot {
     func restore(to pasteboard: NSPasteboard) {
         pasteboard.clearContents()
         guard !items.isEmpty else { return }
@@ -220,7 +222,7 @@ enum PasteboardContent {
 }
 
 /// Command keystrokes posted to the frontmost app. Needs Accessibility access to land.
-enum KeySimulation {
+nonisolated enum KeySimulation {
     static func command(keyCode: CGKeyCode) {
         guard let down = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true),
               let up = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false)

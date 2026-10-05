@@ -38,7 +38,7 @@ struct ClipboardSearchScope: SearchScope {
     }
 }
 
-extension ClipboardEntry.Kind {
+nonisolated extension ClipboardEntry.Kind {
     var symbol: String {
         switch self {
         case .text: "doc.text"

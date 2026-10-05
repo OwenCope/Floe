@@ -144,6 +144,7 @@ class Permission: Identifiable {
         timerCancellable = Timer.publish(every: pollInterval, tolerance: 0.5, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
+                // Safe: the timer is on the main run loop.
                 MainActor.assumeIsolated { self?.handlePollTick() }
             }
     }
@@ -223,6 +224,7 @@ class Permission: Identifiable {
             .publisher(for: NSApplication.didBecomeActiveNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
+                // Safe: the publisher hands over on the main run loop.
                 MainActor.assumeIsolated { self?.refreshStatus() }
             }
     }
@@ -268,7 +270,8 @@ final class AccessibilityPermission: Permission {
             },
             request: { completion in
                 // Untrusted checks show guidance and return immediately; ungranted means prompted, not necessarily refused.
-                let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+                // The key is spelled out: Swift imports kAXTrustedCheckOptionPrompt as a mutable global.
+                let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
                 let granted = AXIsProcessTrustedWithOptions(options)
                 completion(granted, !granted)
             }

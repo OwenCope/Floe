@@ -18,12 +18,12 @@ final class MenuBarSearchScope: SearchScope {
     let emptyTitle = "No menu bar items match"
 
     private let isTrusted: () -> Bool
-    private let scan: () -> [MenuBarExtra]
+    private let scan: @Sendable () -> [MenuBarExtra]
     /// The last scan, shown at once while the next one runs.
     private var extras: [MenuBarExtra] = []
     private var scannedAt: Date?
 
-    init(isTrusted: @escaping () -> Bool = { MenuBarExtras.isTrusted }, scan: @escaping () -> [MenuBarExtra] = MenuBarExtras.scan) {
+    init(isTrusted: @escaping () -> Bool = { MenuBarExtras.isTrusted }, scan: @escaping @Sendable () -> [MenuBarExtra] = MenuBarExtras.scan) {
         self.isTrusted = isTrusted
         self.scan = scan
     }

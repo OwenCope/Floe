@@ -78,11 +78,11 @@ final class FileSearch: ObservableObject {
         metadata.sortDescriptors = [NSSortDescriptor(key: "kMDItemLastUsedDate", ascending: false)]
         let center = NotificationCenter.default
         observers = [
-            center.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadata, queue: .main) { [weak self] _ in self?.finish() },
-            center.addObserver(forName: .NSMetadataQueryDidUpdate, object: metadata, queue: .main) { [weak self] _ in self?.finish() },
+            center.addMainObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadata) { [weak self] in self?.finish() },
+            center.addMainObserver(forName: .NSMetadataQueryDidUpdate, object: metadata) { [weak self] in self?.finish() },
         ]
         if publishesProgress {
-            observers.append(center.addObserver(forName: .NSMetadataQueryGatheringProgress, object: metadata, queue: .main) { [weak self] _ in
+            observers.append(center.addMainObserver(forName: .NSMetadataQueryGatheringProgress, object: metadata) { [weak self] in
                 self?.publishProgress()
             })
         }
@@ -153,7 +153,7 @@ final class FileSearch: ObservableObject {
         metadataQuery = nil
     }
 
-    deinit {
+    isolated deinit {
         settling?.cancel()
         queries.continuation.finish()
         for observer in observers {

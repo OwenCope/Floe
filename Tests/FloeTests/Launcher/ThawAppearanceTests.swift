@@ -13,7 +13,7 @@ import Testing
 /// Thaw's answers, as Thaw writes them. The first is the example in Thaw's docs/URI_SCHEMES.md, copied
 /// as it stands. Thaw's SharedAppearanceTests build their payloads from configurations and hold no JSON,
 /// so the rest are those configurations written out the way Thaw's encoder does: nil fields left out.
-private enum ThawFixture {
+private nonisolated enum ThawFixture {
     static let documented = """
     {"requestId":"5","operation":"get-appearance","status":"success",
      "data":{"version":1,"colorScheme":"dark","shape":"full","hasRoundedShape":true,"hasShadow":true,
@@ -89,6 +89,7 @@ private enum ThawFixture {
         return try #require(components.url)
     }
 
+    @MainActor
     static func appearance(_ payload: String) throws -> ThawAppearance {
         try ThawAppearanceResponse.appearance(in: Data(envelope(requestId: "1", data: payload).utf8))
     }

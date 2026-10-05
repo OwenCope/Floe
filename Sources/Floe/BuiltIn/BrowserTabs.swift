@@ -9,7 +9,7 @@ import AppKit
 
 /// A browser that lists its open tabs through AppleScript. Only terms read from the browser's own
 /// scripting definition (`sdef`) belong here; a browser without tabs in its definition has no entry.
-struct BrowserApp: Equatable, Sendable {
+nonisolated struct BrowserApp: Equatable, Sendable {
     /// What a tab is found again by when it is brought forward.
     enum TabKey: Sendable {
         /// The tab's place in its window; the address is checked in case the tabs moved.
@@ -69,7 +69,7 @@ struct BrowserApp: Equatable, Sendable {
     }
 }
 
-struct BrowserTab: Equatable, Sendable {
+nonisolated struct BrowserTab: Equatable, Sendable {
     let browser: BrowserApp
     /// The window's `id`, as text.
     let window: String
@@ -122,7 +122,7 @@ enum BrowserTabRow: Equatable {
 
 /// The scripts that list and switch tabs, and the reading of what they answer.
 /// Their own names start with `floe`, so none collides with a term of a browser's dictionary.
-enum BrowserTabScripts {
+nonisolated enum BrowserTabScripts {
     static let fieldSeparator = "\u{1F}"
     static let rowSeparator = "\u{1E}"
     /// What the switching script answers when it found the tab.
@@ -215,7 +215,7 @@ enum BrowserTabScripts {
 }
 
 /// Listing, matching and switching, each with the script runner passed in.
-enum BrowserTabs {
+nonisolated enum BrowserTabs {
     /// What the browsers answered: their tabs, and the browsers macOS would not let Floe ask.
     struct Snapshot: Equatable, Sendable {
         var tabs: [BrowserTab] = []
@@ -258,7 +258,7 @@ enum BrowserTabs {
     }
 
     /// Brings a tab forward off the main thread and reports back on it.
-    static func activate(_ tab: BrowserTab, run: @escaping AppleScriptRunner = AppleScript.run, completion: @escaping (AppleScriptOutcome) -> Void) {
+    static func activate(_ tab: BrowserTab, run: @escaping AppleScriptRunner = AppleScript.run, completion: @escaping @MainActor (AppleScriptOutcome) -> Void) {
         let source = BrowserTabScripts.activate(tab)
         DispatchQueue.global(qos: .userInitiated).async {
             let outcome = run(source)

@@ -15,7 +15,7 @@
 import Foundation
 
 /// One prompt, streamed back from a command line tool that prints its answer as lines of JSON.
-enum ToolTextStream {
+nonisolated enum ToolTextStream {
     /// What one line of a tool's output says.
     enum Event: Equatable {
         case text(String)
@@ -98,6 +98,7 @@ enum ToolTextStream {
 
     /// Runs the tool and returns the whole answer, handing each piece of text to `onText` as it arrives.
     /// `read` says what a line means. Cancelling the task stops the tool, and so does a `stop` line.
+    @concurrent
     static func run(
         _ prompt: String,
         launch: Launch,

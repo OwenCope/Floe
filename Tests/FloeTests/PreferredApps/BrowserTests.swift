@@ -33,7 +33,7 @@ private enum Fake {
 }
 
 /// What a test's opener was asked to open, in place of opening it. Only the main actor touches it.
-private final class Opened: @unchecked Sendable {
+private final nonisolated class Opened: @unchecked Sendable {
     var links: [String] = []
     var apps: [URL?] = []
     var hud: [String] = []

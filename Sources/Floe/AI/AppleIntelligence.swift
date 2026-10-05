@@ -10,7 +10,7 @@ import FoundationModels
 
 /// The model macOS runs on this Mac, as one more thing that can answer `AI.ask`. Nothing leaves
 /// the machine and there is no key; whether it is there at all is the system's to say.
-enum AppleIntelligence {
+nonisolated enum AppleIntelligence {
     /// Why the model cannot answer, as one sentence for Settings and for a failed request; nil when it can.
     static var problem: String? {
         let model = SystemLanguageModel.default
@@ -29,6 +29,7 @@ enum AppleIntelligence {
     }
 
     /// The system hands back the whole answer so far each time; `emit` is given only what is new.
+    @concurrent
     static func answer(_ prompt: String, emit: @Sendable (String) async -> Void) async throws -> String {
         if let problem {
             throw ProviderError.failed(problem)

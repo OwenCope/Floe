@@ -358,6 +358,17 @@ struct ExtensionSessionTests {
         #expect(recorder.forwarded.isEmpty)
     }
 
+    @Test func aRequestIsAnsweredOffTheMainThread() async {
+        let threads = ThreadLog()
+        session.answer = { _, _ in
+            threads.note("answer")
+            return "because"
+        }
+        apply(["type": "request", "id": 8, "method": "ai.ask", "params": ["prompt": "why?"]])
+        #expect(await reply()?["result"] as? String == "because")
+        #expect(threads.onMain == ["answer": false])
+    }
+
     @Test func textThatArrivesEarlyIsSentInOrderBeforeTheReply() async {
         session.answer = { _, emit in
             await emit("be")

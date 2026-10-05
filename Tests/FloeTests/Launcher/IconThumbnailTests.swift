@@ -17,7 +17,7 @@ struct IconThumbnailTests {
     /// Part of macOS itself, so the test does not depend on what is installed.
     private static let calculator = "/System/Applications/Calculator.app"
 
-    private static func solidImage(width: Int, height: Int) -> CGImage {
+    private static nonisolated func solidImage(width: Int, height: Int) -> CGImage {
         let context = CGContext(
             data: nil,
             width: width,

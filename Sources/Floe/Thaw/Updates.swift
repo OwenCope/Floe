@@ -223,11 +223,9 @@ final class UpdatesManager: NSObject {
 
     // MARK: Consent
 
-    /// The settings window calls this as it opens; it is not a main actor type.
-    static nonisolated func settingsWillShow() {
-        MainActor.assumeIsolated {
-            shared.presentConsentIfNeeded()
-        }
+    /// The settings window calls this as it opens.
+    static func settingsWillShow() {
+        shared.presentConsentIfNeeded()
     }
 
     private func presentConsentIfNeeded() {

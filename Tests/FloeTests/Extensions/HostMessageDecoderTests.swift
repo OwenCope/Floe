@@ -142,12 +142,12 @@ struct HostMessageDecoderTests {
         var applied: [String] = []
 
         let delivery = Task {
-            await decoder.deliver(line(["type": "hud", "title": "One"])) { message in
+            await decoder.deliver(line(["type": "hud", "title": "One"])) { @MainActor message in
                 applied.append(name(of: message))
                 await firstApplied.open()
                 await release.wait()
             }
-            await decoder.deliver(line(["type": "close"])) { message in
+            await decoder.deliver(line(["type": "close"])) { @MainActor message in
                 applied.append(name(of: message))
             }
         }

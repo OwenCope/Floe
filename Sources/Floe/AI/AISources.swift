@@ -8,7 +8,7 @@
 import Foundation
 
 /// The three things that can answer a prompt, each behind a function so a test can stand in for it.
-struct AISources: Sendable {
+nonisolated struct AISources: Sendable {
     typealias Emit = @Sendable (String) async -> Void
 
     var api: @Sendable (AIEndpoint, String, Emit) async throws -> String
@@ -38,7 +38,8 @@ struct AISources: Sendable {
 
     /// Answers with the tool the settings choose. A chosen tool that is missing fails the request with
     /// where to change it: no other tool is tried. `which` and `run` are parameters so a test can stand in.
-    static func answerWithTool(
+    /// It runs where its caller does, so neither has to be sent anywhere.
+    static nonisolated(nonsending) func answerWithTool(
         model: String?,
         setup: AIEngine.Setup,
         which: (String) -> URL?,
@@ -51,7 +52,7 @@ struct AISources: Sendable {
     }
 }
 
-extension AIAnswer {
+nonisolated extension AIAnswer {
     static let localOnlyMessage = "“Only use AI that runs on this Mac” is on, and the AI source you chose sends questions elsewhere, so nothing was asked. "
         + "Turn the switch off under Settings › Privacy, or choose Apple Intelligence or a server on this Mac under Settings › General › AI."
 
@@ -62,6 +63,7 @@ extension AIAnswer {
 
     /// Answers a prompt with the chosen source, for Ask AI and for an extension's `AI.ask` alike.
     /// It answers or the request fails: nothing else is tried, so a question never leaves by a fallback.
+    @concurrent
     static func answer(
         _ prompt: String,
         model: String?,

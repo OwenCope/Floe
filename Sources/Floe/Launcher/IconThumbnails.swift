@@ -9,7 +9,7 @@ import AppKit
 import ImageIO
 
 /// What an icon's thumbnail is made from.
-enum IconSource: Hashable {
+nonisolated enum IconSource: Hashable {
     /// The icon Finder shows for a file, a folder or a bundle.
     case workspace(path: String)
     /// An image file, such as one in an extension's assets.
@@ -19,7 +19,7 @@ enum IconSource: Hashable {
 }
 
 /// One thumbnail: the same icon at another size or on another display is another bitmap.
-struct IconKey: Hashable {
+nonisolated struct IconKey: Hashable {
     let source: IconSource
     let points: CGFloat
     let scale: CGFloat
@@ -40,7 +40,7 @@ struct IconKey: Hashable {
 }
 
 /// A thumbnail a view loaded, with the key it was loaded for: a reused view must not show another row's icon.
-struct LoadedIcon {
+nonisolated struct LoadedIcon {
     let key: IconKey
     let image: CGImage
 
@@ -50,7 +50,7 @@ struct LoadedIcon {
 }
 
 /// Every icon the launcher and Settings draw, kept as the bitmap that reaches the screen and nothing larger.
-final class IconThumbnailCache: Sendable {
+final nonisolated class IconThumbnailCache: Sendable {
     static let shared = IconThumbnailCache()
 
     /// A 24 pt row icon at 2x is 9 KB, so the whole catalog (about 300 icons) fits in 3 MB; the rest
@@ -105,7 +105,7 @@ final class IconThumbnailCache: Sendable {
 }
 
 /// Makes the bitmap for one key. Nothing here touches the main thread.
-enum IconThumbnail {
+nonisolated enum IconThumbnail {
     private static let vectorTypes: Set = ["public.svg-image", "com.adobe.pdf"]
 
     static func render(_ key: IconKey) -> CGImage? {

@@ -45,7 +45,7 @@ private final class SlowScope: SearchScope {
 }
 
 /// Counts scans from any thread.
-private final class ScanCount: @unchecked Sendable {
+private final nonisolated class ScanCount: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
 
@@ -67,7 +67,7 @@ private func clip(_ text: String, pinned: Bool = false, age: TimeInterval = 0, a
     ClipboardEntry(id: UUID(), kind: .text, text: text, date: Date(timeIntervalSince1970: 1_000_000 - age), pinned: pinned, sourceApp: app)
 }
 
-private func extra(_ name: String, owner: String = "") -> MenuBarExtra {
+private nonisolated func extra(_ name: String, owner: String = "") -> MenuBarExtra {
     MenuBarExtra(id: "test|\(name)", name: name, ownerName: owner, ownerURL: nil, frame: .zero, element: AXUIElementCreateSystemWide())
 }
 

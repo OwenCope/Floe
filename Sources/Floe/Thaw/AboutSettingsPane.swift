@@ -17,7 +17,7 @@ import SwiftUI
 import ThawUI
 
 /// What the About page shows, read from the bundle so a build stamps its own version and commit.
-enum AppInfo {
+nonisolated enum AppInfo {
     static let displayName = "Floe"
     static let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
     static let buildString = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
@@ -443,8 +443,14 @@ final class ClosureMenuItem: NSMenuItem {
         self.isEnabled = isEnabled
     }
 
+    /// AppKit's initializers are nonisolated, and so must be what stands in for them here.
     @available(*, unavailable)
-    required init(coder _: NSCoder) {
+    override nonisolated init(title _: String, action _: Selector?, keyEquivalent _: String) {
+        fatalError("init(title:action:keyEquivalent:) has not been implemented")
+    }
+
+    @available(*, unavailable)
+    required nonisolated init(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 

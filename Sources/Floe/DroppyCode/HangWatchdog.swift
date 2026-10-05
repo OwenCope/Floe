@@ -28,7 +28,7 @@ import os
 ///
 /// This costs a timer on a background thread and a block on the main queue every half
 /// second, nothing more, so it stays on in every build.
-enum HangWatchdog {
+nonisolated enum HangWatchdog {
     private static let log = Logger(subsystem: "com.thaw.floe", category: "hang")
 
     /// How long the main thread may go without answering before it counts as stuck. Long
@@ -158,7 +158,7 @@ enum HangWatchdog {
     }
 }
 
-extension HangWatchdog.State {
+nonisolated extension HangWatchdog.State {
     /// The main thread answered a ping: any stall is over, and the next one gets a report of its own.
     mutating func answer(at date: Date) {
         lastPong = date

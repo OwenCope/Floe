@@ -11,7 +11,7 @@ import ApplicationServices
 import Combine
 
 /// One saved clipboard item: text, a link, an image or a set of files.
-struct ClipboardEntry: Identifiable, Codable, Sendable {
+nonisolated struct ClipboardEntry: Identifiable, Codable, Sendable {
     enum Kind: String, Codable, Sendable {
         case text, link, image, file
     }
@@ -66,7 +66,7 @@ final class ClipboardHistoryStore: ObservableObject {
 
     static let maxEntries = 300
     static let maxBytes: Int = 200 * 1024 * 1024
-    static let imageMaxDimension: CGFloat = 1024
+    static nonisolated let imageMaxDimension: CGFloat = 1024
     /// The original image data that may wait for the worker: five full 14-inch screenshots as TIFF, or two
     /// 5K ones, and less than the folder may hold. Past it the oldest waiting image goes, see `Queue.shed`.
     static let maxQueuedBytes: Int = 128 * 1024 * 1024
@@ -133,7 +133,7 @@ final class ClipboardHistoryStore: ObservableObject {
     private func startMonitoring() {
         lastChangeCount = NSPasteboard.general.changeCount
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledOnMain(withTimeInterval: 0.5, repeats: true) { [weak self] in
             self?.poll()
         }
         // Copies still waiting when recording stops, or when another app takes the clipboard, are not kept.
@@ -303,12 +303,12 @@ final class ClipboardHistoryStore: ObservableObject {
     }
 
     /// The PNG stored for a copied image, or nil when the data is not an image.
-    @Sendable static func storedPNG(_ data: Data) -> Data? {
+    @Sendable static nonisolated func storedPNG(_ data: Data) -> Data? {
         NSImage(data: data).flatMap(downscaledPNG)
     }
 
     /// Scales an image to at most `imageMaxDimension` on its longer side and returns PNG data.
-    static func downscaledPNG(_ image: NSImage) -> Data? {
+    static nonisolated func downscaledPNG(_ image: NSImage) -> Data? {
         guard let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff)
         else { return nil }

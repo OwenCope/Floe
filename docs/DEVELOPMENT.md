@@ -172,6 +172,23 @@ with Thaw's rules, in `.swiftlint.yml` and `.swiftformat`. CI runs SwiftLint in 
 Tests and `Vendor/` are not linted. The size and complexity limits apply to new code only; what predates them is
 listed in `.swiftlint.baseline`.
 
+Both targets build in the Swift 6 language mode with the main actor as the default isolation and with approachable
+concurrency, which in this mode is two upcoming features, `InferIsolatedConformances` and
+`NonisolatedNonsendingByDefault`. `Package.swift` names them; `project.yml` sets `SWIFT_VERSION`,
+`SWIFT_STRICT_CONCURRENCY`, `SWIFT_APPROACHABLE_CONCURRENCY` and `SWIFT_DEFAULT_ACTOR_ISOLATION`; keep the two in
+step. A type with no annotation is main actor. Values, parsers and scanners that a worker uses are `nonisolated` (an
+extension of one needs the word again), and shared state is an actor or a `Mutex`.
+
+Unmarked async code runs where it is called: a `nonisolated` async function called from the main actor runs on the
+main thread, and so does a closure of an unmarked async function type. Code that must leave says `@concurrent`: a
+function that starts a process, reads or parses a file, waits on another app or decodes a picture, the function type
+of a seam the main actor calls for such work, and a `Task` in a main actor type that must not start there. The
+compiler does not check this, so a test calls each one it can reach from the main actor and looks at where the work
+ran (`WhatLeavesTheMainActorTests`). A helper that only waits for something else stays unmarked.
+
+`@unchecked Sendable`, `nonisolated(unsafe)` and `MainActor.assumeIsolated` each carry a line saying why they are
+safe. In a test, what `@Test(arguments:)` reads is `nonisolated`.
+
 ## Releases and updates
 
 Floe updates itself with [Sparkle](https://sparkle-project.org), the same way Thaw does. The pieces:

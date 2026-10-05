@@ -38,7 +38,7 @@ final class ThawAppearanceFollower: ObservableObject {
         var isThawRunning: () -> Bool
         var newRequestId: () -> String
         var now: () -> Date
-        var schedule: (TimeInterval, @escaping () -> Void) -> Void
+        var schedule: (TimeInterval, @escaping @MainActor () -> Void) -> Void
 
         static let live = Environment(
             open: { NSWorkspace.shared.open($0) },
@@ -49,7 +49,7 @@ final class ThawAppearanceFollower: ObservableObject {
             // A version 4 UUID is 122 random bits from the system's generator.
             newRequestId: { UUID().uuidString },
             now: Date.init,
-            schedule: { delay, work in DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work) }
+            schedule: { delay, work in DispatchQueue.main.asyncAfter(deadline: .now() + delay) { work() } }
         )
     }
 

@@ -11,7 +11,7 @@ import Testing
 
 /// Stands in for running a script: it records what it was asked to run and answers from a table.
 /// No test runs a real script, so no browser is ever asked for anything.
-private final class FakeScripts: @unchecked Sendable {
+private final nonisolated class FakeScripts: @unchecked Sendable {
     private let lock = NSLock()
     private var sources: [String] = []
     private let answer: @Sendable (String) -> AppleScriptOutcome
@@ -33,7 +33,7 @@ private final class FakeScripts: @unchecked Sendable {
 }
 
 /// What a listing script answers: one row per tab, as the script joins them.
-private func listing(_ rows: [(window: String, key: String, title: String, url: String)]) -> String {
+private nonisolated func listing(_ rows: [(window: String, key: String, title: String, url: String)]) -> String {
     rows.map { [$0.window, $0.key, $0.title, $0.url].joined(separator: BrowserTabScripts.fieldSeparator) + BrowserTabScripts.rowSeparator }.joined()
 }
 

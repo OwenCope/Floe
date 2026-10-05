@@ -11,7 +11,7 @@ import SwiftUI
 import Testing
 
 /// A throwaway defaults suite per test, removed when the test's suite value goes away.
-final class ScratchDefaults {
+final nonisolated class ScratchDefaults {
     let name = "floe-tests-\(UUID().uuidString)"
     let defaults: UserDefaults
 

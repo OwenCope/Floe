@@ -31,7 +31,7 @@ import Testing
 enum MenuBarFixture {
     static let assets = "/tmp/floe-menu-bar-presenter/assets"
 
-    static func bitmap(width: Int = 32, height: Int = 32) -> CGImage? {
+    static nonisolated func bitmap(width: Int = 32, height: Int = 32) -> CGImage? {
         CGContext(
             data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
@@ -63,7 +63,7 @@ enum MenuBarFixture {
 
     static func waitFor(_ label: String, _ condition: @MainActor () -> Bool) async {
         for _ in 0 ..< 1000 {
-            if await condition() {
+            if condition() {
                 return
             }
             try? await Task.sleep(for: .milliseconds(1))

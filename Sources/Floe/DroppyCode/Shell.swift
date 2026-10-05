@@ -16,7 +16,7 @@
 import Foundation
 import Synchronization
 
-struct ShellResult: Sendable {
+nonisolated struct ShellResult: Sendable {
     var status: Int32
     var stdout: Data
     var stderr: Data
@@ -49,7 +49,7 @@ struct ShellResult: Sendable {
     }
 }
 
-struct ShellError: LocalizedError, Sendable {
+nonisolated struct ShellError: LocalizedError, Sendable {
     var message: String
     var errorDescription: String? {
         message
@@ -60,7 +60,7 @@ struct ShellError: LocalizedError, Sendable {
     }
 }
 
-enum Shell {
+nonisolated enum Shell {
     /// Runs a process to completion off the main actor and collects its output. With an
     /// `outputLimit`, only that many bytes of each stream's tail are kept. `onOutput` is given
     /// standard output as it is read, in order.
@@ -160,6 +160,7 @@ enum Shell {
     }
 
     /// Runs a named tool found on the login PATH.
+    @concurrent
     static func run(
         tool name: String,
         _ arguments: [String],
@@ -179,7 +180,7 @@ enum Shell {
 ///
 /// It is taken out under the lock and resumed outside it, since a resume runs whatever
 /// the awaiting task does next and `withLock` is non-reentrant.
-final class OnceContinuation<Value: Sendable>: Sendable {
+final nonisolated class OnceContinuation<Value: Sendable>: Sendable {
     private let continuation: Mutex<CheckedContinuation<Value, Error>?>
 
     init(_ continuation: CheckedContinuation<Value, Error>) {
@@ -202,7 +203,7 @@ final class OnceContinuation<Value: Sendable>: Sendable {
     }
 }
 
-private final class OutputCollector: Sendable {
+private final nonisolated class OutputCollector: Sendable {
     enum Stream: Hashable {
         case stdout
         case stderr

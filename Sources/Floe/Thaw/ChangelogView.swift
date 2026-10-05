@@ -22,7 +22,7 @@ import ThawUI
 /// Changelog with a known shape; anything unrecognized degrades to plain
 /// paragraph text rather than failing the panel. Content is not localized,
 /// release notes ship as written, like the acknowledgements document.
-struct ChangelogDocument {
+nonisolated struct ChangelogDocument {
     /// One block of release prose: plain text, or a GitHub alert.
     enum Block {
         case text(AttributedString)
@@ -146,6 +146,7 @@ struct ChangelogDocument {
     /// Loads the changelog: from the repository when `allowFetch` is on,
     /// falling back to the last successful fetch. When the Privacy pane turns
     /// fetching off, only the cache is read.
+    @concurrent
     static func load(allowFetch: Bool) async -> (document: ChangelogDocument?, source: Source) {
         guard allowFetch else {
             return (cachedText().map(parse), .disabled)
@@ -210,8 +211,8 @@ struct ChangelogDocument {
     }
 
     /// `[![alt](image)](url)` on a line of its own.
-    /// An extended literal: Floe builds in the Swift 5 language mode, which has no bare-slash regex.
-    private static let badgePattern = #/^\[!\[(?<alt>[^\]]*)\]\((?<image>[^)]+)\)\]\((?<url>[^)]+)\)$/#
+    /// Unsafe only in name: a Regex never changes once made, and the standard library does not mark it Sendable.
+    private static nonisolated(unsafe) let badgePattern = #/^\[!\[(?<alt>[^\]]*)\]\((?<image>[^)]+)\)\]\((?<url>[^)]+)\)$/#
 
     static func parse(_ text: String) -> ChangelogDocument {
         var document = ChangelogDocument()

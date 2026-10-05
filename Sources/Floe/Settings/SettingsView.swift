@@ -21,7 +21,7 @@ struct SettingsView: View {
         self.catalog = catalog
         self.settings = settings
         self.selection = selection
-        _search = State(initialValue: search ?? MainActor.assumeIsolated { SearchModel() })
+        _search = State(initialValue: search ?? SearchModel())
     }
 
     var body: some View {
@@ -127,7 +127,7 @@ private struct SettingsSidebarPaneList: View {
         colorScheme == .dark ? Color.accentColor.mix(with: .black, by: 0.4) : Color.accentColor
     }
 
-    private struct Row: Identifiable {
+    private nonisolated struct Row: Identifiable {
         let page: SettingsPage
         let title: String
         let symbol: String?

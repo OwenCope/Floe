@@ -8,7 +8,7 @@
 import Foundation
 
 /// A preference or argument declared in an extension manifest, as an editable field.
-struct FieldSpec: Identifiable, Decodable, Sendable {
+nonisolated struct FieldSpec: Identifiable, Decodable, Sendable {
     let name: String
     let title: String
     let detail: String?
@@ -84,7 +84,7 @@ struct FieldSpec: Identifiable, Decodable, Sendable {
 }
 
 /// An array that keeps the elements that decode and drops the rest: one bad entry must not hide the manifest.
-struct Lossy<Element: Decodable>: Decodable {
+nonisolated struct Lossy<Element: Decodable>: Decodable {
     private struct Skipped: Decodable {}
 
     let elements: [Element]
@@ -104,7 +104,7 @@ struct Lossy<Element: Decodable>: Decodable {
     }
 }
 
-struct ExtensionCommand: Identifiable, Sendable {
+nonisolated struct ExtensionCommand: Identifiable, Sendable {
     enum Source: Sendable { case local, raycast }
 
     let extensionDir: URL
@@ -183,7 +183,7 @@ struct ExtensionCommand: Identifiable, Sendable {
     }
 }
 
-struct AppEntry: Sendable {
+nonisolated struct AppEntry: Sendable {
     let name: String
     let url: URL
 }

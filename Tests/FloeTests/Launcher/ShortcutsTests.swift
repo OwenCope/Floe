@@ -52,8 +52,8 @@ struct ShortcutsTests {
         #expect(Shortcuts.matches(["key": "r"], key: "r", flags: []))
     }
 
-    @Test(arguments: [nil, "cmd+c", ["modifiers": ["cmd"]]] as [Any?])
-    func malformedShortcutsNeverMatchAndHaveNoLabel(shortcut: Any?) {
+    @Test(arguments: [nil, "cmd+c", ["modifiers": ["cmd"]]] as [(any Sendable)?])
+    func malformedShortcutsNeverMatchAndHaveNoLabel(shortcut: (any Sendable)?) {
         #expect(Shortcuts.matches(shortcut, key: "c", flags: .command) == false)
         #expect(Shortcuts.label(shortcut) == nil)
     }

@@ -138,7 +138,7 @@ enum InstalledApps {
     }
 }
 
-enum Keychain {
+nonisolated enum Keychain {
     private static let service = "com.thaw.floe.preferences"
 
     private static func query(_ account: String) -> [String: Any] {
