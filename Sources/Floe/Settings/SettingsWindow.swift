@@ -54,6 +54,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         UpdatesManager.settingsWillShow()
         NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
+        // The system may hold back activation for a process the user did not start, and the window with it.
+        window?.orderFrontRegardless()
     }
 
     func close() {

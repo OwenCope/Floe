@@ -48,9 +48,13 @@ final class SettingsProcess {
             start(arguments)
         case let .bringForward(page):
             bringForward(page)
-            // The settings process activates itself too; this covers the case where the system holds it back.
-            pid.flatMap(NSRunningApplication.init(processIdentifier:))?.activate()
+            activate()
         }
+    }
+
+    /// The settings process activates itself too; this covers the case where the system holds it back.
+    func activate() {
+        pid.flatMap(NSRunningApplication.init(processIdentifier:))?.activate()
     }
 
     private func start(_ arguments: [String]) {

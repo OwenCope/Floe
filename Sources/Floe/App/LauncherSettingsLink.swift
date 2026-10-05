@@ -81,6 +81,8 @@ final class LauncherSettingsLink {
         case .storeChanged:
             reload(message.store)
         case .ready:
+            // A process just started has its window up by now.
+            process.activate()
             link.send(LinkMessage(.thawStatus, ThawAppearanceFollower.shared.status.rawValue))
             link.send(LinkMessage(.updatesState, UpdatesManager.shared.state.text))
         case .pageChanged:
