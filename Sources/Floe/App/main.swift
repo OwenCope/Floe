@@ -134,6 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             .store(in: &cancellables)
         // Everything the panel needs is wired up: the catalog can fill in behind it now.
         model.startCatalogLoading()
+        model.typing.window = 0.03
         model.menuBarSearch.warm()
         // Thaw's permission object keeps checking after a request; the menu bar is read the moment the grant lands.
         AppPermissions.shared.onPermissionTransition = { [weak self] permission, granted in

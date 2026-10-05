@@ -153,7 +153,7 @@ final class MenuBarSearchModel: ObservableObject {
         if let url = extra.ownerURL {
             actions.append(nil)
             actions.append(ItemAction(title: String(localized: "Open \(extra.ownerName)", bundle: .floe, comment: "The placeholder is the name of an app."), symbol: "app") { [weak self] in
-                NSWorkspace.shared.open(url)
+                NSWorkspace.shared.openWithoutWaiting(url)
                 self?.host.hidePanel()
             })
             actions.append(ItemAction(title: String(localized: "Show \(extra.ownerName) in Finder", bundle: .floe, comment: "The placeholder is the name of an app."), symbol: "folder") { [weak self] in

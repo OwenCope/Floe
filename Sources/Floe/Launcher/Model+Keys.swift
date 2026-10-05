@@ -11,6 +11,8 @@ import AppKit
 extension LauncherModel {
     /// Returns true when the key was consumed. Each mode's own keys are its model's.
     func handleKey(_ event: NSEvent) -> Bool {
+        // A key that acts on the results acts on those of the text as typed, not of a moment ago.
+        typing.flush()
         let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
         if setup != nil {
             return handleSetupKey(event)

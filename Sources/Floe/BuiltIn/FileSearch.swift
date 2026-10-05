@@ -57,7 +57,7 @@ final class FileSearch: ObservableObject {
     }
 
     func open(_ file: FileResult) {
-        NSWorkspace.shared.open(file.url)
+        NSWorkspace.shared.openWithoutWaiting(file.url)
     }
 
     func reveal(_ file: FileResult) {

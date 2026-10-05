@@ -134,30 +134,8 @@ struct RootView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
-                                // One view per result, title included: a lazy stack walks the whole list when rows vary in count.
-                                VStack(alignment: .leading, spacing: 0) {
-                                    if let section = result.section, index == 0 || results[index - 1].section != section {
-                                        SectionTitle(title: section, isFirst: index == 0)
-                                    }
-                                    RootRow(model: model, item: result.item, selected: index == model.selection)
-                                        .equatable()
-                                        .onTapGesture { model.activate(result.item) }
-                                }
-                                .id(result.id)
-                            }
-                        }
-                    }
-                    .contentMargins(.all, ThawSpacing.base, for: .scrollContent)
-                    .onChange(of: model.selection) {
-                        if results.indices.contains(model.selection) {
-                            proxy.scrollTo(results[model.selection].id)
-                        }
-                    }
-                }
+                RootResultList(model: model, results: results)
+                    .equatable()
             }
             bottomBar(results: results)
         }
@@ -198,7 +176,7 @@ struct SectionTitle: View {
     }
 }
 
-/// One result. Equatable so moving the selection redraws the two rows it touches, not every row on screen.
+/// One result. Equatable so a new list of results redraws the rows that changed, not every row on screen.
 struct RootRow: View, Equatable {
     let item: RootItem
     let selected: Bool
@@ -210,7 +188,7 @@ struct RootRow: View, Equatable {
     init(model: LauncherModel, item: RootItem, selected: Bool) {
         self.item = item
         self.selected = selected
-        matched = Fuzzy.match(model.query, item.title)?.matched ?? []
+        matched = Fuzzy.match(model.searchedQuery, item.title)?.matched ?? []
         if case let .command(command) = item {
             isInMenuBar = model.isInMenuBar(command)
         } else {

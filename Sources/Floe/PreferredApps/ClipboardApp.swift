@@ -61,7 +61,7 @@ struct ClipboardOpener {
             if let application {
                 NSWorkspace.shared.open([url], withApplicationAt: application, configuration: NSWorkspace.OpenConfiguration())
             } else {
-                NSWorkspace.shared.open(url)
+                NSWorkspace.shared.openWithoutWaiting(url)
             }
         }
     )

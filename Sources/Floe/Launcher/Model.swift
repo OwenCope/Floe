@@ -10,11 +10,33 @@ import ApplicationServices
 
 final class LauncherModel: ObservableObject {
     @Published var query = "" {
-        didSet { refresh() }
+        didSet { typing.changed { [weak self] in self?.refresh() } }
     }
 
-    @Published private(set) var results: [RootResult] = []
-    @Published var selection = 0
+    let typing = TypingSettle()
+    /// The text the results on screen answer. While typing is paced it trails `query`, and rows mark their matches by it.
+    private(set) var searchedQuery = ""
+
+    @Published private(set) var results: [RootResult] = [] {
+        didSet {
+            resultsVersion += 1
+            rowSelection.reset()
+            tellTheSelectedRow()
+        }
+    }
+
+    @Published var selection = 0 {
+        didSet { tellTheSelectedRow() }
+    }
+
+    /// Counts every new list of results, so the list view knows one from the next without comparing rows.
+    private(set) var resultsVersion = 0
+    let rowSelection = RowSelection()
+
+    private func tellTheSelectedRow() {
+        rowSelection.select(results.indices.contains(selection) ? results[selection].id : nil)
+    }
+
     @Published private(set) var session: ExtensionSession?
     /// The setup form on screen, if any. What is typed into it is `setupForm`'s.
     @Published var setup: SetupRequest?
@@ -297,6 +319,7 @@ final class LauncherModel: ObservableObject {
 
     func refresh() {
         let started = Date()
+        searchedQuery = query
         defer {
             if Date().timeIntervalSince(started) >= Log.slowSearch {
                 Log.search.warning("Slow search: \(Log.milliseconds(since: started)) ms for \(query.count) characters, \(results.count) rows")
@@ -401,7 +424,7 @@ final class LauncherModel: ObservableObject {
         if let running = NSWorkspace.shared.frontmostApplication, running.bundleURL?.standardizedFileURL == app.url.standardizedFileURL {
             running.hide()
         } else {
-            NSWorkspace.shared.open(app.url)
+            NSWorkspace.shared.openWithoutWaiting(app.url)
         }
     }
 
@@ -462,7 +485,7 @@ final class LauncherModel: ObservableObject {
         }
         switch item {
         case let .app(app):
-            NSWorkspace.shared.open(app.url)
+            NSWorkspace.shared.openWithoutWaiting(app.url)
             hidePanel()
             reset()
         case let .command(command):
@@ -516,7 +539,7 @@ final class LauncherModel: ObservableObject {
             run(shortcut)
         case let .settingsPane(pane):
             if let url = pane.url {
-                NSWorkspace.shared.open(url)
+                NSWorkspace.shared.openWithoutWaiting(url)
             }
             hidePanel()
             reset()

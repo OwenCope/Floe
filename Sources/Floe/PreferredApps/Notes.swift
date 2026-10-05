@@ -135,7 +135,7 @@ enum Notes {
                 completion(app == .antinote ? String(localized: "Antinote isn't installed", bundle: .floe, comment: "Antinote is the name of an app.") : String(localized: "No app opens that URL", bundle: .floe))
                 return
             }
-            NSWorkspace.shared.open(url)
+            NSWorkspace.shared.openWithoutWaiting(url)
             completion(nil)
             return
         }

@@ -174,7 +174,7 @@ enum SystemCommand: String, CaseIterable, Identifiable {
         if alert.runModal() == .alertFirstButtonReturn,
            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")
         {
-            NSWorkspace.shared.open(url)
+            NSWorkspace.shared.openWithoutWaiting(url)
         }
     }
 
