@@ -32,6 +32,8 @@ final class LauncherModel: ObservableObject {
     private var sshHosts: [SSHHost] = []
     /// How a host's connection is opened. Tests replace it, so they open nothing.
     var sshConnector = SSHConnector.system
+    /// The shortcuts of Apple's Shortcuts app and their runs. Nothing is read while the switch in Privacy is off.
+    let shortcutLibrary = AppleShortcutLibrary()
     /// Files in the Scripts folder that failed to parse, for the settings pane.
     @Published private(set) var scriptFailures: [ScriptFailure] = []
     /// True until the first apps and commands scans have both published, or a snapshot was injected.
@@ -356,6 +358,7 @@ final class LauncherModel: ObservableObject {
         context.clipboardDestination = clipboardDestination
         context.settingsPanes = settingsPanes
         context.sshHosts = sshHosts
+        context.shortcuts = shortcutsForSearch
         context.snippets = SnippetStore.shared.snippets
         context.quicklinks = QuicklinkStore.shared.links
         context.menuBarItemNames = settings.menuBarItemNames
@@ -509,6 +512,8 @@ final class LauncherModel: ObservableObject {
             hidePanel()
             reset()
             SSHConnection.connect(to: host, terminal: terminal, using: sshConnector) { [weak self] in self?.showHUD($0) }
+        case let .shortcut(shortcut):
+            run(shortcut)
         case let .settingsPane(pane):
             if let url = pane.url {
                 NSWorkspace.shared.open(url)
@@ -725,6 +730,7 @@ final class LauncherModel: ObservableObject {
         pendingReset = nil
         reloadScripts()
         reloadSSHHosts()
+        reloadShortcuts()
     }
 
     /// Runs the command that failed again, with the same arguments.

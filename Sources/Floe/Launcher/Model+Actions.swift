@@ -32,6 +32,7 @@ extension LauncherModel {
         case .clipboardEntry: "Paste"
         case .askAI: "Ask"
         case .sshHost: "Connect"
+        case .shortcut: "Run"
         case .menuBarItem: "Click Item"
         case .browserTab(.tab): "Switch to Tab"
         case .webAddress: openInBrowserTitle
@@ -82,6 +83,8 @@ extension LauncherModel {
             actions += FileActions.actions(for: file.url, host: actionHost)
         case let .sshHost(host, _):
             actions += SSHHostActions.actions(for: host, host: actionHost)
+        case let .shortcut(shortcut):
+            actions += shortcutActions(for: shortcut)
         case let .clipboardEntry(entry):
             actions.append(ItemAction(title: "Copy", symbol: "doc.on.doc") { [weak self] in self?.clipboardHistory.copy(entry) })
         case .webAddress, .quicklink:

@@ -341,6 +341,8 @@ struct RootIcon: View {
             } else {
                 SymbolTile(symbol: "terminal")
             }
+        case .shortcut:
+            AppleShortcutIcon()
         }
     }
 }

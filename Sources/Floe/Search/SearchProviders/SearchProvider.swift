@@ -28,6 +28,8 @@ struct SearchContext {
     var settingsPanes: [SystemSettingsPane] = []
     /// The hosts of the SSH configuration; empty when there is none.
     var sshHosts: [SSHHost] = []
+    /// The user's shortcuts from the Shortcuts app; empty while their switch in Privacy is off.
+    var shortcuts: [AppleShortcut] = []
     var snippets: [Snippet] = []
     var quicklinks: [Quicklink] = []
     /// The names the user gave menu bar items, by item id.

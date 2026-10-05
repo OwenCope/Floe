@@ -56,6 +56,7 @@ Floe is a launcher for macOS that runs Raycast extensions unmodified and hands w
 - Preferred apps: a terminal, an editor, a browser and a notes app. Files, folders and the Finder selection open in the ones already in use, web links open in the browser you choose (Open With in the Actions menu sends one link to another), and `note` followed by text goes to Apple Notes, Antinote, or any app with a URL scheme.
 - A preferred clipboard app: with a clipboard manager chosen, Clipboard History opens it (Raycast by name, any other app, or a link), and Floe saves no copies of its own.
 - SSH hosts: the hosts named in `~/.ssh/config` and the files it includes are found in the search, and `ssh` followed by a space lists them. Return opens the connection in the preferred terminal. Floe reads the names and keeps nothing.
+- Apple Shortcuts: once switched on in Settings, Privacy, the shortcuts you made in the Shortcuts app are found in the search by name, and `shortcuts` followed by a space lists them. Return runs one in the background; if it fails, Floe shows the reason Shortcuts gave. Making and editing them stays in Shortcuts.
 
 #### AI
 

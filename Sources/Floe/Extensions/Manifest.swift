@@ -237,6 +237,8 @@ enum RootItem: Identifiable {
     case webAddress(WebAddress)
     /// A host of the SSH configuration, with the terminal it opens in.
     case sshHost(SSHHost, terminal: ResolvedApp?)
+    /// A shortcut made in Apple's Shortcuts app; Return runs it there.
+    case shortcut(AppleShortcut)
 
     static let menuBarSearchKey = "builtin:menubar-search"
     static let emojiSearchKey = "builtin:emoji-search"
@@ -273,6 +275,7 @@ enum RootItem: Identifiable {
         case .askAI: "ask-ai"
         case .webAddress: "web-address"
         case let .sshHost(host, _): host.id
+        case let .shortcut(shortcut): shortcut.id
         }
     }
 
@@ -310,6 +313,7 @@ enum RootItem: Identifiable {
         case let .askAI(question): "Ask AI \u{201C}\(question)\u{201D}"
         case let .webAddress(address): "Open \(address.text)"
         case let .sshHost(host, _): host.alias
+        case let .shortcut(shortcut): shortcut.name
         }
     }
 
@@ -341,7 +345,7 @@ enum RootItem: Identifiable {
     /// Key for aliases and hotkeys; commands keep their historical "extension/command" key.
     var settingsKey: String? {
         switch self {
-        case .app, .sshHost: id
+        case .app, .sshHost, .shortcut: id
         case let .command(command): command.id
         case let .script(script): script.id
         case .menuBarSearch: Self.menuBarSearchKey
@@ -380,21 +384,7 @@ enum RootItem: Identifiable {
         case .askAI: "AI"
         case .webAddress: "Web Address"
         case .sshHost: "SSH"
-        }
-    }
-
-    /// Other words a result answers to, matched like its title.
-    var keywords: [String] {
-        switch self {
-        case let .system(command): command.keywords
-        case let .settingsPane(pane): pane.keywords
-        case let .note(action, _): action == .new ? AppRole.notes.keywords : ["add to note"]
-        case let .thaw(action): action.keywords
-        case let .finderSelection(role, _): role.keywords
-        case .clipboardApp: AppRole.clipboard.keywords
-        case let .snippet(snippet): [snippet.keyword]
-        case let .sshHost(host, _): host.keywords
-        default: []
+        case .shortcut: "Shortcut"
         }
     }
 }

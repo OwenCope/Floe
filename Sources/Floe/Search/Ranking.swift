@@ -27,6 +27,21 @@ extension RootItem {
         }
         return false
     }
+
+    /// Other words a result answers to, matched like its title.
+    var keywords: [String] {
+        switch self {
+        case let .system(command): command.keywords
+        case let .settingsPane(pane): pane.keywords
+        case let .note(action, _): action == .new ? AppRole.notes.keywords : ["add to note"]
+        case let .thaw(action): action.keywords
+        case let .finderSelection(role, _): role.keywords
+        case .clipboardApp: AppRole.clipboard.keywords
+        case let .snippet(snippet): [snippet.keyword]
+        case let .sshHost(host, _): host.keywords
+        default: []
+        }
+    }
 }
 
 /// Orders the root search. Usage and settings come in as plain values, so this stays free of stored state.

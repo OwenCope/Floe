@@ -187,6 +187,7 @@ extension SearchIndex {
         privacy("searchSources", "Search Sources", section: "Search Sources", keywords: ["sources", "root search", "results", "sections"]),
         privacy("searchSources.files", "Files", section: "Search Sources", keywords: ["file search", "spotlight", "documents", "source"]),
         privacy("searchSources.tabs", "Browser Tabs", section: "Search Sources", keywords: ["tabs", "browser", "safari", "open tabs", "automation", "applescript", "source"]),
+        privacy("searchSources.shortcuts", "Apple Shortcuts", section: "Search Sources", keywords: ["shortcuts", "shortcut", "shortcuts app", "run", "automation", "source"]),
         privacy("aiOnThisMacOnly", "Only use AI that runs on this Mac", section: "Network Access", keywords: ["ai", "local", "on device", "offline", "cloud", "private", "apple intelligence", "ollama", "ask"]),
     ]
 

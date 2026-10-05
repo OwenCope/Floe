@@ -44,7 +44,7 @@ struct PrivacySettingsPane: View {
                 }
             }
             ThawSection("Search Sources") {
-                ForEach(SearchSourceInfo.all) { source in
+                ForEach(SearchSourceInfo.switches) { source in
                     Toggle(isOn: isOn(source)) {
                         Text(source.title)
                         Text(source.detail)
